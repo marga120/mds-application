@@ -9,17 +9,20 @@ import os
 from werkzeug.utils import secure_filename
 from datetime import datetime, timezone
 import pytz
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
 # Database configuration
 DB_CONFIG = {
-    'host': '',
-    'database': '',
-    'user': '',
-    'password': '',
-    'port': ''
+    'host': os.getenv("HOST"),
+    'database': os.getenv("DATABASE"),
+    'user': os.getenv("USER"),
+    'password': os.getenv("PASSWORD"),
+    'port': os.getenv("PORT")
 }
 
 def get_db_connection():

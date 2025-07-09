@@ -1,15 +1,18 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key'
+    
     
     # Database Configuration
     DB_CONFIG = {
-        'host': os.environ.get('DB_HOST', 'localhost'),
-        'database': os.environ.get('DB_NAME', 'student_db'),
-        'user': os.environ.get('DB_USER', 'your_username'),
-        'password': os.environ.get('DB_PASSWORD', 'your_password'),
-        'port': os.environ.get('DB_PORT', '5432')
+        'host': os.getenv("HOST"),
+        'database': os.getenv("DATABASE"),
+        'user': os.getenv("USER"),
+        'password': os.getenv("PASSWORD"),
+        'port': os.getenv("PORT")
     }
     
     # Upload Configuration
