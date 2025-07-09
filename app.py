@@ -315,3 +315,4 @@ def get_upload_history():
 if __name__ == '__main__':
     init_database()
     app.run(debug=True)
+    
