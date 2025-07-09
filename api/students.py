@@ -1,11 +1,9 @@
-from flask import Flask, request, jsonify, render_template
-from flask_cors import CORS
+from flask import Blueprint, request, jsonify
 import pandas as pd
 import io
 from datetime import datetime, timezone
 
-# Import our database functions
-from utils.database import init_database
+# Import our model functions
 from models.students import (
     upsert_students,
     get_all_students,
@@ -14,17 +12,11 @@ from models.students import (
     get_upload_history,
 )
 
-app = Flask(__name__)
-CORS(app)
+# Create a Blueprint for student API routes
+students_api = Blueprint("students_api", __name__)
 
 
-@app.route("/")
-def index():
-    """Serve the main HTML page"""
-    return render_template("index.html")
-
-
-@app.route("/api/upload", methods=["POST"])
+@students_api.route("/upload", methods=["POST"])
 def upload_csv():
     """Handle CSV file upload and processing"""
     if "file" not in request.files:
@@ -107,7 +99,7 @@ def upload_csv():
         )
 
 
-@app.route("/api/students", methods=["GET"])
+@students_api.route("/students", methods=["GET"])
 def get_students():
     """Get all students from database"""
     students, error = get_all_students()
@@ -118,7 +110,7 @@ def get_students():
     return jsonify({"success": True, "students": students})
 
 
-@app.route("/api/students/<student_id>", methods=["PUT"])
+@students_api.route("/students/<student_id>", methods=["PUT"])
 def update_student_route(student_id):
     """Update a specific student record"""
     data = request.get_json()
@@ -126,14 +118,14 @@ def update_student_route(student_id):
     return jsonify({"success": success, "message": message})
 
 
-@app.route("/api/students/<student_id>", methods=["DELETE"])
+@students_api.route("/students/<student_id>", methods=["DELETE"])
 def delete_student_route(student_id):
     """Delete a specific student"""
     success, message = delete_student(student_id)
     return jsonify({"success": success, "message": message})
 
 
-@app.route("/api/upload-history", methods=["GET"])
+@students_api.route("/upload-history", methods=["GET"])
 def get_upload_history_route():
     """Get upload history with timestamps"""
     history, error = get_upload_history()
@@ -142,8 +134,3 @@ def get_upload_history_route():
         return jsonify({"success": False, "message": error})
 
     return jsonify({"success": True, "history": history})
-
-
-if __name__ == "__main__":
-    init_database()
-    app.run(debug=True)
