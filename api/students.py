@@ -15,7 +15,6 @@ from models.students import (
 # Create a Blueprint for student API routes
 students_api = Blueprint("students_api", __name__)
 
-
 @students_api.route("/upload", methods=["POST"])
 def upload_csv():
     """Handle CSV file upload and processing"""
