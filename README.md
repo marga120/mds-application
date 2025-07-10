@@ -89,9 +89,9 @@ This will create:
 
 ### Test Login Credentials
 After seeding, you can use these test accounts:
-- **Admin**: `testuser1@example.com` / `password`
-- **Faculty**: `testuser3@gmail.com` / `password`
-- **Viewer**: `testuser4@gmail.com` / `password`
+- **Admin**: `testuser1@example.com` / `password` and `testuser2@example.com` / `password`
+- **Faculty**: `testuser3@example.com` / `password`
+- **Viewer**: `testuser4@example.com` / `password`
 
 ## 🛠️ Troubleshooting
 

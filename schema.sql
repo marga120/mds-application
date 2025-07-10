@@ -75,15 +75,15 @@ WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser1@example.com');
 
 -- Insert second default admin user
 INSERT INTO "user" (first_name, last_name, email, password, role_user_id) 
-SELECT 'Test2', 'User2', 'testuser2@gmail.com', 'password', 1
-WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser2@gmail.com');
+SELECT 'Test2', 'User2', 'testuser2@example.com', 'password', 1
+WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser2@example.com');
 
 -- Insert second default faculty user
 INSERT INTO "user" (first_name, last_name, email, password, role_user_id) 
-SELECT 'Test3', 'User3', 'testuser3@gmail.com', 'password', 2
-WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser3@gmail.com');
+SELECT 'Test3', 'User3', 'testuser3@example.com', 'password', 2
+WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser3@example.com');
 
 -- Insert second default viewer user
 INSERT INTO "user" (first_name, last_name, email, password, role_user_id) 
-SELECT 'Test4', 'User4', 'testuser4@gmail.com', 'password', 3
-WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser4@gmail.com');
+SELECT 'Test4', 'User4', 'testuser4@example.com', 'password', 3
+WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser4@example.com');
