@@ -1,5 +1,6 @@
 from flask import Flask, render_template
 from flask_cors import CORS
+import os
 
 # Import database initialization
 from utils.database import init_database
@@ -25,5 +26,7 @@ def about():
     return render_template("about.html")
 
 if __name__ == "__main__":
-    init_database()
+    # Initialize the database if not already done (does not print twice)
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        init_database()
     app.run(debug=True)
