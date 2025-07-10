@@ -63,7 +63,7 @@ def get_all_students():
             SELECT student_id, student_name, university, year, degree, 
                    created_at, updated_at, uploaded_at,
                    EXTRACT(EPOCH FROM (NOW() - updated_at)) as seconds_since_update
-            FROM students 
+            FROM students
             ORDER BY updated_at DESC, student_name
         """)
         students = cursor.fetchall()
@@ -149,7 +149,7 @@ def get_upload_history():
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
             SELECT uploaded_at, COUNT(*) as record_count
-            FROM students 
+            FROM students
             GROUP BY uploaded_at 
             ORDER BY uploaded_at DESC
             LIMIT 10
