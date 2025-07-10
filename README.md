@@ -58,7 +58,7 @@ CREATE DATABASE mds_database;
 
 ## 🎮 Running the Application
 
-### Option 1: Run Everything with One Command
+### Run Everything with One Command
 ```bash
 npm run dev
 ```
