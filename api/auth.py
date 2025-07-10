@@ -7,9 +7,19 @@ auth_api = Blueprint('auth_api', __name__)
 
 @auth_api.route('/login', methods=['POST'])
 def login():
-    """Handle user login"""
+    """Handle user login - works with both JSON and form data"""
     try:
-        data = request.get_json()
+        # Handle both JSON and form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            # Form data from Htmx
+            data = {
+                'email': request.form.get('email', ''),
+                'password': request.form.get('password', ''),
+                'remember': request.form.get('remember') == 'on'
+            }
+        
         email = data.get('email', '').strip()
         password = data.get('password', '')
         remember = data.get('remember', False)
@@ -88,7 +98,18 @@ def get_current_user():
 def register():
     """Handle user registration (admin only in production)"""
     try:
-        data = request.get_json()
+        # Handle both JSON and form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = {
+                'first_name': request.form.get('first_name', ''),
+                'last_name': request.form.get('last_name', ''),
+                'email': request.form.get('email', ''),
+                'password': request.form.get('password', ''),
+                'role_user_id': int(request.form.get('role_user_id', 3))
+            }
+        
         first_name = data.get('first_name', '').strip()
         last_name = data.get('last_name', '').strip()
         email = data.get('email', '').strip()

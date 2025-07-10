@@ -43,4 +43,47 @@
   .table-ubc tr:hover {
     @apply bg-gray-50;
   }
+
+  /* Htmx loading indicators */
+  .htmx-indicator {
+    @apply opacity-0 transition-opacity duration-200;
+  }
+  
+  .htmx-request .htmx-indicator {
+    @apply opacity-100;
+  }
+  
+  .htmx-request.htmx-indicator {
+    @apply opacity-100;
+  }
+
+  /* Loading states */
+  .loading {
+    @apply text-center py-8 text-ubc-blue;
+  }
+
+  .no-data {
+    @apply text-center py-8 text-gray-600;
+  }
+
+  .search-results {
+    @apply mb-4 text-gray-600 text-sm;
+  }
+
+  .timestamp {
+    @apply text-sm text-gray-600;
+  }
+
+  /* Message styles */
+  .message {
+    @apply p-4 rounded-md;
+  }
+
+  .message.success {
+    @apply bg-green-100 text-green-700;
+  }
+
+  .message.error {
+    @apply bg-red-100 text-red-700;
+  }
 }

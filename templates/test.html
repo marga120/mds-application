@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Htmx Test</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+    <h1>Htmx Auto-refresh Test</h1>
+    
+    <!-- This should refresh every 3 seconds -->
+    <div 
+        hx-get="/test-htmx" 
+        hx-trigger="load, every 3s"
+        style="border: 1px solid black; padding: 10px; margin: 10px;">
+        Loading...
+    </div>
+    
+    <p>The box above should update every 3 seconds with the current time.</p>
+    
+    <script>
+        console.log('Htmx loaded:', typeof htmx !== 'undefined');
+        
+        // Listen for Htmx events
+        document.body.addEventListener('htmx:afterRequest', function(evt) {
+            console.log('Htmx request completed:', evt.detail);
+        });
+        
+        document.body.addEventListener('htmx:beforeRequest', function(evt) {
+            console.log('Htmx request starting:', evt.detail);
+        });
+    </script>
+</body>
+</html>

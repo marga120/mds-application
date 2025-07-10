@@ -1,0 +1,6 @@
+{% if history and history|length > 0 %}
+<div class="bg-ubc-gray-light rounded-md p-4">
+    <strong>Last Upload:</strong> {{ history[0].uploaded_at.strftime('%Y-%m-%d %H:%M:%S') }}<br>
+    <strong>Records:</strong> {{ history[0].record_count }}
+</div>
+{% endif %}

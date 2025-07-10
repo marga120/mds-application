@@ -1,98 +1,68 @@
-class LoginManager {
-  constructor() {
-    this.initializeEventListeners();
-    this.checkExistingSession();
-  }
+// Login functionality with Htmx
+import 'htmx.org'
 
-  initializeEventListeners() {
-    const loginForm = document.getElementById("loginForm");
-    if (loginForm) {
-      loginForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        this.handleLogin();
-      });
-    }
-  }
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Login page with Htmx loaded');
+    
+    // Check for existing session
+    checkExistingSession();
+    
+    // Handle login form responses
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.detail.pathInfo.requestPath === '/api/auth/login') {
+            const xhr = evt.detail.xhr;
+            
+            try {
+                const response = JSON.parse(xhr.response);
+                
+                if (response.success) {
+                    showMessage('Login successful! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = response.redirect || '/';
+                    }, 1000);
+                } else {
+                    showMessage(response.message || 'Login failed', 'error');
+                }
+            } catch (e) {
+                showMessage('Login error occurred', 'error');
+            }
+        }
+    });
 
-  async checkExistingSession() {
+    // Handle network errors
+    document.body.addEventListener('htmx:responseError', function(evt) {
+        showMessage('Network error. Please try again.', 'error');
+    });
+});
+
+async function checkExistingSession() {
     try {
-      const response = await fetch("/api/auth/check-session");
-      const result = await response.json();
+        const response = await fetch('/api/auth/check-session');
+        const result = await response.json();
 
-      if (result.authenticated) {
-        // User is already logged in, redirect to dashboard
-        window.location.href = "/";
-      }
+        if (result.authenticated) {
+            // User is already logged in, redirect to dashboard
+            window.location.href = '/';
+        }
     } catch (error) {
-      console.log("No existing session");
+        console.log('No existing session');
     }
-  }
-
-  async handleLogin() {
-    const loginBtn = document.getElementById("loginBtn");
-    const messageDiv = document.getElementById("message");
-
-    // Get form data
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
-    const remember = document.getElementById("remember").checked;
-
-    if (!email || !password) {
-      this.showMessage("Please enter both email and password", "error");
-      return;
-    }
-
-    // Disable button and show loading
-    loginBtn.disabled = true;
-    loginBtn.textContent = "Signing in...";
-
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-          remember: remember,
-        }),
-        credentials: "include", // Important for cookies
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        window.location.href = result.redirect || "/";
-      } else {
-        this.showMessage(result.message || "Login failed", "error");
-      }
-    } catch (error) {
-      this.showMessage("Network error. Please try again.", "error");
-    } finally {
-      loginBtn.disabled = false;
-      loginBtn.textContent = "Sign in";
-    }
-  }
-
-  showMessage(text, type) {
-    const messageDiv = document.getElementById("message");
-    messageDiv.textContent = text;
-    messageDiv.className = `p-4 rounded-md ${
-      type === "success"
-        ? "bg-green-100 text-green-700"
-        : "bg-red-100 text-red-700"
-    }`;
-    messageDiv.classList.remove("hidden");
-
-    // Hide message after 5 seconds
-    setTimeout(() => {
-      messageDiv.classList.add("hidden");
-    }, 5000);
-  }
 }
 
-// Initialize login manager when page loads
-document.addEventListener("DOMContentLoaded", function () {
-  new LoginManager();
-});
+function showMessage(text, type) {
+    const messageDiv = document.getElementById('message');
+    if (messageDiv) {
+        messageDiv.textContent = text;
+        messageDiv.className = `p-4 rounded-md ${
+            type === 'success'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-red-100 text-red-700'
+        }`;
+        messageDiv.classList.remove('hidden');
+
+        // Hide message after 5 seconds
+        setTimeout(() => {
+            messageDiv.classList.add('hidden');
+        }, 5000);
+    }
+}

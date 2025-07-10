@@ -4,30 +4,45 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MDS Application</title>
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/output.css') }}"
-    />
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}" />
+    
+    <!-- Vite HMR for development -->
+    {% if is_development %}
+    <script type="module" src="{{ vite_dev_server }}/@vite/client"></script>
+    <script type="module" src="{{ vite_dev_server }}/main.js"></script>
+    {% endif %}
+    
+    <!-- Htmx -->
+    <script src="https://unpkg.com/htmx.org@1.9.10" defer></script>
   </head>
   <body class="bg-gray-50">
     <div class="min-h-screen">
       <header class="header-ubc shadow-lg">
         <div class="max-w-7xl mx-auto px-4 py-8">
-          <!-- Top row: Title centered -->
           <div class="text-center mb-6">
-            <h1 class="text-3xl font-bold">MDS Application</h1>
+            <h1 class="text-3xl font-bold">MDS Application - Test Changes!ssss</h1>
             <p class="text-ubc-gray-light mt-2">
-              University of British Columbia
+              University of British Columbiafdsfdsfss
             </p>
           </div>
 
-          <!-- Bottom row: User info left, Logout right -->
           <div class="flex justify-between items-center">
-            <div id="userInfo" class="flex-shrink-0">
-              <!-- User info will be populated by JavaScript -->
+            <div class="flex-shrink-0">
+              <div class="text-left">
+                <div class="text-white text-base font-medium">Welcome, {{ current_user.full_name }}</div>
+                <div class="text-ubc-gray-light text-sm">{{ current_user.role_name }}</div>
+              </div>
             </div>
-            <div id="logoutArea" class="flex-shrink-0">
-              <!-- Logout button will be populated by JavaScript -->
+            <div class="flex-shrink-0">
+              <button 
+                hx-post="/api/auth/logout"
+                hx-trigger="click"
+                hx-on::after-request="if(event.detail.xhr.status === 200) window.location.href = '/login'"
+                class="bg-white text-ubc-blue hover:bg-gray-100 px-6 py-2 rounded text-sm font-medium transition-colors shadow-sm">
+                Logout
+              </button>
             </div>
           </div>
         </div>
@@ -43,19 +58,36 @@
             Drag and drop your CSV file here or click to select
           </p>
 
-          <div
-            class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-ubc-light-blue transition-colors"
-          >
-            <input type="file" id="fileInput" accept=".csv" class="mb-4" />
+          <form 
+            hx-post="/api/upload" 
+            hx-encoding="multipart/form-data"
+            hx-target="#message"
+            hx-on::after-request="
+              document.getElementById('fileInput').value = ''; 
+              htmx.trigger('#studentsContainer', 'refresh'); 
+              htmx.trigger('#uploadTimestamp', 'refresh');
+            "
+            class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-ubc-light-blue transition-colors">
+            
+            <input 
+              type="file" 
+              id="fileInput" 
+              name="file" 
+              accept=".csv" 
+              required
+              class="mb-4" />
             <br />
-            <button id="uploadBtn" class="btn-ubc" disabled>Upload CSV</button>
-          </div>
+            <button type="submit" class="btn-ubc">Upload CSV</button>
+          </form>
 
-          <div id="message" class="hidden mt-4 p-4 rounded-md"></div>
-          <div
-            id="uploadTimestamp"
-            class="hidden mt-4 p-4 bg-ubc-gray-light rounded-md text-sm text-gray-600"
-          ></div>
+          <div id="message" class="mt-4 p-4 rounded-md hidden"></div>
+          
+          <div 
+            id="uploadTimestamp" 
+            hx-get="/fragments/upload-status"
+            hx-trigger="load, refresh from:body"
+            class="mt-4">
+          </div>
         </section>
 
         <!-- Students Database Section -->
@@ -71,11 +103,20 @@
               id="searchInput"
               placeholder="Search by name, university, degree, or student ID..."
               class="input-ubc flex-1"
+              hx-get="/fragments/students"
+              hx-trigger="keyup changed delay:500ms"
+              hx-target="#studentsContainer"
+              hx-include="[name='filter']"
+              name="search"
               aria-label="Search students"
             />
             <select
-              id="searchFilter"
+              name="filter"
               class="input-ubc md:w-40"
+              hx-get="/fragments/students"
+              hx-trigger="change"
+              hx-target="#studentsContainer"
+              hx-include="[name='search']"
               aria-label="Filter search criteria"
             >
               <option value="all">All Fields</option>
@@ -88,18 +129,25 @@
           </div>
 
           <!-- Students Table Container -->
-          <div id="studentsContainer">
+          <div 
+            id="studentsContainer"
+            hx-get="/fragments/students"
+            hx-trigger="load, refresh from:body, every 30s"
+            class="min-h-[200px]">
             <div class="text-center py-8">
-              <div
-                class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue"
-              ></div>
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue"></div>
               <p class="mt-2 text-ubc-blue">Loading students...</p>
             </div>
           </div>
         </section>
       </main>
     </div>
-
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Debug info -->
+    {% if is_development %}
+    <div style="position: fixed; bottom: 10px; right: 10px; background: #000; color: #fff; padding: 5px; font-size: 12px;">
+      DEV MODE - Vite HMR Active
+    </div>
+    {% endif %}
   </body>
 </html>

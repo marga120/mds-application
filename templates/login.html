@@ -4,31 +4,32 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - MDS Application</title>
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/output.css') }}"
-    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}" />
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   </head>
   <body class="bg-gray-50 min-h-screen flex items-center justify-center">
     <div class="max-w-md w-full space-y-8">
       <!-- UBC Header -->
       <div class="text-center">
-        <h1 class="text-3xl font-bold text-ubc-blue">MDS Application</h1>
-        <p class="mt-2 text-gray-600">University of British Columbia</p>
+        <h1 class="text-3xl font-bold text-ubc-blue">MDS Applicatiosn</h1>
+        <p class="mt-2 text-gray-600">University of British Columdfgdsbia</p>
         <h2 class="mt-6 text-2xl font-semibold text-gray-900">
-          Sign in to your account
+          Sign in to you
         </h2>
       </div>
 
       <!-- Login Form -->
       <div class="card-ubc">
-        <form id="loginForm" class="space-y-6">
+        <form 
+          hx-post="/api/auth/login" 
+          hx-target="#message"
+          hx-on::after-request="if(event.detail.xhr.status === 200) { const response = JSON.parse(event.detail.xhr.response); if(response.success) window.location.href = response.redirect || '/'; }"
+          class="space-y-6">
+          
           <div id="message" class="hidden p-4 rounded-md"></div>
 
           <div>
-            <label for="email" class="block text-sm font-medium text-gray-700"
-              >Email address</label
-            >
+            <label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
             <input
               id="email"
               name="email"
@@ -40,11 +41,7 @@
           </div>
 
           <div>
-            <label
-              for="password"
-              class="block text-sm font-medium text-gray-700"
-              >Password</label
-            >
+            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
             <input
               id="password"
               name="password"
@@ -70,7 +67,7 @@
           </div>
 
           <div>
-            <button type="submit" id="loginBtn" class="btn-ubc w-full">
+            <button type="submit" class="btn-ubc w-full">
               Sign in
             </button>
           </div>
@@ -78,6 +75,6 @@
       </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/login.js') }}"></script>
   </body>
 </html>
