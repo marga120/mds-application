@@ -63,7 +63,7 @@ def unauthorized(error):
 
 if __name__ == "__main__":
     # Only initialize database if not in reloader process
-    import os
     if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         init_database()
+
     app.run(debug=True)
