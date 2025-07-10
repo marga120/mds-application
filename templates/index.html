@@ -1,43 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MDS Application Database</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>MDS Application Database</h1>
-
-        <div class="upload-section">
-            <h3>Upload CSV File</h3>
-            <input type="file" id="fileInput" accept=".csv">
-            <br>
-            <button id="uploadBtn" disabled>Upload CSV</button>
-            <div id="message" class="message"></div>
-            <div id="uploadTimestamp" class="upload-timestamp" style="display: none;"></div>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/output.css') }}"
+    />
+  </head>
+  <body class="bg-gray-50">
+    <div class="min-h-screen">
+      <!-- UBC Header -->
+      <header class="header-ubc shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+          <h1 class="text-3xl font-bold text-center">
+            MDS Application Database
+          </h1>
+          <p class="text-center text-ubc-gray-light mt-2">
+            University of British Columbia
+          </p>
         </div>
+      </header>
 
-        <div>
-            <h3>Applicants Database</h3>
-            <div class="search-section">
-                <input type="text" id="searchInput" placeholder="Search by name, university, degree, or student ID.">
-                <select id="searchFilter">
-                    <option value="all">All Criteria</option>
-                    <option value="student_name">Name</option>
-                    <option value="university">University</option>
-                    <option value="degree">Degree</option>
-                    <option value="student_id">Student ID</option>
-                    <option value="year">Year</option>
-                </select>
+      <main class="max-w-6xl mx-auto px-4 py-8">
+        <!-- Upload Section -->
+        <section class="card-ubc mb-8">
+          <h3 class="text-xl font-semibold text-ubc-blue mb-4">
+            📁 Upload CSV File
+          </h3>
+          <p class="text-gray-600 mb-4">
+            Drag and drop your CSV file here or click to select
+          </p>
+
+          <div
+            class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-ubc-light-blue transition-colors"
+          >
+            <input type="file" id="fileInput" accept=".csv" class="mb-4" />
+            <br />
+            <button id="uploadBtn" class="btn-ubc" disabled>Upload CSV</button>
+          </div>
+
+          <div id="message" class="hidden mt-4 p-4 rounded-md"></div>
+          <div
+            id="uploadTimestamp"
+            class="hidden mt-4 p-4 bg-ubc-gray-light rounded-md text-sm text-gray-600"
+          ></div>
+        </section>
+
+        <!-- Students Database Section -->
+        <section class="card-ubc">
+          <h3 class="text-xl font-semibold text-ubc-blue mb-4">
+            👥 Applicants Database
+          </h3>
+
+          <!-- Search Section -->
+          <div class="flex flex-col md:flex-row gap-4 mb-6">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search by name, university, degree, or student ID..."
+              class="input-ubc flex-1"
+              aria-label="Search students"
+            />
+            <select
+              id="searchFilter"
+              class="input-ubc md:w-40"
+              aria-label="Filter search criteria"
+            >
+              <option value="all">All Fields</option>
+              <option value="student_name">Name</option>
+              <option value="university">University</option>
+              <option value="degree">Degree</option>
+              <option value="student_id">Student ID</option>
+              <option value="year">Year</option>
+            </select>
+          </div>
+
+          <!-- Students Table Container -->
+          <div id="studentsContainer">
+            <div class="text-center py-8">
+              <div
+                class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue"
+              ></div>
+              <p class="mt-2 text-ubc-blue">Loading students...</p>
             </div>
-            <div id="studentsContainer">
-                <div class="loading">Loading students...</div>
-            </div>
-        </div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-</body>
+  </body>
 </html>

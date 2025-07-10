@@ -1,25 +1,26 @@
 {
   "name": "mds-application",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "MDS Application",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build-css": "npx @tailwindcss/cli -i ./static/css/input.css -o ./static/css/output.css --watch",
+    "build-css-once": "npx @tailwindcss/cli -i ./static/css/input.css -o ./static/css/output.css",
+    "flask": "python main.py",
+    "dev": "npm-run-all --parallel build-css flask",
+    "start": "npm run dev"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/marga120/mds-application.git"
-  },
-  "keywords": [],
+  "keywords": [
+    "flask",
+    "tailwind",
+    "mds",
+    "ubc"
+  ],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/marga120/mds-application/issues"
-  },
-  "homepage": "https://github.com/marga120/mds-application#readme",
-  "description": "",
   "devDependencies": {
-    "npm-run-all": "^4.1.5",
-    "tailwindcss": "^4.1.11"
+    "tailwindcss": "^4.1.11",
+    "@tailwindcss/cli": "^4.1.11",
+    "npm-run-all": "^4.1.5"
   }
 }
