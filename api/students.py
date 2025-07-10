@@ -97,7 +97,6 @@ def upload_csv():
             {"success": False, "message": f"Error processing file: {str(e)}"}
         )
 
-
 @students_api.route("/students", methods=["GET"])
 def get_students():
     """Get all students from database"""
