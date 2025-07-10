@@ -7,13 +7,13 @@ CREATE TABLE IF NOT EXISTS "RoleUser" (
 -- Create User table
 CREATE TABLE IF NOT EXISTS "User" (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    firstName VARCHAR(50) NOT NULL,
-    lastName VARCHAR(50) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(100) NOT NULL,
-    roleUserId INTEGER NOT NULL,
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    role_user_id INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create students table (your existing table)
@@ -37,7 +37,7 @@ BEGIN
     ) THEN
         ALTER TABLE "User" 
         ADD CONSTRAINT fk_user_role 
-        FOREIGN KEY (roleUserId) REFERENCES "RoleUser"(id) ON DELETE CASCADE;
+        FOREIGN KEY (role_user_id) REFERENCES "RoleUser"(id) ON DELETE CASCADE;
     END IF;
 END $$;
 
@@ -62,13 +62,28 @@ CREATE INDEX IF NOT EXISTS idx_students_university ON "Students"(university);
 CREATE INDEX IF NOT EXISTS idx_students_year ON "Students"(year);
 CREATE INDEX IF NOT EXISTS idx_students_degree ON "Students"(degree);
 CREATE INDEX IF NOT EXISTS idx_user_email ON "User"(email);
-CREATE INDEX IF NOT EXISTS idx_user_role ON "User"(roleUserId);
+CREATE INDEX IF NOT EXISTS idx_user_role ON "User"(role_user_id);
 
 -- Insert default roles
 INSERT INTO "RoleUser" (name) VALUES ('Admin'), ('Faculty'), ('Viewer') 
 ON CONFLICT (name) DO NOTHING;
 
--- Insert default admin user (password should be hashed in real app)
-INSERT INTO "User" (firstName, lastName, email, password, roleUserId) 
-SELECT 'Test1', 'User1', 'testuser1@gmail.com', 'password', 1
-WHERE NOT EXISTS (SELECT 1 FROM "User" WHERE email = 'testuser1@gmail.com');
+-- Insert default admin user
+INSERT INTO "User" (first_name, last_name, email, password, role_user_id) 
+SELECT 'Test1', 'User1', 'testuser1@example.com', 'password', 1
+WHERE NOT EXISTS (SELECT 1 FROM "User" WHERE email = 'testuser1@example.com');
+
+-- Insert second default admin user
+INSERT INTO "User" (first_name, last_name, email, password, role_user_id) 
+SELECT 'Test2', 'User2', 'testuser2@gmail.com', 'password', 1
+WHERE NOT EXISTS (SELECT 1 FROM "User" WHERE email = 'testuser2@gmail.com');
+
+-- Insert second default faculty user
+INSERT INTO "User" (first_name, last_name, email, password, role_user_id) 
+SELECT 'Test3', 'User3', 'testuser3@gmail.com', 'password', 2
+WHERE NOT EXISTS (SELECT 1 FROM "User" WHERE email = 'testuser3@gmail.com');
+
+-- Insert second default viewer user
+INSERT INTO "User" (first_name, last_name, email, password, role_user_id) 
+SELECT 'Test4', 'User4', 'testuser4@gmail.com', 'password', 3
+WHERE NOT EXISTS (SELECT 1 FROM "User" WHERE email = 'testuser4@gmail.com');
