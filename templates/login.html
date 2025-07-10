@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - MDS Application</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/output.css') }}"
+    />
+  </head>
+  <body class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full space-y-8">
+      <!-- UBC Header -->
+      <div class="text-center">
+        <h1 class="text-3xl font-bold text-ubc-blue">MDS Application</h1>
+        <p class="mt-2 text-gray-600">University of British Columbia</p>
+        <h2 class="mt-6 text-2xl font-semibold text-gray-900">
+          Sign in to your account
+        </h2>
+      </div>
+
+      <!-- Login Form -->
+      <div class="card-ubc">
+        <form id="loginForm" class="space-y-6">
+          <div id="message" class="hidden p-4 rounded-md"></div>
+
+          <div>
+            <label for="email" class="block text-sm font-medium text-gray-700"
+              >Email address</label
+            >
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              class="input-ubc mt-1 block w-full"
+              placeholder="Enter your email"
+            />
+          </div>
+
+          <div>
+            <label
+              for="password"
+              class="block text-sm font-medium text-gray-700"
+              >Password</label
+            >
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              class="input-ubc mt-1 block w-full"
+              placeholder="Enter your password"
+            />
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <input
+                id="remember"
+                name="remember"
+                type="checkbox"
+                class="h-4 w-4 text-ubc-blue focus:ring-ubc-light-blue border-gray-300 rounded"
+              />
+              <label for="remember" class="ml-2 block text-sm text-gray-900">
+                Remember me
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <button type="submit" id="loginBtn" class="btn-ubc w-full">
+              Sign in
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+  </body>
+</html>
