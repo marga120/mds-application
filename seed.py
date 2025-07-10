@@ -11,7 +11,6 @@ from datetime import datetime
 import sys
 from models.users import hash_password
 
-
 def clear_existing_data():
     """Clear existing user and role data"""
     conn = get_db_connection()
