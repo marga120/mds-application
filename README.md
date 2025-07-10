@@ -48,7 +48,7 @@ DATABASE=mds_database
 USER=your_username
 PASSWORD=your_password
 PORT=5432
-SSECRET_KEY=your_secret_key
+SECRET_KEY=your_secret_key
 ```
 
 ### 5. Create PostgreSQL Database
