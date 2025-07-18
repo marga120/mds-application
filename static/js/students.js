@@ -148,12 +148,12 @@ class StudentManager {
             <table>
                 <thead>
                     <tr>
-                        <th>Student ID</th>
+                        <th>User Code</th>
                         <th>Name</th>
-                        <th>University</th>
-                        <th>Year</th>
-                        <th>Degree</th>
-                        <th>Last Changed</th>
+                        <th>Email</th>
+                        <th>Student Number</th>
+                        <th>Status</th>
+                        <th>Submit Date</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -161,16 +161,20 @@ class StudentManager {
                       .map(
                         (student) => `
                         <tr>
-                            <td>${student.student_id}</td>
-                            <td>${student.student_name}</td>
-                            <td>${student.university}</td>
-                            <td>${student.year}</td>
-                            <td>${student.degree}</td>
-                            <td class="timestamp">
-                                ${this.formatLastChanged(
-                                  student.seconds_since_update
-                                )}
-                            </td>
+                            <td>${student.user_code}</td>
+                            <td>${student.given_name} ${
+                          student.family_name
+                        }</td>
+                            <td>${student.email || "N/A"}</td>
+                            <td>${student.student_number || "N/A"}</td>
+                            <td>${student.status || "N/A"}</td>
+                            <td>${
+                              student.submit_date
+                                ? new Date(
+                                    student.submit_date
+                                  ).toLocaleDateString()
+                                : "N/A"
+                            }</td>
                         </tr>
                     `
                       )

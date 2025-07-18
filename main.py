@@ -7,7 +7,7 @@ import os
 from utils.database import init_database
 
 # Import API blueprints
-from api.students import students_api
+from api.student_info import student_info_api
 from api.auth import auth_api
 
 # Import user model for Flask-Login
@@ -39,7 +39,7 @@ def load_user(user_id):
 
 
 # Register API blueprints
-app.register_blueprint(students_api, url_prefix="/api")
+app.register_blueprint(student_info_api, url_prefix="/api")
 app.register_blueprint(auth_api, url_prefix="/api/auth")
 
 
