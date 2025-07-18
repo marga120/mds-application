@@ -2,4 +2,5 @@
 document.addEventListener("DOMContentLoaded", function () {
   new StudentManager();
   new AuthManager();
+  new SessionManager();
 });
