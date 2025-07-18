@@ -1,8 +1,8 @@
-class StudentManager {
+class ApplicantManager {
   constructor() {
-    this.allStudents = [];
+    this.allApplicants = [];
     this.initializeEventListeners();
-    this.loadStudents();
+    this.loadApplicants();
   }
 
   initializeEventListeners() {
@@ -20,11 +20,11 @@ class StudentManager {
     });
 
     searchInput.addEventListener("input", () => {
-      this.filterStudents();
+      this.filterApplicants();
     });
 
     searchFilter.addEventListener("change", () => {
-      this.filterStudents();
+      this.filterApplicants();
     });
   }
 
@@ -80,7 +80,7 @@ class StudentManager {
                 `;
         timestampElement.style.display = "block";
 
-        this.loadStudents();
+        this.loadApplicants();
         document.getElementById("fileInput").value = "";
         this.selectedFile = null;
       } else {
@@ -101,8 +101,8 @@ class StudentManager {
     }
   }
 
-  async loadStudents() {
-    const container = document.getElementById("studentsContainer");
+  async loadApplicants() {
+    const container = document.getElementById("applicantsContainer");
     container.innerHTML = '<div class="loading">Loading...</div>';
 
     try {
@@ -110,8 +110,8 @@ class StudentManager {
       const result = await response.json();
 
       if (result.success) {
-        this.allStudents = result.students;
-        this.displayStudents(this.allStudents);
+        this.allApplicants = result.students;
+        this.displayApplicants(this.allApplicants);
       } else {
         container.innerHTML = `<div class="no-data">Error: ${result.message}</div>`;
       }
@@ -120,19 +120,19 @@ class StudentManager {
     }
   }
 
-  displayStudents(students) {
-    const container = document.getElementById("studentsContainer");
+  displayApplicants(applicants) {
+    const container = document.getElementById("applicantsContainer");
 
-    if (students.length === 0) {
+    if (applicants.length === 0) {
       const searchInput = document.getElementById("searchInput");
       const isSearching = searchInput.value.trim() !== "";
 
       if (isSearching) {
         container.innerHTML =
-          '<div class="no-data">No students match your search criteria.</div>';
+          '<div class="no-data">No applicants match your search criteria.</div>';
       } else {
         container.innerHTML =
-          '<div class="no-data">No students found. Upload a CSV file.</div>';
+          '<div class="no-data">No applicants found. Upload a CSV file.</div>';
       }
       return;
     }
@@ -140,7 +140,7 @@ class StudentManager {
     const searchInput = document.getElementById("searchInput");
     const isSearching = searchInput.value.trim() !== "";
     const resultText = isSearching
-      ? `<div class="search-results">Showing ${students.length} of ${this.allStudents.length} students</div>`
+      ? `<div class="search-results">Showing ${applicants.length} of ${this.allApplicants.length} applicants</div>`
       : "";
 
     const table = `
@@ -157,21 +157,21 @@ class StudentManager {
                     </tr>
                 </thead>
                 <tbody>
-                    ${students
+                    ${applicants
                       .map(
-                        (student) => `
+                        (applicant) => `
                         <tr>
-                            <td>${student.user_code}</td>
-                            <td>${student.given_name} ${
-                          student.family_name
+                            <td>${applicant.user_code}</td>
+                            <td>${applicant.given_name} ${
+                          applicant.family_name
                         }</td>
-                            <td>${student.email || "N/A"}</td>
-                            <td>${student.student_number || "N/A"}</td>
-                            <td>${student.status || "N/A"}</td>
+                            <td>${applicant.email || "N/A"}</td>
+                            <td>${applicant.student_number || "N/A"}</td>
+                            <td>${applicant.status || "N/A"}</td>
                             <td>${
-                              student.submit_date
+                              applicant.submit_date
                                 ? new Date(
-                                    student.submit_date
+                                    applicant.submit_date
                                   ).toLocaleDateString()
                                 : "N/A"
                             }</td>
@@ -205,7 +205,7 @@ class StudentManager {
     }
   }
 
-  filterStudents() {
+  filterApplicants() {
     const searchTerm = document
       .getElementById("searchInput")
       .value.toLowerCase()
@@ -213,26 +213,37 @@ class StudentManager {
     const filterBy = document.getElementById("searchFilter").value;
 
     if (searchTerm === "") {
-      this.displayStudents(this.allStudents);
+      this.displayApplicants(this.allApplicants);
       return;
     }
 
-    const filteredStudents = this.allStudents.filter((student) => {
+    const filteredApplicants = this.allApplicants.filter((applicant) => {
       if (filterBy === "all") {
         return (
-          student.student_id.toLowerCase().includes(searchTerm) ||
-          student.student_name.toLowerCase().includes(searchTerm) ||
-          student.university.toLowerCase().includes(searchTerm) ||
-          student.degree.toLowerCase().includes(searchTerm) ||
-          student.year.toString().includes(searchTerm)
+          applicant.user_code.toLowerCase().includes(searchTerm) ||
+          (applicant.given_name &&
+            applicant.given_name.toLowerCase().includes(searchTerm)) ||
+          (applicant.family_name &&
+            applicant.family_name.toLowerCase().includes(searchTerm)) ||
+          (applicant.email &&
+            applicant.email.toLowerCase().includes(searchTerm)) ||
+          (applicant.student_number &&
+            applicant.student_number
+              .toString()
+              .toLowerCase()
+              .includes(searchTerm)) ||
+          (applicant.status &&
+            applicant.status.toLowerCase().includes(searchTerm))
         );
       } else {
-        const fieldValue = student[filterBy];
-        return fieldValue.toString().toLowerCase().includes(searchTerm);
+        const fieldValue = applicant[filterBy];
+        return (
+          fieldValue && fieldValue.toString().toLowerCase().includes(searchTerm)
+        );
       }
     });
 
-    this.displayStudents(filteredStudents);
+    this.displayApplicants(filteredApplicants);
   }
 
   showMessage(text, type) {
