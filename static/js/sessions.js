@@ -22,12 +22,6 @@ class SessionManager {
       });
     }
 
-    if (sessionName) {
-      sessionName.addEventListener("input", () => {
-        this.validateSessionForm();
-      });
-    }
-
     if (sessionDescription) {
       sessionDescription.addEventListener("input", () => {
         this.validateSessionForm();
@@ -81,33 +75,24 @@ class SessionManager {
   }
 
   validateSessionForm() {
-    const sessionName = document.getElementById("sessionName");
     const createSessionBtn = document.getElementById("createSessionBtn");
 
-    if (!sessionName || !createSessionBtn) return;
+    if (!createSessionBtn) return;
 
-    const sessionNameValue = sessionName.value.trim();
-    const isValid = sessionNameValue && this.selectedSessionFile;
+    const isValid = this.selectedSessionFile;
     createSessionBtn.disabled = !isValid;
   }
 
   async createSession() {
-    const sessionNameElement = document.getElementById("sessionName");
     const sessionDescriptionElement =
       document.getElementById("sessionDescription");
 
-    if (!sessionNameElement) return;
-
-    const sessionName = sessionNameElement.value.trim();
     const sessionDescription = sessionDescriptionElement
       ? sessionDescriptionElement.value.trim()
       : "";
 
-    if (!this.selectedSessionFile || !sessionName) {
-      this.showSessionMessage(
-        "Please provide both session name and CSV file",
-        "error"
-      );
+    if (!this.selectedSessionFile) {
+      this.showSessionMessage("Please provide a CSV file", "error");
       return;
     }
 
@@ -120,12 +105,10 @@ class SessionManager {
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       this.showSessionMessage(
-        `Session "${sessionName}" would be created! (Backend not implemented yet)`,
+        `Session will be created with auto-generated name! (Backend not implemented yet)`,
         "success"
       );
 
-      // Clear form after successful creation
-      sessionNameElement.value = "";
       if (sessionDescriptionElement) sessionDescriptionElement.value = "";
 
       const sessionFileInput = document.getElementById("sessionFileInput");
