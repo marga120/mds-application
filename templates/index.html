@@ -45,26 +45,56 @@
           </h3>
 
           <!-- Search Section -->
-          <div class="flex flex-col md:flex-row gap-4 mb-6">
-            <input
-              type="text"
-              id="searchInput"
-              placeholder="Search by name, university, degree, or student ID..."
-              class="input-ubc flex-1"
-              aria-label="Search students"
-            />
-            <select
-              id="searchFilter"
-              class="input-ubc md:w-40"
-              aria-label="Filter search criteria"
-            >
-              <option value="all">All Fields</option>
-              <option value="student_name">Name</option>
-              <option value="university">University</option>
-              <option value="degree">Degree</option>
-              <option value="student_id">Student ID</option>
-              <option value="year">Year</option>
-            </select>
+          <div
+            class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8"
+          >
+            <div class="flex items-center space-x-3 mb-4">
+              <div
+                class="w-10 h-10 bg-gradient-to-br from-ubc-blue to-ubc-light-blue rounded-full flex items-center justify-center"
+              >
+                <svg
+                  class="w-5 h-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="text-lg font-semibold text-gray-900">
+                Search Applicants
+              </h3>
+            </div>
+            <div class="flex flex-col md:flex-row gap-4">
+              <div class="flex-1">
+                <input
+                  type="text"
+                  id="searchInput"
+                  placeholder="Search by name, email, user code, or student number..."
+                  class="input-ubc w-full"
+                  aria-label="Search applicants"
+                />
+              </div>
+              <div class="md:w-48">
+                <select
+                  id="searchFilter"
+                  class="input-ubc w-full"
+                  aria-label="Filter search criteria"
+                >
+                  <option value="all">All Fields</option>
+                  <option value="given_name">First Name</option>
+                  <option value="family_name">Last Name</option>
+                  <option value="email">Email</option>
+                  <option value="user_code">User Code</option>
+                  <option value="status">Status</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           <!-- Applicants Table Container -->
