@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS student_info(
     interest VARCHAR(100)
 );
 
-CREATE TABLE student_status(
+CREATE TABLE IF NOT EXISTS student_status(
 	user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
 	student_number VARCHAR(100),
 	app_start DATE,
