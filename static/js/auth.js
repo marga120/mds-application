@@ -23,18 +23,33 @@ class AuthManager {
   }
 
   updateUserInfo(user) {
-    // Add Create Session button to the left
-    const createSessionArea = document.getElementById("createSessionArea");
-    if (createSessionArea) {
-      // Only show Create Session for Admin/Faculty
+    // Add Sessions dropdown to the left
+    const sessionsDropdownArea = document.getElementById(
+      "sessionsDropdownArea"
+    );
+    if (sessionsDropdownArea) {
+      // Only show Sessions dropdown for Admin/Faculty
       if (user.role === "Admin" || user.role === "Faculty") {
-        createSessionArea.innerHTML = `
-          <button id="createSessionHeaderBtn" class="bg-white text-ubc-blue hover:bg-gray-100 px-6 py-2 rounded text-sm font-medium transition-colors shadow-sm">
-            🎓 Create New Session
-          </button>
+        sessionsDropdownArea.innerHTML = `
+          <div class="relative">
+            <button id="sessionsDropdownBtn" class="bg-white text-ubc-blue hover:bg-gray-100 px-6 py-2 rounded text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+              📋 Sessions
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            <div id="sessionsDropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+              <a href="/create-new-session" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+                🎓 Create New Session
+              </a>
+              <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md border-t border-gray-100">
+                📊 View All Sessions
+              </button>
+            </div>
+          </div>
         `;
       } else {
-        createSessionArea.innerHTML = "";
+        sessionsDropdownArea.innerHTML = "";
       }
     }
 
@@ -61,40 +76,70 @@ class AuthManager {
       `;
     }
 
-    // Initialize dropdown functionality
-    this.initializeDropdown();
+    // Initialize both dropdowns
+    this.initializeDropdowns();
   }
 
-  initializeDropdown() {
+  initializeDropdowns() {
+    // User dropdown functionality
     const userDropdownBtn = document.getElementById("userDropdownBtn");
     const userDropdownMenu = document.getElementById("userDropdownMenu");
 
     if (userDropdownBtn && userDropdownMenu) {
-      // Toggle dropdown on button click
       userDropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         userDropdownMenu.classList.toggle("hidden");
+        // Close sessions dropdown if open
+        const sessionsDropdownMenu = document.getElementById(
+          "sessionsDropdownMenu"
+        );
+        if (sessionsDropdownMenu) {
+          sessionsDropdownMenu.classList.add("hidden");
+        }
       });
+    }
 
-      // Close dropdown when clicking outside
-      document.addEventListener("click", (e) => {
-        if (
-          !userDropdownBtn.contains(e.target) &&
-          !userDropdownMenu.contains(e.target)
-        ) {
+    // Sessions dropdown functionality
+    const sessionsDropdownBtn = document.getElementById("sessionsDropdownBtn");
+    const sessionsDropdownMenu = document.getElementById(
+      "sessionsDropdownMenu"
+    );
+
+    if (sessionsDropdownBtn && sessionsDropdownMenu) {
+      sessionsDropdownBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        sessionsDropdownMenu.classList.toggle("hidden");
+        // Close user dropdown if open
+        if (userDropdownMenu) {
           userDropdownMenu.classList.add("hidden");
         }
       });
     }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener("click", (e) => {
+      const isUserDropdown =
+        userDropdownBtn &&
+        (userDropdownBtn.contains(e.target) ||
+          (userDropdownMenu && userDropdownMenu.contains(e.target)));
+      const isSessionsDropdown =
+        sessionsDropdownBtn &&
+        (sessionsDropdownBtn.contains(e.target) ||
+          (sessionsDropdownMenu && sessionsDropdownMenu.contains(e.target)));
+
+      if (!isUserDropdown && userDropdownMenu) {
+        userDropdownMenu.classList.add("hidden");
+      }
+      if (!isSessionsDropdown && sessionsDropdownMenu) {
+        sessionsDropdownMenu.classList.add("hidden");
+      }
+    });
   }
 
   initializeLogout() {
     document.addEventListener("click", (e) => {
       if (e.target.id === "logoutBtn") {
         this.handleLogout();
-      }
-      if (e.target.id === "createSessionHeaderBtn") {
-        window.location.href = "/create-new-session";
       }
     });
   }
