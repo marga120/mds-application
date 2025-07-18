@@ -93,27 +93,10 @@ class AuthManager {
       if (e.target.id === "logoutBtn") {
         this.handleLogout();
       }
-      // Add handler for Create Session header button
       if (e.target.id === "createSessionHeaderBtn") {
-        this.scrollToCreateSession();
+        window.location.href = "/create-new-session";
       }
     });
-  }
-
-  scrollToCreateSession() {
-    // Scroll to the Create New Session section
-    const createSessionSection = document.querySelector(
-      'section h3:contains("🎓 Create New Session")'
-    );
-    if (createSessionSection) {
-      createSessionSection.closest("section").scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    } else {
-      // Fallback: scroll to a reasonable position
-      window.scrollTo({ top: 400, behavior: "smooth" });
-    }
   }
 
   async handleLogout() {

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create New Session - MDS Application</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/output.css') }}"
+    />
+  </head>
+  <body class="bg-gray-50">
+    <div class="min-h-screen">
+      {% include 'header.html' %}
+
+      <main class="max-w-4xl mx-auto px-4 py-8">
+        <!-- Page Title -->
+        <div class="mb-8">
+          <h2 class="text-2xl font-bold text-ubc-blue mb-2">
+            Create New Assessment Session
+          </h2>
+          <p class="text-gray-600">
+            Upload a CSV file to create a new session with dynamic schema for
+            applicant assessment
+          </p>
+        </div>
+
+        <!-- Create Session Form -->
+        <section class="card-ubc mb-8">
+          <h3 class="text-xl font-semibold text-ubc-blue mb-6">
+            📋 Session Configuration
+          </h3>
+
+          <div class="space-y-6">
+            <!-- Session Name -->
+            <div>
+              <label
+                for="sessionName"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Session Name <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="sessionName"
+                placeholder="e.g., Session 2025/26, Fall 2025 Intake..."
+                class="input-ubc w-full"
+                aria-label="Session name"
+              />
+              <p class="text-sm text-gray-500 mt-1">
+                Choose a descriptive name for this assessment session
+              </p>
+            </div>
+
+            <!-- Session Description -->
+            <div>
+              <label
+                for="sessionDescription"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Description (Optional)
+              </label>
+              <textarea
+                id="sessionDescription"
+                rows="3"
+                placeholder="Brief description of this session's purpose or criteria..."
+                class="input-ubc w-full resize-none"
+                aria-label="Session description"
+              ></textarea>
+            </div>
+
+            <!-- CSV Upload Section -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Assessment CSV File <span class="text-red-500">*</span>
+              </label>
+              <div
+                class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-ubc-light-blue transition-colors"
+              >
+                <div class="space-y-4">
+                  <div class="mx-auto w-12 h-12 text-gray-400">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 48 48">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      id="sessionFileInput"
+                      accept=".csv"
+                      class="mb-4"
+                    />
+                    <p class="text-sm text-gray-600">
+                      Upload your assessment CSV file to automatically detect
+                      the schema
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div
+              class="flex justify-between items-center pt-6 border-t border-gray-200"
+            >
+              <button
+                id="cancelBtn"
+                class="btn-ubc-outline"
+                onclick="window.location.href='/'"
+              >
+                Cancel
+              </button>
+              <button id="createSessionBtn" class="btn-ubc" disabled>
+                Create Session
+              </button>
+            </div>
+          </div>
+
+          <div id="sessionMessage" class="hidden mt-6 p-4 rounded-md"></div>
+        </section>
+
+        <!-- Preview Section (Initially Hidden) -->
+        <section id="previewSection" class="card-ubc hidden">
+          <h3 class="text-xl font-semibold text-ubc-blue mb-4">
+            📊 Schema Preview
+          </h3>
+          <p class="text-gray-600 mb-4">
+            This will show the detected schema from your CSV file
+          </p>
+          <div id="schemaPreview" class="bg-gray-50 p-4 rounded-md">
+            <!-- Schema preview will be populated here -->
+            <p class="text-sm text-gray-500 italic">
+              Upload a CSV file to see the schema preview
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sessions.js') }}"></script>
+    <script>
+      // Initialize components for this page
+      document.addEventListener("DOMContentLoaded", function () {
+        new AuthManager();
+        new SessionManager();
+      });
+    </script>
+  </body>
+</html>
