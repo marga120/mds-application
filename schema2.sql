@@ -16,222 +16,218 @@ CREATE TABLE IF NOT EXISTS "user" (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create program_info table (new table)
-CREATE TABLE IF NOT EXISTS program_info (
-    program_code VARCHAR(10) PRIMARY KEY,
-    program VARCHAR(100),
-    session VARCHAR(50)
-);
-
 CREATE TABLE IF NOT EXISTS student_info(
-    user_code VARCHAR(10) PRIMARY KEY,
+	user_code VARCHAR(10) PRIMARY KEY,
+	title VARCHAR (4),
+	family_name VARCHAR(100),
+	given_name VARCHAR(100),
+	middle_name VARCHAR(100),
+	preferred_name VARCHAR(100),
+	former_family_name VARCHAR(100),
+	gender_code VARCHAR(2),
+	gender VARCHAR(10),
+	date_birth DATE,
+	country_birth_code VARCHAR(3),
+	country_citizenship_code VARCHAR(3),
+	country_citizenship VARCHAR(100),
+	dual_citizenship_code VARCHAR(3),
+	dual_citizenship VARCHAR(100),
+	primary_spoken_lang_code VARCHAR (4),
+	primary_spoken_lang VARCHAR(100),
+	other_spoken_lang_code VARCHAR(4),
+	other_spoken_lang VARCHAR(100),
+	visa_type_code VARCHAR(20),
+	visa_type VARCHAR(100),
+	country_code VARCHAR(10),
+	country VARCHAR(100),
+	address_line1 VARCHAR(100),
+	address_line2 VARCHAR(100),
+	city VARCHAR(100),
+	province_state_region VARCHAR(100),
+	postal_code VARCHAR(50),
+	primary_telephone VARCHAR(50),
+	secondary_telephone VARCHAR(50),
+	email VARCHAR(100),
+	aboriginal BOOLEAN,
+	first_nation BOOLEAN,
+	inuit BOOLEAN,
+	metis BOOLEAN,
+	aboriginal_not_specified BOOLEAN,
+	aboriginal_info VARCHAR(100),
+	academic_history_code CHAR(1),
+	academic_history VARCHAR(250),
     interest_code VARCHAR(10),
-    interest VARCHAR(100),
-    title VARCHAR(4),
-    family_name VARCHAR(100),
-    given_name VARCHAR(100),
-    middle_name VARCHAR(100),
-    preferred_name VARCHAR(100),
-    former_family_name VARCHAR(100),
-    gender_code VARCHAR(2),
-    gender VARCHAR(10),
-    country_birth_code VARCHAR(3),
-    country_birth VARCHAR(100),
-    date_birth DATE,
-    country_citizenship_code VARCHAR(3),
-    country_citizenship VARCHAR(100),
-    dual_citizenship_code VARCHAR(3),
-    dual_citizenship VARCHAR(100),
-    primary_spoken_lang_code VARCHAR(4),
-    primary_spoken_lang VARCHAR(100),
-    other_spoken_lang_code VARCHAR(4),
-    other_spoken_lang VARCHAR(100),
-    visa_type_code VARCHAR(20),
-    visa_type VARCHAR(100),
-    country_code VARCHAR(10),
-    country VARCHAR(100),
-    address_line1 VARCHAR(100),
-    address_line2 VARCHAR(100),
-    city VARCHAR(100),
-    province_state_region VARCHAR(100),
-    postal_code VARCHAR(50),
-    primary_telephone VARCHAR(50),
-    secondary_telephone VARCHAR(50),
-    email VARCHAR(100),
-    aboriginal BOOLEAN,
-    first_nation BOOLEAN,
-    inuit BOOLEAN,
-    metis BOOLEAN,
-    aboriginal_not_specified BOOLEAN,
-    aboriginal_info VARCHAR(100),
-    academic_history_code VARCHAR(10),
-    academic_history VARCHAR(250),
-    ubc_academic_history TEXT
+    interest VARCHAR(100)
 );
 
 CREATE TABLE IF NOT EXISTS student_status(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
-    student_number VARCHAR(100),
-    app_start DATE,
-    submit_date DATE,
-    status_code VARCHAR(1),
-    status VARCHAR(20),
-    detail_status VARCHAR(100)
+	user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+	student_number VARCHAR(100),
+	app_start DATE,
+	submit_date DATE,
+	status_code VARCHAR(1),
+	status VARCHAR(20),
+	detail_status VARCHAR(100)
 );
 
+/*
+
+cs, math, stat, math, sent, mds_v, mds_cl, scholarship from Jessica (if "jessica" deleted, then just turns to null)
+name, canadian come from student_info then set to null (DO NOT DO ANYTHING)
+gpa, highest_degree, degree_area (if academic_info is deleted then set to null)
+
+*/
+
+
 CREATE TABLE IF NOT EXISTS app_info (
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
-    status VARCHAR(20),
-    sent BOOLEAN,
-    full_name VARCHAR(100),
-    canadian BOOLEAN,
-    english BOOLEAN,
-    cs VARCHAR(20),
-    stat VARCHAR(20),
-    math VARCHAR(20),
-    gpa VARCHAR(10),
-    highest_degree VARCHAR(50),
-    degree_area VARCHAR(50),
-    mds_v BOOLEAN,
-    mds_cl BOOLEAN,
-    scholarship BOOLEAN
+	user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+	sent BOOLEAN,
+	full_name VARCHAR(100),
+	canadian BOOLEAN,
+	english BOOLEAN,
+	cs VARCHAR(20),
+	stat VARCHAR(20),
+	math VARCHAR(20),
+	gpa VARCHAR(10),
+	highest_degree VARCHAR(50),
+	degree_area VARCHAR(50),
+	mds_v BOOLEAN,
+	mds_cl BOOLEAN,
+	scholarship BOOLEAN
 );
 
 CREATE TABLE IF NOT EXISTS ratings(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
-    user_id INTEGER REFERENCES "user"(id),
-    rating VARCHAR(20),
-    user_comment VARCHAR(300)
+	user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+	user_id INTEGER,
+	rating VARCHAR(20),
+	user_comment VARCHAR(300)
 );
 
--- Renamed from academic_info to institution_info
-CREATE TABLE IF NOT EXISTS institution_info(
-    user_code VARCHAR(10) REFERENCES student_info(user_code),
-    institution_number INT,
-    institution_code VARCHAR(50),
-    full_name VARCHAR(100),
-    country VARCHAR(50),
-    start_date DATE,
-    end_date DATE,
-    program_study VARCHAR(100),
-    degree_confer_code VARCHAR(100),
-    degree_confer VARCHAR(100),
-    date_confer DATE,
-    credential_receive_code VARCHAR(10),
-    credential_receive VARCHAR(50),
-    expected_confer_date DATE,
-    expected_credential_code VARCHAR(100),
-    expected_credential VARCHAR(100),
-    honours VARCHAR(100),
-    fail_withdraw BOOLEAN,
-    reason VARCHAR(250),
-    gpa VARCHAR(50),
-    PRIMARY KEY (user_code, institution_number)
+
+CREATE TABLE IF NOT EXISTS academic_info(
+	user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+	institution_number INT,
+	institution_code VARCHAR(50),
+	full_name VARCHAR(100),
+	country VARCHAR(50),
+	start_date DATE,
+	end_date DATE,
+	program_study VARCHAR(100),
+	degree_confer_code VARCHAR(100),
+	degree_confer VARCHAR(100),
+	date_confer DATE,
+	credential_receive_code VARCHAR(10),
+	credential_receive VARCHAR(50),
+	expeceted_confer_date DATE,
+	expected_credential_code VARCHAR(100),
+	expected_credential VARCHAR(100),
+	honours VARCHAR(100),
+	fail_withdraw BOOLEAN,
+	reason VARCHAR(250),
+	gpa VARCHAR(50)
 );
 
 CREATE TABLE IF NOT EXISTS toefl(
-    user_code VARCHAR(10) REFERENCES student_info(user_code),
-    toefl_number INT,
-    registration_num VARCHAR(20),
-    date_written DATE,
-    total_score VARCHAR(5),
-    listening VARCHAR(2),
-    structure_written VARCHAR(2),
-    reading VARCHAR(2),
-    speaking VARCHAR(2),
-    mybest_total VARCHAR(3),
-    mybest_date DATE,
-    mybest_listening VARCHAR(2),
-    mybest_listening_date DATE,
-    mybest_writing VARCHAR(2),
-    mybest_writing_date DATE,
-    mybest_reading VARCHAR(2),
-    mybest_reading_date DATE,
-    mybest_speaking VARCHAR(2),
-    mybest_speaking_date DATE,
-    PRIMARY KEY (user_code, toefl_number)
+	user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+	toefl_number INT,
+	registration_num VARCHAR(20),
+	date_written DATE,
+	total_score VARCHAR(5),
+	listening VARCHAR(2),
+	structure_written VARCHAR(2),
+	reading VARCHAR(2),
+	speaking VARCHAR(2),
+	mybest_total VARCHAR(3),
+	mybest_date DATE,
+	mybest_listening VARCHAR(2),
+	mybest_listening_date DATE,
+	mybest_writing VARCHAR(2),
+	mybest_writing_date DATE,
+	mybest_reading VARCHAR(2),
+	mybest_reading_date DATE,
+	mybest_speaking VARCHAR(2),
+	mybest_speaking_date DATE
 );
 
 CREATE TABLE IF NOT EXISTS ielts(
-    user_code VARCHAR(10) REFERENCES student_info(user_code),
-    ielts_number INT,
-    candidate_num VARCHAR(20),
-    date_written DATE,
-    total_band_score VARCHAR(3),
-    listening VARCHAR(3),
-    reading VARCHAR(3),
-    writing VARCHAR(3),
-    speaking VARCHAR(3),
-    PRIMARY KEY (user_code, ielts_number)
+	user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+	ielts_number INT,
+	candidate_num VARCHAR(20),
+	date_written DATE,
+	total_band_score VARCHAR(3),
+	listening VARCHAR(3),
+	reading VARCHAR(3),
+	writing VARCHAR(3),
+	speaking VARCHAR(3)
 );
 
 CREATE TABLE IF NOT EXISTS melab(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
-    ref_num VARCHAR(20),
-    date_written DATE,
-    total VARCHAR(2)
+	user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+	ref_num VARCHAR(20),
+	date_written DATE,
+	total VARCHAR(2)
 );
 
 CREATE TABLE IF NOT EXISTS pte(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
-    ref_num VARCHAR(20),
-    date_written DATE,
-    total VARCHAR(2)
+	user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+	ref_num VARCHAR(20),
+	date_written DATE,
+	total VARCHAR(2)
 );
 
 CREATE TABLE IF NOT EXISTS cael(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
-    ref_num VARCHAR(20),
-    date_written DATE,
-    reading VARCHAR(2),
-    listening VARCHAR(2),
-    writing VARCHAR(2),
-    speaking VARCHAR(2)
+	user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+	ref_num VARCHAR(20),
+	date_written DATE,
+	reading VARCHAR(2),
+	listening VARCHAR(2),
+	writing VARCHAR(2),
+	speaking VARCHAR(2)
 );
 
 CREATE TABLE IF NOT EXISTS celpip(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
-    ref_num VARCHAR(20),
-    date_written DATE,
-    listening VARCHAR(2),
-    speaking VARCHAR(2),
-    reading_writing VARCHAR(2)
+	user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+	ref_num VARCHAR(20),
+	date_written DATE,
+	listening VARCHAR(2),
+	speaking VARCHAR(2),
+	reading_writing VARCHAR(2)
 );
 
 CREATE TABLE IF NOT EXISTS alt_elpp(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
-    ref_num VARCHAR(20),
-    date_written DATE,
-    total VARCHAR(20),
-    test_type VARCHAR(50)
+	user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+	ref_num VARCHAR(20),
+	date_written DATE,
+	total VARCHAR(20),
+	test_type VARCHAR(50)
 );
 
 CREATE TABLE IF NOT EXISTS gre(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
-    reg_num VARCHAR(20),
-    date_written DATE,
-    verbal VARCHAR(3),
-    verbal_below VARCHAR(3),
-    quantitative VARCHAR(3),
-    quantitative_below VARCHAR(3),
-    writing VARCHAR(2),
-    writing_below VARCHAR(3),
-    subject_tests VARCHAR(20),
-    subject_reg_num VARCHAR(20),
-    subject_date DATE, 
-    subject_scaled_score VARCHAR(3),
-    subject_below VARCHAR(3)
+	user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+	reg_num VARCHAR(20),
+	date_written DATE,
+	verbal VARCHAR(3),
+	verbal_below VARCHAR(3),
+	quantitative VARCHAR(3),
+	quantitative_below VARCHAR(3),
+	writing VARCHAR(2),
+	writing_below VARCHAR(3),
+	subject_tests VARCHAR(20),
+	subject_ref_num VARCHAR(20),
+	subject_date DATE, 
+	subject_scaled_score VARCHAR(3),
+	subject_below VARCHAR(3)
 );
 
 CREATE TABLE IF NOT EXISTS gmat(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
-    ref_num VARCHAR(20),
-    date_written DATE,
-    total VARCHAR(3),
-    integrated_reasoning VARCHAR(2),
-    quantitative VARCHAR(2),
-    verbal VARCHAR(2),
-    writing VARCHAR(2)
+	user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+	ref_num VARCHAR(20),
+	date_written DATE,
+	total VARCHAR(3),
+	integrated_reasoning VARCHAR(2),
+	quantitative VARCHAR(2),
+	verbal VARCHAR(2),
+	writing VARCHAR(2)
 );
 
 -- Add foreign key constraint with CASCADE DELETE (check if exists first)
@@ -280,13 +276,13 @@ BEGIN
         FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
     END IF;
 
-    -- institution_info references student_info (renamed from academic_info)
+    -- academic_info references student_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_institution_info_student_info' AND table_name = 'institution_info'
+        WHERE constraint_name = 'fk_academic_info_student_info' AND table_name = 'academic_info'
     ) THEN
-        ALTER TABLE institution_info 
-        ADD CONSTRAINT fk_institution_info_student_info 
+        ALTER TABLE academic_info 
+        ADD CONSTRAINT fk_academic_info_student_info 
         FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
     END IF;
 
@@ -399,11 +395,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create function to handle institution_info deletion - sets app_info fields to NULL
-CREATE OR REPLACE FUNCTION handle_institution_info_deletion()
+-- Create function to handle academic_info deletion - sets app_info fields to NULL
+CREATE OR REPLACE FUNCTION handle_academic_info_deletion()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- When institution_info is deleted, set related fields in app_info to NULL
+    -- When academic_info is deleted, set related fields in app_info to NULL
     UPDATE app_info 
     SET gpa = NULL, highest_degree = NULL, degree_area = NULL
     WHERE user_code = OLD.user_code;
@@ -430,12 +426,12 @@ CREATE TRIGGER update_user_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
--- Create trigger for institution_info deletion (renamed from academic_info)
-DROP TRIGGER IF EXISTS institution_info_deletion_trigger ON institution_info;
-CREATE TRIGGER institution_info_deletion_trigger 
-    AFTER DELETE ON institution_info 
+-- Create trigger for academic_info deletion
+DROP TRIGGER IF EXISTS academic_info_deletion_trigger ON academic_info;
+CREATE TRIGGER academic_info_deletion_trigger 
+    AFTER DELETE ON academic_info 
     FOR EACH ROW 
-    EXECUTE FUNCTION handle_institution_info_deletion();
+    EXECUTE FUNCTION handle_academic_info_deletion();
 
 -- Create trigger for user deletion  
 DROP TRIGGER IF EXISTS user_deletion_trigger ON "user";
@@ -445,11 +441,11 @@ CREATE TRIGGER user_deletion_trigger
     EXECUTE FUNCTION handle_user_deletion();
 
 -- Create indexes for better performance
+-- CREATE INDEX IF NOT EXISTS idx_students_university ON students(university);
+-- CREATE INDEX IF NOT EXISTS idx_students_year ON students(year);
+-- CREATE INDEX IF NOT EXISTS idx_students_degree ON students(degree);
 CREATE INDEX IF NOT EXISTS idx_user_email ON "user"(email);
 CREATE INDEX IF NOT EXISTS idx_user_role ON "user"(role_user_id);
-CREATE INDEX IF NOT EXISTS idx_institution_info_user_code ON institution_info(user_code);
-CREATE INDEX IF NOT EXISTS idx_toefl_user_code ON toefl(user_code);
-CREATE INDEX IF NOT EXISTS idx_ielts_user_code ON ielts(user_code);
 
 -- Insert default roles
 INSERT INTO role_user (name) VALUES ('Admin'), ('Faculty'), ('Viewer') 
@@ -465,12 +461,12 @@ INSERT INTO "user" (first_name, last_name, email, password, role_user_id)
 SELECT 'Test2', 'User2', 'testuser2@example.com', '$2b$12$mJpl.O3Y12Ti66e8NEENMerKi7obcA3glVon5ZayXT7pMCheIcFbq', 1
 WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser2@example.com');
 
--- Insert default faculty user
+-- Insert second default faculty user
 INSERT INTO "user" (first_name, last_name, email, password, role_user_id) 
 SELECT 'Test3', 'User3', 'testuser3@example.com', '$2b$12$mJpl.O3Y12Ti66e8NEENMerKi7obcA3glVon5ZayXT7pMCheIcFbq', 2
 WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser3@example.com');
 
--- Insert default viewer user
+-- Insert second default viewer user
 INSERT INTO "user" (first_name, last_name, email, password, role_user_id) 
 SELECT 'Test4', 'User4', 'testuser4@example.com', '$2b$12$mJpl.O3Y12Ti66e8NEENMerKi7obcA3glVon5ZayXT7pMCheIcFbq', 3
 WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser4@example.com');
