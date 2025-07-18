@@ -71,7 +71,9 @@ CREATE TABLE IF NOT EXISTS student_info(
     aboriginal_info VARCHAR(100),
     academic_history_code VARCHAR(10),
     academic_history VARCHAR(250),
-    ubc_academic_history TEXT
+    ubc_academic_history TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS student_status(
@@ -81,7 +83,9 @@ CREATE TABLE IF NOT EXISTS student_status(
     submit_date DATE,
     status_code VARCHAR(1),
     status VARCHAR(20),
-    detail_status VARCHAR(100)
+    detail_status VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS app_info (

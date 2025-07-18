@@ -27,6 +27,9 @@ def process_csv_data(df):
                 except:
                     date_birth = None
 
+            # Get current timestamp
+            current_time = datetime.now()
+
             # Insert into student_info table
             student_info_query = """
             INSERT INTO student_info (
@@ -38,14 +41,23 @@ def process_csv_data(df):
                 country_code, country, address_line1, address_line2, city,
                 province_state_region, postal_code, primary_telephone, secondary_telephone,
                 email, aboriginal, first_nation, inuit, metis, aboriginal_not_specified,
-                aboriginal_info, academic_history_code, academic_history, interest_code, interest
+                aboriginal_info, academic_history_code, academic_history, interest_code, interest,
+                created_at, updated_at
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
-            ) ON CONFLICT (user_code) DO UPDATE SET
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s)
+            ON CONFLICT (user_code) DO UPDATE SET
                 family_name = EXCLUDED.family_name,
                 given_name = EXCLUDED.given_name,
-                email = EXCLUDED.email
+                email = EXCLUDED.email,
+                updated_at = CASE 
+                    WHEN student_info.family_name IS DISTINCT FROM EXCLUDED.family_name 
+                      OR student_info.given_name IS DISTINCT FROM EXCLUDED.given_name 
+                      OR student_info.email IS DISTINCT FROM EXCLUDED.email 
+                    THEN EXCLUDED.updated_at 
+                    ELSE student_info.updated_at 
+                END
             """
 
             cursor.execute(
@@ -99,6 +111,8 @@ def process_csv_data(df):
                     row.get("IAcademic History Source Value"),
                     row.get("Source of Interest in UBC CODE"),
                     row.get("Source of Interest in UBC"),
+                    current_time,  # created_at
+                    current_time,  # updated_at
                 ),
             )
 
@@ -122,12 +136,19 @@ def process_csv_data(df):
             status_query = """
             INSERT INTO student_status (
                 user_code, student_number, app_start, submit_date, 
-                status_code, status, detail_status
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (user_code) DO UPDATE SET
+                status_code, status, detail_status, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+             ON CONFLICT (user_code) DO UPDATE SET
                 student_number = EXCLUDED.student_number,
                 status = EXCLUDED.status,
-                detail_status = EXCLUDED.detail_status
+                detail_status = EXCLUDED.detail_status,
+                updated_at = CASE 
+                    WHEN student_status.student_number IS DISTINCT FROM EXCLUDED.student_number 
+                      OR student_status.status IS DISTINCT FROM EXCLUDED.status 
+                      OR student_status.detail_status IS DISTINCT FROM EXCLUDED.detail_status 
+                    THEN EXCLUDED.updated_at 
+                    ELSE student_status.updated_at 
+                END
             """
 
             cursor.execute(
@@ -140,6 +161,8 @@ def process_csv_data(df):
                     row.get("Status CODE"),
                     row.get("Status"),
                     row.get("Detailed Status"),
+                    current_time,  # created_at
+                    current_time,  # updated_at
                 ),
             )
 
@@ -177,7 +200,9 @@ def get_all_student_status():
                 ss.submit_date,
                 ss.status_code,
                 ss.status,
-                ss.detail_status
+                ss.detail_status,
+                ss.updated_at,
+                EXTRACT(EPOCH FROM (NOW() - ss.updated_at)) as seconds_since_update
             FROM student_status ss
             LEFT JOIN student_info si ON ss.user_code = si.user_code
             ORDER BY ss.submit_date DESC, si.family_name

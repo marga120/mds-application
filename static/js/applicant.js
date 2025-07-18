@@ -154,6 +154,7 @@ class ApplicantManager {
                         <th>Student Number</th>
                         <th>Status</th>
                         <th>Submit Date</th>
+                        <th>Last Updated</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -175,6 +176,11 @@ class ApplicantManager {
                                   ).toLocaleDateString()
                                 : "N/A"
                             }</td>
+                            <td class="timestamp">
+                                ${this.formatLastChanged(
+                                  applicant.seconds_since_update
+                                )}
+                            </td>
                         </tr>
                     `
                       )
