@@ -33,14 +33,14 @@ CREATE TABLE IF NOT EXISTS student_info(
     middle_name VARCHAR(100),
     preferred_name VARCHAR(100),
     former_family_name VARCHAR(100),
-    gender_code VARCHAR(2),
-    gender VARCHAR(10),
-    country_birth_code VARCHAR(3),
+    gender_code VARCHAR(10),
+    gender VARCHAR(100),
+    country_birth_code VARCHAR(10),
     country_birth VARCHAR(100),
     date_birth DATE,
-    country_citizenship_code VARCHAR(3),
+    country_citizenship_code VARCHAR(10),
     country_citizenship VARCHAR(100),
-    dual_citizenship_code VARCHAR(3),
+    dual_citizenship_code VARCHAR(10),
     dual_citizenship VARCHAR(100),
     primary_spoken_lang_code VARCHAR(4),
     primary_spoken_lang VARCHAR(100),
@@ -58,15 +58,22 @@ CREATE TABLE IF NOT EXISTS student_info(
     primary_telephone VARCHAR(50),
     secondary_telephone VARCHAR(50),
     email VARCHAR(100),
-    aboriginal BOOLEAN,
-    first_nation BOOLEAN,
-    inuit BOOLEAN,
-    metis BOOLEAN,
-    aboriginal_not_specified BOOLEAN,
+    -- aboriginal BOOLEAN,
+    -- first_nation BOOLEAN,
+    -- inuit BOOLEAN,
+    -- metis BOOLEAN,
+    -- aboriginal_not_specified BOOLEAN,
+    aboriginal VARCHAR(3),
+    first_nation VARCHAR(3),
+    inuit VARCHAR(3),
+    metis VARCHAR(3),
+    aboriginal_not_specified VARCHAR(3),
     aboriginal_info VARCHAR(100),
     academic_history_code VARCHAR(10),
     academic_history VARCHAR(250),
-    ubc_academic_history TEXT
+    ubc_academic_history TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS student_status(
@@ -76,7 +83,9 @@ CREATE TABLE IF NOT EXISTS student_status(
     submit_date DATE,
     status_code VARCHAR(1),
     status VARCHAR(20),
-    detail_status VARCHAR(100)
+    detail_status VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS app_info (
