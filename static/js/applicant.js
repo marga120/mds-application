@@ -296,6 +296,28 @@ class ApplicantManager {
     return secondsAgo < 60; // Less than 1 minute is considered recent
   }
 
+  matchesStatus(status, searchTerm) {
+    if (!status) return false;
+
+    const statusLower = status.toLowerCase();
+    const searchLower = searchTerm.toLowerCase();
+
+    // Handle specific status searches more precisely
+    if (searchLower === "submitted") {
+      return (
+        statusLower.includes("submitted") &&
+        !statusLower.includes("unsubmitted")
+      );
+    } else if (searchLower === "unsubmitted") {
+      return statusLower.includes("unsubmitted");
+    } else if (searchLower === "progress") {
+      return statusLower.includes("progress");
+    } else {
+      // For other searches, use regular contains logic
+      return statusLower.includes(searchLower);
+    }
+  }
+
   filterApplicants() {
     const searchTerm = document
       .getElementById("searchInput")
@@ -321,8 +343,11 @@ class ApplicantManager {
               .toString()
               .toLowerCase()
               .includes(searchTerm)) ||
-          (applicant.status &&
-            applicant.status.toLowerCase().includes(searchTerm))
+          (applicant.status && this.matchesStatus(applicant.status, searchTerm))
+        );
+      } else if (filterBy === "status") {
+        return (
+          applicant.status && this.matchesStatus(applicant.status, searchTerm)
         );
       } else {
         const fieldValue = applicant[filterBy];
