@@ -163,11 +163,12 @@ class ApplicantManager {
         <table class="modern-table">
           <thead>
             <tr>
-              <th>Applicant</th>
-              <th>Contact</th>
-              <th>Application Status</th>
-              <th>Submit Date</th>
-              <th>Last Updated</th>
+              <th style="width: 25%;">Applicant</th>
+              <th style="width: 12%;">User Code</th>
+              <th style="width: 13%;">Student Number</th>
+              <th style="width: 16%;">Application Status</th>
+              <th style="width: 17%;">Submit Date</th>
+              <th style="width: 17%;">Last Updated</th>
             </tr>
           </thead>
           <tbody>
@@ -187,26 +188,23 @@ class ApplicantManager {
                         <h3>${applicant.given_name} ${
                   applicant.family_name
                 }</h3>
-                        <p><span class="user-code-badge">${
-                          applicant.user_code
-                        }</span></p>
                       </div>
                     </div>
                   </td>
-                  <td>
-                    <div class="space-y-1">
-                      ${
-                        applicant.email && applicant.email !== "N/A"
-                          ? `<div><a href="mailto:${applicant.email}" class="email-link">${applicant.email}</a></div>`
-                          : '<div class="text-gray-400 text-sm">No email provided</div>'
-                      }
-                      ${
-                        applicant.student_number &&
-                        applicant.student_number !== "NaN"
-                          ? `<div class="text-xs text-gray-500">ID: ${applicant.student_number}</div>`
-                          : '<div class="text-xs text-gray-400">No student ID</div>'
-                      }
-                    </div>
+                  <td class="text-center">
+                    <span class="user-code-badge">${Math.floor(
+                      parseFloat(applicant.user_code)
+                    )}</span>
+                  </td>
+                  <td class="text-center">
+                    ${
+                      applicant.student_number &&
+                      applicant.student_number !== "NaN"
+                        ? `<span class="text-sm font-mono text-gray-800">${Math.floor(
+                            parseFloat(applicant.student_number)
+                          )}</span>`
+                        : '<span class="text-xs text-gray-400">N/A</span>'
+                    }
                   </td>
                   <td>
                     ${this.getStatusBadge(applicant.status)}
@@ -298,6 +296,28 @@ class ApplicantManager {
     return secondsAgo < 60; // Less than 1 minute is considered recent
   }
 
+  matchesStatus(status, searchTerm) {
+    if (!status) return false;
+
+    const statusLower = status.toLowerCase();
+    const searchLower = searchTerm.toLowerCase();
+
+    // Handle specific status searches more precisely
+    if (searchLower === "submitted") {
+      return (
+        statusLower.includes("submitted") &&
+        !statusLower.includes("unsubmitted")
+      );
+    } else if (searchLower === "unsubmitted") {
+      return statusLower.includes("unsubmitted");
+    } else if (searchLower === "progress") {
+      return statusLower.includes("progress");
+    } else {
+      // For other searches, use regular contains logic
+      return statusLower.includes(searchLower);
+    }
+  }
+
   filterApplicants() {
     const searchTerm = document
       .getElementById("searchInput")
@@ -313,20 +333,21 @@ class ApplicantManager {
     const filteredApplicants = this.allApplicants.filter((applicant) => {
       if (filterBy === "all") {
         return (
-          applicant.user_code.toLowerCase().includes(searchTerm) ||
           (applicant.given_name &&
             applicant.given_name.toLowerCase().includes(searchTerm)) ||
           (applicant.family_name &&
             applicant.family_name.toLowerCase().includes(searchTerm)) ||
-          (applicant.email &&
-            applicant.email.toLowerCase().includes(searchTerm)) ||
+          applicant.user_code.toLowerCase().includes(searchTerm) ||
           (applicant.student_number &&
             applicant.student_number
               .toString()
               .toLowerCase()
               .includes(searchTerm)) ||
-          (applicant.status &&
-            applicant.status.toLowerCase().includes(searchTerm))
+          (applicant.status && this.matchesStatus(applicant.status, searchTerm))
+        );
+      } else if (filterBy === "status") {
+        return (
+          applicant.status && this.matchesStatus(applicant.status, searchTerm)
         );
       } else {
         const fieldValue = applicant[filterBy];
