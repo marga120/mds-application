@@ -163,11 +163,11 @@ class ApplicantManager {
         <table class="modern-table">
           <thead>
             <tr>
-              <th>Applicant</th>
-              <th>Contact</th>
-              <th>Application Status</th>
-              <th>Submit Date</th>
-              <th>Last Updated</th>
+              <th style="width: 30%;">Applicant</th>
+              <th style="width: 12%;">User Code</th>
+              <th style="width: 18%;">Application Status</th>
+              <th style="width: 18%;">Submit Date</th>
+              <th style="width: 22%;">Last Updated</th>
             </tr>
           </thead>
           <tbody>
@@ -187,24 +187,28 @@ class ApplicantManager {
                         <h3>${applicant.given_name} ${
                   applicant.family_name
                 }</h3>
-                        <p><span class="user-code-badge">${
-                          applicant.user_code
-                        }</span></p>
+                        <p class="text-xs text-gray-500">
+                          ${
+                            applicant.email && applicant.email !== "N/A"
+                              ? `<a href="mailto:${applicant.email}" class="email-link">${applicant.email}</a>`
+                              : "No email provided"
+                          }
+                        </p>
                       </div>
                     </div>
                   </td>
-                  <td>
+                  <td class="text-center">
                     <div class="space-y-1">
-                      ${
-                        applicant.email && applicant.email !== "N/A"
-                          ? `<div><a href="mailto:${applicant.email}" class="email-link">${applicant.email}</a></div>`
-                          : '<div class="text-gray-400 text-sm">No email provided</div>'
-                      }
+                      <div>
+                        <span class="user-code-badge">${Math.floor(
+                          parseFloat(applicant.user_code)
+                        )}</span>
+                      </div>
                       ${
                         applicant.student_number &&
                         applicant.student_number !== "NaN"
-                          ? `<div class="text-xs text-gray-500">ID: ${applicant.student_number}</div>`
-                          : '<div class="text-xs text-gray-400">No student ID</div>'
+                          ? `<div class="text-xs text-gray-500">Student Number: ${applicant.student_number}</div>`
+                          : '<div class="text-xs text-gray-400">No student number</div>'
                       }
                     </div>
                   </td>
