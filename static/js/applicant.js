@@ -185,7 +185,9 @@ class ApplicantManager {
                         )}
                       </div>
                       <div class="applicant-info">
-                        <h3>${applicant.given_name} ${ applicant.family_name }</h3>
+                        <h3>${applicant.given_name} ${
+                  applicant.family_name
+                }</h3>
                       </div>
                     </div>
                   </td>
@@ -309,13 +311,11 @@ class ApplicantManager {
     const filteredApplicants = this.allApplicants.filter((applicant) => {
       if (filterBy === "all") {
         return (
-          applicant.user_code.toLowerCase().includes(searchTerm) ||
           (applicant.given_name &&
             applicant.given_name.toLowerCase().includes(searchTerm)) ||
           (applicant.family_name &&
             applicant.family_name.toLowerCase().includes(searchTerm)) ||
-          (applicant.email &&
-            applicant.email.toLowerCase().includes(searchTerm)) ||
+          applicant.user_code.toLowerCase().includes(searchTerm) ||
           (applicant.student_number &&
             applicant.student_number
               .toString()
