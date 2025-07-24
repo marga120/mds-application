@@ -60,7 +60,8 @@
     @apply px-6 py-5 text-sm;
   }
 
-  .modern-table td:nth-child(2) {
+  .modern-table th:nth-child(2),
+  .modern-table th:nth-child(3) {
     @apply text-center;
   }
 
