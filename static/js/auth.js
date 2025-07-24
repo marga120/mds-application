@@ -32,9 +32,12 @@ class AuthManager {
       if (user.role === "Admin" || user.role === "Faculty") {
         sessionsDropdownArea.innerHTML = `
           <div class="relative">
-            <button id="sessionsDropdownBtn" class="bg-white text-ubc-blue hover:bg-gray-100 px-6 py-2 rounded text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
-              📋 Sessions
+            <button id="sessionsDropdownBtn" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+              Sessions
+              <svg class="w-3 h-3 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
             </button>
@@ -58,12 +61,19 @@ class AuthManager {
     if (userDropdownArea) {
       userDropdownArea.innerHTML = `
         <div class="relative">
-          <button id="userDropdownBtn" class="bg-white text-ubc-blue hover:bg-gray-100 px-6 py-2 rounded text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
-            <div class="text-left">
-              <div class="font-medium">Welcome, ${user.full_name}</div>
-              <div class="text-xs text-gray-600">${user.role}</div>
+          <button id="userDropdownBtn" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-3 border border-white/20">
+            <!-- User Avatar -->
+            <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+              <span class="text-white font-semibold text-sm">${user.full_name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}</span>
             </div>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="text-left hidden md:block">
+              <div class="font-medium text-white">${user.full_name}</div>
+              <div class="text-xs text-white/70">${user.role}</div>
+            </div>
+            <svg class="w-3 h-3 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
             </svg>
           </button>
@@ -88,13 +98,24 @@ class AuthManager {
     if (userDropdownBtn && userDropdownMenu) {
       userDropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        userDropdownMenu.classList.toggle("hidden");
+        const isHidden = userDropdownMenu.classList.contains("hidden");
+
         // Close sessions dropdown if open
         const sessionsDropdownMenu = document.getElementById(
           "sessionsDropdownMenu"
         );
         if (sessionsDropdownMenu) {
           sessionsDropdownMenu.classList.add("hidden");
+          sessionsDropdownMenu.classList.remove("show");
+        }
+
+        // Toggle user dropdown with animation
+        if (isHidden) {
+          userDropdownMenu.classList.remove("hidden");
+          setTimeout(() => userDropdownMenu.classList.add("show"), 10);
+        } else {
+          userDropdownMenu.classList.remove("show");
+          setTimeout(() => userDropdownMenu.classList.add("hidden"), 200);
         }
       });
     }

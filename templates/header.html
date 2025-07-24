@@ -1,20 +1,39 @@
 <header class="header-ubc shadow-lg">
-  <div class="max-w-7xl mx-auto px-4 py-8">
-    <!-- Top row: Title centered and clickable -->
-    <div class="text-center mb-6">
-      <a href="/" class="hover:opacity-80 transition-opacity cursor-pointer">
-        <h1 class="text-3xl font-bold">MDS Application</h1>
-        <p class="text-ubc-gray-light mt-2">University of British Columbia</p>
-      </a>
-    </div>
-
-    <!-- Bottom row: Sessions dropdown left, User dropdown right -->
-    <div class="flex justify-between items-center">
-      <div id="sessionsDropdownArea" class="flex-shrink-0 relative">
-        <!-- Sessions dropdown will be populated by JavaScript -->
+  <div class="max-w-7xl mx-auto px-4 py-4">
+    <!-- Header content in single row with better alignment -->
+    <div class="flex items-center justify-between">
+      <!-- Logo/Brand section -->
+      <div class="flex items-center space-x-4">
+        <a
+          href="/"
+          class="hover:opacity-80 transition-opacity duration-200 flex items-center space-x-3"
+        >
+          <!-- UBC Logo placeholder -->
+          <div
+            class="w-10 h-10 bg-white rounded-full flex items-center justify-center"
+          >
+            <span class="text-ubc-blue font-bold text-lg">U</span>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-white">MDS Application</h1>
+            <p class="text-ubc-gray-light text-sm">
+              University of British Columbia
+            </p>
+          </div>
+        </a>
       </div>
-      <div id="userDropdownArea" class="flex-shrink-0 relative">
-        <!-- User dropdown will be populated by JavaScript -->
+
+      <!-- Navigation and user controls -->
+      <div class="flex items-center space-x-4">
+        <!-- Sessions dropdown -->
+        <div id="sessionsDropdownArea" class="relative">
+          <!-- Sessions dropdown will be populated by JavaScript -->
+        </div>
+
+        <!-- User dropdown -->
+        <div id="userDropdownArea" class="relative">
+          <!-- User dropdown will be populated by JavaScript -->
+        </div>
       </div>
     </div>
   </div>
