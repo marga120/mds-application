@@ -11,7 +11,8 @@ def get_user_ratings(user_code):
 
     try:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT 
                 r.user_code,
                 r.user_id,
@@ -24,18 +25,21 @@ def get_user_ratings(user_code):
             JOIN "user" u ON r.user_id = u.id
             WHERE r.user_code = %s
             ORDER BY u.first_name, u.last_name
-        """, (user_code,))
-        
+        """,
+            (user_code,),
+        )
+
         ratings = cursor.fetchall()
         cursor.close()
         conn.close()
-        
+
         return ratings, None
 
     except Exception as e:
         if conn:
             conn.close()
         return None, f"Database error: {str(e)}"
+
 
 def add_or_update_user_rating(user_code, user_id, rating, comment):
     """Add or update a rating for a user"""
@@ -46,7 +50,7 @@ def add_or_update_user_rating(user_code, user_id, rating, comment):
     try:
         cursor = conn.cursor()
         current_time = datetime.now()
-        
+
         # Validate rating
         try:
             rating_decimal = float(rating)
@@ -56,25 +60,27 @@ def add_or_update_user_rating(user_code, user_id, rating, comment):
             rating_decimal = round(rating_decimal, 1)
         except (ValueError, TypeError):
             return False, "Invalid rating format"
-        
-        # Use INSERT ... ON CONFLICT for PostgreSQL with user_id as primary key
-        cursor.execute("""
+
+        # Use INSERT ... ON CONFLICT for PostgreSQL with composite primary key
+        cursor.execute(
+            """
             INSERT INTO rating (user_id, user_code, rating, user_comment, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (user_id) 
+            ON CONFLICT (user_id, user_code) 
             DO UPDATE SET 
-                user_code = EXCLUDED.user_code,
                 rating = EXCLUDED.rating,
                 user_comment = EXCLUDED.user_comment,
                 updated_at = EXCLUDED.updated_at
-        """, (user_id, user_code, rating_decimal, comment, current_time, current_time))
-        
+        """,
+            (user_id, user_code, rating_decimal, comment, current_time, current_time),
+        )
+
         message = "Rating saved successfully"
-        
+
         conn.commit()
         cursor.close()
         conn.close()
-        
+
         return True, message
 
     except Exception as e:
@@ -82,6 +88,7 @@ def add_or_update_user_rating(user_code, user_id, rating, comment):
             conn.rollback()
             conn.close()
         return False, f"Database error: {str(e)}"
+
 
 def get_user_own_rating(user_code, user_id):
     """Get current user's own rating for a specific applicant"""
@@ -91,21 +98,20 @@ def get_user_own_rating(user_code, user_id):
 
     try:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT rating, user_comment, user_code
             FROM rating 
-            WHERE user_id = %s
-        """, (user_id,))
-        
+            WHERE user_id = %s AND user_code = %s
+        """,
+            (user_id, user_code),
+        )
+
         rating = cursor.fetchone()
         cursor.close()
         conn.close()
-        
-        # Since each user can only have one rating total, we need to check if it matches the user_code
-        if rating and rating['user_code'] == user_code:
-            return rating, None
-        else:
-            return None, None
+
+        return rating, None
 
     except Exception as e:
         if conn:

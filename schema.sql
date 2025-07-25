@@ -112,13 +112,22 @@ CREATE TABLE IF NOT EXISTS app_info (
 --     rating VARCHAR(20),
 --     user_comment VARCHAR(300)
 -- );
+-- CREATE TABLE IF NOT EXISTS rating(
+-- 	user_id INTEGER PRIMARY KEY REFERENCES "user"(id),
+-- 	user_code VARCHAR(10) REFERENCES student_info(user_code),
+-- 	rating DECIMAL(3,1) CHECK (rating >= 0.0 AND rating <= 10.0),
+-- 	user_comment VARCHAR(300),
+-- 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+-- 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
 CREATE TABLE IF NOT EXISTS rating(
-	user_id INTEGER PRIMARY KEY REFERENCES "user"(id),
+	user_id INTEGER REFERENCES "user"(id),
 	user_code VARCHAR(10) REFERENCES student_info(user_code),
 	rating DECIMAL(3,1) CHECK (rating >= 0.0 AND rating <= 10.0),
 	user_comment VARCHAR(300),
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (user_id, user_code)
 );
 
 -- Renamed from academic_info to institution_info
@@ -429,11 +438,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create function to handle user deletion - deletes related rating
+-- Create function to handle user deletion - deletes related ratings
 CREATE OR REPLACE FUNCTION handle_user_deletion()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- When a user is deleted, delete their rating
+    -- When a user is deleted, delete their ratings
     DELETE FROM rating WHERE user_id = OLD.id;
     
     RETURN OLD;

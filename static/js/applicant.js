@@ -661,9 +661,16 @@ class ApplicantManager {
           result.rating.rating || "";
         document.getElementById("commentTextarea").value =
           result.rating.user_comment || "";
+      } else {
+        // Clear inputs if no rating exists
+        document.getElementById("ratingInput").value = "";
+        document.getElementById("commentTextarea").value = "";
       }
     } catch (error) {
       console.error("Error loading user rating:", error);
+      // Clear inputs on error as well
+      document.getElementById("ratingInput").value = "";
+      document.getElementById("commentTextarea").value = "";
     }
   }
 
