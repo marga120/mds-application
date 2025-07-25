@@ -2,6 +2,11 @@ from utils.database import get_db_connection
 from psycopg2.extras import RealDictCursor
 import pandas as pd
 from datetime import datetime
+from models.test_scores import (
+    process_toefl_scores,
+    process_ielts_scores,
+    process_other_test_scores,
+)
 
 
 def process_csv_data(df):
@@ -165,6 +170,11 @@ def process_csv_data(df):
                     current_time,  # updated_at
                 ),
             )
+
+            # Process test scores
+            process_toefl_scores(user_code, row, cursor, current_time)
+            process_ielts_scores(user_code, row, cursor, current_time)
+            process_other_test_scores(user_code, row, cursor, current_time)
 
             records_processed += 1
 

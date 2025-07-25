@@ -303,7 +303,7 @@ class ApplicantManager {
     if (statusLower.includes("submitted")) {
       return '<span class="status-badge status-submitted">✓ Submitted</span>';
     } else if (statusLower.includes("progress")) {
-      return '<span class="status-badge status-progress">⏳ In Progress</span>';
+      return '<span class="status-badge status-progress"> In Progress</span>';
     } else {
       return `<span class="status-badge status-unsubmitted">${status}</span>`;
     }
