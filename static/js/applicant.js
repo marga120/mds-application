@@ -1008,6 +1008,23 @@ class ApplicantManager {
       displayValue = `<a href="tel:${value}" class="text-blue-600 hover:text-blue-800 hover:underline">${value}</a>`;
     }
 
+    // Check if this is a long text field that should wrap instead of truncate
+    const longTextFields = [
+      "Academic History",
+      "UBC Academic History",
+      "Aboriginal Info",
+    ];
+    const isLongTextField = longTextFields.includes(label);
+
+    if (isLongTextField) {
+      return `
+        <div class="py-2 border-b border-white/30">
+          <span class="text-sm font-medium text-gray-700 block mb-1">${label}:</span>
+          <span class="text-sm text-gray-900 leading-relaxed">${displayValue}</span>
+        </div>
+      `;
+    }
+
     return `
       <div class="flex justify-between items-center py-2 border-b border-white/30">
         <span class="text-sm font-medium text-gray-700">${label}:</span>
