@@ -377,3 +377,37 @@ def get_student_test_scores_by_code(user_code):
         if conn:
             conn.close()
         return None, f"Database error: {str(e)}"
+
+def get_student_institutions_by_code(user_code):
+    """Get all institution information for a student by user code"""
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute(
+            """
+            SELECT 
+                institution_number, institution_code, full_name, country,
+                start_date, end_date, program_study, degree_confer_code,
+                degree_confer, date_confer, credential_receive_code,
+                credential_receive, expected_confer_date, expected_credential_code,
+                expected_credential, honours, fail_withdraw, reason, gpa
+            FROM institution_info 
+            WHERE user_code = %s
+            ORDER BY institution_number
+        """,
+            (user_code,),
+        )
+
+        institutions = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return institutions, None
+
+    except Exception as e:
+        if conn:
+            conn.close()
+        return None, f"Database error: {str(e)}"
