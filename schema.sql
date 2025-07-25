@@ -106,11 +106,19 @@ CREATE TABLE IF NOT EXISTS app_info (
     scholarship BOOLEAN
 );
 
+-- CREATE TABLE IF NOT EXISTS rating(
+--     user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+--     user_id INTEGER REFERENCES "user"(id),
+--     rating VARCHAR(20),
+--     user_comment VARCHAR(300)
+-- );
 CREATE TABLE IF NOT EXISTS rating(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
-    user_id INTEGER REFERENCES "user"(id),
-    rating VARCHAR(20),
-    user_comment VARCHAR(300)
+	user_id INTEGER PRIMARY KEY REFERENCES "user"(id),
+	user_code VARCHAR(10) REFERENCES student_info(user_code),
+	rating DECIMAL(3,1) CHECK (rating >= 0.0 AND rating <= 10.0),
+	user_comment VARCHAR(300),
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Renamed from academic_info to institution_info
@@ -452,6 +460,13 @@ CREATE TRIGGER user_deletion_trigger
     AFTER DELETE ON "user" 
     FOR EACH ROW 
     EXECUTE FUNCTION handle_user_deletion();
+
+-- Create trigger for rating table to auto-update updated_at
+DROP TRIGGER IF EXISTS update_rating_updated_at ON rating;
+CREATE TRIGGER update_rating_updated_at 
+    BEFORE UPDATE ON rating 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_email ON "user"(email);
