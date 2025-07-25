@@ -1283,37 +1283,69 @@ class ApplicantManager {
             this.formatDate(score.date_written)
           )}
           <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
+            ${this.renderScoreField("Verbal Reasoning", score.verbal)}
             ${this.renderScoreField(
-              "Verbal",
-              `${score.verbal}${
-                score.verbal_below ? ` (${score.verbal_below}%)` : ""
-              }`
+              "Quantitative Reasoning",
+              score.quantitative
             )}
-            ${this.renderScoreField(
-              "Quantitative",
-              `${score.quantitative}${
-                score.quantitative_below
-                  ? ` (${score.quantitative_below}%)`
-                  : ""
-              }`
-            )}
-            ${this.renderScoreField(
-              "Writing",
-              `${score.writing}${
-                score.writing_below ? ` (${score.writing_below}%)` : ""
-              }`
-            )}
+            ${this.renderScoreField("Analytical Writing", score.writing)}
           </div>
+          ${
+            score.verbal_below ||
+            score.quantitative_below ||
+            score.writing_below
+              ? `
+            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
+              ${
+                score.verbal_below
+                  ? this.renderScoreField(
+                      "Verbal Reasoning % Below",
+                      score.verbal_below
+                    )
+                  : ""
+              }
+              ${
+                score.quantitative_below
+                  ? this.renderScoreField(
+                      "Quantitative Reasoning % Below",
+                      score.quantitative_below
+                    )
+                  : ""
+              }
+              ${
+                score.writing_below
+                  ? this.renderScoreField(
+                      "Analytical Writing % Below",
+                      score.writing_below
+                    )
+                  : ""
+              }
+            </div>
+          `
+              : ""
+          }
           ${
             score.subject_tests
               ? `
             <div class="pt-2 border-t border-blue-200">
               <p class="text-xs font-medium text-blue-800 mb-2">Subject Test</p>
-              ${this.renderScoreField(
-                "Subject Score",
+              ${this.renderScoreField("Subject Tests", score.subject_tests)}
+              ${
                 score.subject_scaled_score
-              )}
-              ${this.renderScoreField("Subject %", score.subject_below)}
+                  ? this.renderScoreField(
+                      "Subject Scaled Score",
+                      score.subject_scaled_score
+                    )
+                  : ""
+              }
+              ${
+                score.subject_below
+                  ? this.renderScoreField(
+                      "Subject % Below",
+                      score.subject_below
+                    )
+                  : ""
+              }
             </div>
           `
               : ""
