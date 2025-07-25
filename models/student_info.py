@@ -7,6 +7,12 @@ from models.test_scores import (
     process_ielts_scores,
     process_other_test_scores,
 )
+from models.test_scores import (
+    process_toefl_scores,
+    process_ielts_scores,
+    process_other_test_scores,
+)
+from models.institutions import process_institution_info
 
 
 def process_csv_data(df):
@@ -175,6 +181,9 @@ def process_csv_data(df):
             process_toefl_scores(user_code, row, cursor, current_time)
             process_ielts_scores(user_code, row, cursor, current_time)
             process_other_test_scores(user_code, row, cursor, current_time)
+
+            # Process institution information
+            process_institution_info(user_code, row, cursor, current_time)
 
             records_processed += 1
 
