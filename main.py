@@ -10,6 +10,7 @@ from utils.database import init_database
 from api.student_info import student_info_api
 from api.auth import auth_api
 from api.session import session_api
+from api.rating import rating_api
 
 # Import user model for Flask-Login
 from models.users import get_user_by_id
@@ -43,6 +44,7 @@ def load_user(user_id):
 app.register_blueprint(student_info_api, url_prefix="/api")
 app.register_blueprint(auth_api, url_prefix="/api/auth")
 app.register_blueprint(session_api, url_prefix="/api")
+app.register_blueprint(rating_api, url_prefix="/api")
 
 
 # Web routes (that render templates)

@@ -2,6 +2,17 @@ from utils.database import get_db_connection
 from psycopg2.extras import RealDictCursor
 import pandas as pd
 from datetime import datetime
+from models.test_scores import (
+    process_toefl_scores,
+    process_ielts_scores,
+    process_other_test_scores,
+)
+from models.test_scores import (
+    process_toefl_scores,
+    process_ielts_scores,
+    process_other_test_scores,
+)
+from models.institutions import process_institution_info
 
 
 def create_or_get_session(cursor, program_code, program, session_abbrev):
@@ -251,6 +262,14 @@ def process_csv_data(df):
                 ),
             )
 
+            # Process test scores
+            process_toefl_scores(user_code, row, cursor, current_time)
+            process_ielts_scores(user_code, row, cursor, current_time)
+            process_other_test_scores(user_code, row, cursor, current_time)
+
+            # Process institution information
+            process_institution_info(user_code, row, cursor, current_time)
+
             records_processed += 1
 
         conn.commit()
@@ -287,13 +306,14 @@ def get_all_student_status():
                 ss.status,
                 ss.detail_status,
                 ss.updated_at,
-                s.name as session_name,
-                s.year as session_year,
-                s.program as session_program,
-                EXTRACT(EPOCH FROM (NOW() - ss.updated_at)) as seconds_since_update
+                EXTRACT(EPOCH FROM (NOW() - ss.updated_at)) as seconds_since_update,
+                ROUND(AVG(r.rating), 1) as overall_rating
             FROM student_status ss
             LEFT JOIN student_info si ON ss.user_code = si.user_code
-            LEFT JOIN session s ON si.session_id = s.id
+            LEFT JOIN rating r ON ss.user_code = r.user_code
+            GROUP BY ss.user_code, si.family_name, si.given_name, si.email, 
+                     ss.student_number, ss.app_start, ss.submit_date, 
+                     ss.status_code, ss.status, ss.detail_status, ss.updated_at
             ORDER BY ss.submit_date DESC, si.family_name
         """
         )
@@ -340,4 +360,174 @@ def get_all_sessions():
         return sessions, None
 
     except Exception as e:
+        return None, f"Database error: {str(e)}"
+    
+def get_student_info_by_code(user_code):
+    """Get detailed student information by user code"""
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute(
+            """
+            SELECT 
+                interest_code, interest, title, family_name, given_name, 
+                middle_name, preferred_name, former_family_name, gender_code, 
+                gender, country_birth_code, country_birth, date_birth, 
+                country_citizenship_code, country_citizenship, dual_citizenship_code, 
+                dual_citizenship, primary_spoken_lang_code, primary_spoken_lang, 
+                other_spoken_lang_code, other_spoken_lang, visa_type_code, 
+                visa_type, country_code, country, address_line1, address_line2, 
+                city, province_state_region, postal_code, primary_telephone, 
+                secondary_telephone, email, aboriginal, first_nation, inuit, 
+                metis, aboriginal_not_specified, aboriginal_info, 
+                academic_history_code, academic_history, ubc_academic_history
+            FROM student_info 
+            WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+
+        student_info = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        return student_info, None
+
+    except Exception as e:
+        if conn:
+            conn.close()
+        return None, f"Database error: {str(e)}"
+
+
+def get_student_test_scores_by_code(user_code):
+    """Get all test scores for a student by user code"""
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        test_scores = {}
+
+        # TOEFL scores (multiple entries)
+        cursor.execute(
+            """
+            SELECT * FROM toefl WHERE user_code = %s ORDER BY toefl_number
+        """,
+            (user_code,),
+        )
+        test_scores["toefl"] = cursor.fetchall()
+
+        # IELTS scores (multiple entries)
+        cursor.execute(
+            """
+            SELECT * FROM ielts WHERE user_code = %s ORDER BY ielts_number
+        """,
+            (user_code,),
+        )
+        test_scores["ielts"] = cursor.fetchall()
+
+        # Other test scores (single entries)
+        cursor.execute(
+            """
+            SELECT * FROM melab WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["melab"] = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT * FROM pte WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["pte"] = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT * FROM cael WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["cael"] = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT * FROM celpip WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["celpip"] = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT * FROM alt_elpp WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["alt_elpp"] = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT * FROM gre WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["gre"] = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT * FROM gmat WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["gmat"] = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        return test_scores, None
+
+    except Exception as e:
+        if conn:
+            conn.close()
+        return None, f"Database error: {str(e)}"
+
+def get_student_institutions_by_code(user_code):
+    """Get all institution information for a student by user code"""
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute(
+            """
+            SELECT 
+                institution_number, institution_code, full_name, country,
+                start_date, end_date, program_study, degree_confer_code,
+                degree_confer, date_confer, credential_receive_code,
+                credential_receive, expected_confer_date, expected_credential_code,
+                expected_credential, honours, fail_withdraw, reason, gpa
+            FROM institution_info 
+            WHERE user_code = %s
+            ORDER BY institution_number
+        """,
+            (user_code,),
+        )
+
+        institutions = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return institutions, None
+
+    except Exception as e:
+        if conn:
+            conn.close()
         return None, f"Database error: {str(e)}"
