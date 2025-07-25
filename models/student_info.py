@@ -221,3 +221,43 @@ def get_all_student_status():
 
     except Exception as e:
         return None, f"Database error: {str(e)}"
+
+
+def get_student_info_by_code(user_code):
+    """Get detailed student information by user code"""
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute(
+            """
+            SELECT 
+                interest_code, interest, title, family_name, given_name, 
+                middle_name, preferred_name, former_family_name, gender_code, 
+                gender, country_birth_code, country_birth, date_birth, 
+                country_citizenship_code, country_citizenship, dual_citizenship_code, 
+                dual_citizenship, primary_spoken_lang_code, primary_spoken_lang, 
+                other_spoken_lang_code, other_spoken_lang, visa_type_code, 
+                visa_type, country_code, country, address_line1, address_line2, 
+                city, province_state_region, postal_code, primary_telephone, 
+                secondary_telephone, email, aboriginal, first_nation, inuit, 
+                metis, aboriginal_not_specified, aboriginal_info, 
+                academic_history_code, academic_history, ubc_academic_history
+            FROM student_info 
+            WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+
+        student_info = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        return student_info, None
+
+    except Exception as e:
+        if conn:
+            conn.close()
+        return None, f"Database error: {str(e)}"

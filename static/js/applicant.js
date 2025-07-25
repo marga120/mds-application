@@ -460,9 +460,14 @@ class ApplicantManager {
     modal.classList.remove("hidden");
     modal.classList.add("flex");
 
-    // Load ratings and show Comments & Ratings tab by default
+    // Load student info and ratings
+    this.loadStudentInfo(userCode);
+
+    // Show Comments & Ratings tab by default
     this.showTab("comments-ratings");
+
     this.loadRatings(userCode);
+
     this.loadMyRating(userCode);
   }
 
@@ -473,7 +478,7 @@ class ApplicantManager {
       "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50";
 
     modal.innerHTML = `
-      <div class="relative top-10 mx-auto p-6 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white mb-10">
+      <div class="relative top-5 mx-auto p-6 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white mb-10">
        <!-- Modal Header -->
         <div class="flex items-center justify-between pb-4 border-b border-gray-200">
           <div>
@@ -493,8 +498,8 @@ class ApplicantManager {
         <!-- Tabs Navigation -->
         <div class="border-b border-gray-200 mt-4">
           <nav class="flex space-x-8">
-            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="general-info">
-              General Info
+            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="student-info">
+              Student Info
             </button>
             <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="academic-info">
               Academic Info
@@ -510,9 +515,14 @@ class ApplicantManager {
 
         <!-- Tab Content -->
         <div class="mt-6">
-          <!-- General Info Tab -->
-          <div id="general-info" class="tab-content hidden">
-            <p class="text-gray-600">General information will be displayed here.</p>
+          <!-- Student Info Tab -->
+          <div id="student-info" class="tab-content hidden">
+            <div id="studentInfoContainer" class="space-y-6">
+              <div class="text-center py-8 text-gray-500">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+                Loading student information...
+              </div>
+            </div>
           </div>
 
           <!-- Academic Info Tab -->
@@ -767,5 +777,259 @@ class ApplicantManager {
   clearRatingForm() {
     document.getElementById("ratingInput").value = "";
     document.getElementById("commentTextarea").value = "";
+  }
+
+  async loadStudentInfo(userCode) {
+    try {
+      const response = await fetch(`/api/student-info/${userCode}`);
+      const result = await response.json();
+
+      const container = document.getElementById("studentInfoContainer");
+
+      if (result.success && result.student) {
+        const student = result.student;
+
+        container.innerHTML = `
+          <div class="max-h-96 overflow-y-auto pr-2">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Personal Information -->
+              <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
+                <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                  </svg>
+                  Personal Information
+                </h4>
+                <div class="space-y-3">
+                  ${this.renderInfoField("Title", student.title)}
+                  ${this.renderInfoField("Family Name", student.family_name)}
+                  ${this.renderInfoField("Given Name", student.given_name)}
+                  ${this.renderInfoField("Middle Name", student.middle_name)}
+                  ${this.renderInfoField(
+                    "Preferred Name",
+                    student.preferred_name
+                  )}
+                  ${this.renderInfoField(
+                    "Former Family Name",
+                    student.former_family_name
+                  )}
+                  ${this.renderInfoField(
+                    "Date of Birth",
+                    student.date_birth
+                      ? new Date(student.date_birth).toLocaleDateString("en-CA")
+                      : null
+                  )}
+                  ${this.renderInfoField("Gender", student.gender)}
+                  ${this.renderInfoField("Email", student.email, "email")}
+                </div>
+              </div>
+
+              <!-- Contact & Address -->
+              <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
+                <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                  Contact & Address
+                </h4>
+                <div class="space-y-3">
+                  ${this.renderInfoField(
+                    "Address Line 1",
+                    student.address_line1
+                  )}
+                  ${this.renderInfoField(
+                    "Address Line 2",
+                    student.address_line2
+                  )}
+                  ${this.renderInfoField("City", student.city)}
+                  ${this.renderInfoField(
+                    "Province/State/Region",
+                    student.province_state_region
+                  )}
+                  ${this.renderInfoField("Postal Code", student.postal_code)}
+                  ${this.renderInfoField("Country", student.country)}
+                  ${this.renderInfoField(
+                    "Primary Telephone",
+                    student.primary_telephone,
+                    "phone"
+                  )}
+                  ${this.renderInfoField(
+                    "Secondary Telephone",
+                    student.secondary_telephone,
+                    "phone"
+                  )}
+                </div>
+              </div>
+
+              <!-- Citizenship & Languages -->
+              <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
+                <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"></path>
+                  </svg>
+                  Citizenship & Languages
+                </h4>
+                <div class="space-y-3">
+                  ${this.renderInfoField(
+                    "Country of Birth",
+                    student.country_birth
+                  )}
+                  ${this.renderInfoField(
+                    "Country of Citizenship",
+                    student.country_citizenship
+                  )}
+                  ${this.renderInfoField(
+                    "Dual Citizenship",
+                    student.dual_citizenship
+                  )}
+                  ${this.renderInfoField(
+                    "Primary Spoken Language",
+                    student.primary_spoken_lang
+                  )}
+                  ${this.renderInfoField(
+                    "Other Spoken Language",
+                    student.other_spoken_lang
+                  )}
+                  ${this.renderInfoField("Visa Type", student.visa_type)}
+                </div>
+              </div>
+
+              <!-- Academic & Background -->
+              <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
+                <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                  </svg>
+                  Academic & Background
+                </h4>
+                <div class="space-y-3">
+                  ${this.renderInfoField("Interest", student.interest)}
+                  ${this.renderInfoField(
+                    "Academic History",
+                    student.academic_history
+                  )}
+                  ${this.renderInfoField(
+                    "UBC Academic History",
+                    student.ubc_academic_history
+                  )}
+                </div>
+              </div>
+
+              <!-- Aboriginal Information -->
+              ${
+                this.hasAboriginalInfo(student)
+                  ? `
+              <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200 lg:col-span-2">
+                <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                  </svg>
+                  Aboriginal Information
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  ${this.renderInfoField(
+                    "Aboriginal",
+                    this.formatYesNo(student.aboriginal)
+                  )}
+                  ${this.renderInfoField(
+                    "First Nation",
+                    this.formatYesNo(student.first_nation)
+                  )}
+                  ${this.renderInfoField(
+                    "Inuit",
+                    this.formatYesNo(student.inuit)
+                  )}
+                  ${this.renderInfoField(
+                    "Métis",
+                    this.formatYesNo(student.metis)
+                  )}
+                  ${this.renderInfoField(
+                    "Aboriginal Not Specified",
+                    this.formatYesNo(student.aboriginal_not_specified)
+                  )}
+                  ${
+                    student.aboriginal_info
+                      ? `
+                  <div class="md:col-span-2">
+                    ${this.renderInfoField(
+                      "Aboriginal Info",
+                      student.aboriginal_info
+                    )}
+                  </div>
+                  `
+                      : ""
+                  }
+                </div>
+              </div>
+              `
+                  : ""
+              }
+            </div>
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="text-center py-8 text-gray-500">
+            <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8l-4 4-4-4m-6 8l4-4 4 4"></path>
+            </svg>
+            <p class="text-lg font-medium text-gray-600">No student information available</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      document.getElementById("studentInfoContainer").innerHTML = `
+        <div class="text-center py-8 text-red-500">
+          <svg class="w-12 h-12 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <p class="text-lg font-medium">Error loading student information</p>
+          <p class="text-sm text-gray-600">${error.message}</p>
+        </div>
+      `;
+    }
+  }
+
+  renderInfoField(label, value, type = "text") {
+    if (!value || value === "null" || value === "undefined") {
+      return `
+        <div class="flex justify-between items-center py-2 border-b border-white/30">
+          <span class="text-sm font-medium text-gray-600">${label}:</span>
+          <span class="text-sm text-gray-400 italic">Not provided</span>
+        </div>
+      `;
+    }
+
+    let displayValue = value;
+    if (type === "email") {
+      displayValue = `<a href="mailto:${value}" class="text-blue-600 hover:text-blue-800 hover:underline">${value}</a>`;
+    } else if (type === "phone") {
+      displayValue = `<a href="tel:${value}" class="text-blue-600 hover:text-blue-800 hover:underline">${value}</a>`;
+    }
+
+    return `
+      <div class="flex justify-between items-center py-2 border-b border-white/30">
+        <span class="text-sm font-medium text-gray-700">${label}:</span>
+        <span class="text-sm text-gray-900 text-right max-w-xs truncate" title="${value}">${displayValue}</span>
+      </div>
+    `;
+  }
+
+  hasAboriginalInfo(student) {
+    return (
+      student.aboriginal === "Y" ||
+      student.first_nation === "Y" ||
+      student.inuit === "Y" ||
+      student.metis === "Y" ||
+      student.aboriginal_not_specified === "Y" ||
+      student.aboriginal_info
+    );
+  }
+
+  formatYesNo(value) {
+    if (value === "Y") return "Yes";
+    if (value === "N") return "No";
+    return null;
   }
 }
