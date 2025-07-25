@@ -408,6 +408,18 @@ class ApplicantManager {
     document.getElementById("modalApplicantName").textContent = userName;
     document.getElementById("modalUserCode").textContent = userCode;
 
+    // Find the student number from the applicant data
+    const applicant = this.allApplicants.find(
+      (app) => app.user_code === userCode
+    );
+    const studentNumber =
+      applicant &&
+      applicant.student_number &&
+      applicant.student_number !== "NaN"
+        ? Math.floor(parseFloat(applicant.student_number))
+        : "N/A";
+    document.getElementById("modalStudentNumber").textContent = studentNumber;
+
     // Set current user code for the modal
     modal.dataset.currentUserCode = userCode;
 
@@ -428,12 +440,15 @@ class ApplicantManager {
       "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50";
 
     modal.innerHTML = `
-      <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white">
-        <!-- Modal Header -->
+      <div class="relative top-10 mx-auto p-6 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white mb-10">
+       <!-- Modal Header -->
         <div class="flex items-center justify-between pb-4 border-b border-gray-200">
           <div>
             <h3 class="text-xl font-semibold text-gray-900" id="modalApplicantName">Applicant Details</h3>
-            <p class="text-sm text-gray-500">User Code: <span id="modalUserCode"></span></p>
+            <div class="text-sm text-gray-500 space-y-1">
+              <p>User Code: <span id="modalUserCode"></span></p>
+              <p>Student Number: <span id="modalStudentNumber"></span></p>
+            </div>
           </div>
           <button class="modal-close text-gray-400 hover:text-gray-600">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -474,33 +489,35 @@ class ApplicantManager {
 
           <!-- Comments & Ratings Tab -->
           <div id="comments-ratings" class="tab-content">
-            <!-- Add/Edit Rating Section -->
-            <div class="bg-blue-50 p-6 rounded-lg mb-6">
-              <h4 class="text-lg font-semibold text-gray-900 mb-4">Your Rating & Comment</h4>
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Rating (0.0 - 10.0)</label>
-                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter rating (e.g., 8.5)">
-                  <p class="text-xs text-gray-500 mt-1">Enter a rating between 0.0 and 10.0 (one decimal place)</p>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
-                  <textarea id="commentTextarea" rows="3" class="input-ubc w-full resize-none" placeholder="Add your comments about this applicant..."></textarea>
-                </div>
-                <div class="flex gap-3">
-                  <button id="saveRatingBtn" class="btn-ubc">Save Rating</button>
-                  <button id="clearRatingBtn" class="btn-ubc-outline">Clear</button>
+            <div class="max-h-96 overflow-y-auto pr-2">
+              <!-- Add/Edit Rating Section -->
+              <div class="bg-blue-50 p-6 rounded-lg mb-6">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Your Rating & Comment</h4>
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Rating (0.0 - 10.0)</label>
+                    <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter rating (e.g., 8.5)">
+                    <p class="text-xs text-gray-500 mt-1">Enter a rating between 0.0 and 10.0</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
+                    <textarea id="commentTextarea" rows="3" class="input-ubc w-full resize-none" placeholder="Add your comments about this applicant..."></textarea>
+                  </div>
+                  <div class="flex gap-3">
+                    <button id="saveRatingBtn" class="btn-ubc">Save Rating</button>
+                    <button id="clearRatingBtn" class="btn-ubc-outline">Clear</button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- All Ratings Section -->
-            <div>
-              <h4 class="text-lg font-semibold text-gray-900 mb-4">All Ratings & Comments</h4>
-              <div id="ratingsContainer" class="space-y-4">
-                <div class="text-center py-8 text-gray-500">
-                  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
-                  Loading ratings...
+              <!-- All Ratings Section -->
+              <div class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">All Ratings & Comments</h4>
+                <div id="ratingsContainer" class="space-y-3">
+                  <div class="text-center py-8 text-gray-500">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+                    Loading ratings...
+                  </div>
                 </div>
               </div>
             </div>
@@ -583,32 +600,33 @@ class ApplicantManager {
         container.innerHTML = result.ratings
           .map(
             (rating) => `
-          <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <div class="flex items-start justify-between">
-              <div class="flex items-center space-x-3">
-                <div class="w-8 h-8 bg-gradient-to-br from-ubc-blue to-ubc-light-blue rounded-full flex items-center justify-center">
-                  <span class="text-white font-semibold text-xs">${
-                    rating.first_name[0]
-                  }${rating.last_name[0]}</span>
-                </div>
-                <div>
-                  <p class="font-medium text-gray-900">${rating.first_name} ${
+          <div class="rating-card-container">
+            <div class="rating-card-header">
+              <div class="rating-user-avatar">
+                <span class="text-white font-semibold text-xs">${
+                  rating.first_name[0]
+                }${rating.last_name[0]}</span>
+              </div>
+              <div class="rating-user-details">
+                <p class="font-medium text-gray-900">${rating.first_name} ${
               rating.last_name
             }</p>
-                  <p class="text-sm text-gray-500">${rating.email}</p>
-                </div>
+                <p class="text-sm text-gray-500">${rating.email}</p>
               </div>
-              <div class="text-right">
-                <div class="text-sm font-medium text-gray-900">${parseFloat(
+              <div class="rating-score">
+                <span class="text-lg font-bold text-ubc-blue">${parseFloat(
                   rating.rating
-                ).toFixed(1)}/10.0</div>
+                ).toFixed(1)}</span>
+                <span class="text-sm text-gray-500">/10.0</span>
               </div>
             </div>
             ${
               rating.user_comment
                 ? `
-              <div class="mt-3 text-sm text-gray-700 bg-white p-3 rounded border-l-4 border-ubc-light-blue">
-                "${rating.user_comment}"
+              <div class="rating-comment-container">
+                <div class="rating-comment-content">
+                  ${rating.user_comment}
+                </div>
               </div>
             `
                 : ""
