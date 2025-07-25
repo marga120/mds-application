@@ -83,3 +83,16 @@ def get_student_info(user_code):
         return jsonify({"success": False, "message": error})
 
     return jsonify({"success": True, "student": student_info})
+
+
+@student_info_api.route("/student-test-scores/<user_code>", methods=["GET"])
+def get_student_test_scores(user_code):
+    """Get all test scores for a student by user code"""
+    from models.student_info import get_student_test_scores_by_code
+
+    test_scores, error = get_student_test_scores_by_code(user_code)
+
+    if error:
+        return jsonify({"success": False, "message": error})
+
+    return jsonify({"success": True, "test_scores": test_scores})

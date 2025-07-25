@@ -40,10 +40,10 @@ class AuthManager {
             </button>
             <div id="sessionsDropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
               <a href="/create-new-session" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
-                🎓 Create New Session
+                Create New Session
               </a>
               <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md border-t border-gray-100">
-                📊 View All Sessions
+                View All Sessions
               </button>
             </div>
           </div>

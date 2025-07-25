@@ -2,6 +2,11 @@ from utils.database import get_db_connection
 from psycopg2.extras import RealDictCursor
 import pandas as pd
 from datetime import datetime
+from models.test_scores import (
+    process_toefl_scores,
+    process_ielts_scores,
+    process_other_test_scores,
+)
 
 
 def process_csv_data(df):
@@ -166,6 +171,11 @@ def process_csv_data(df):
                 ),
             )
 
+            # Process test scores
+            process_toefl_scores(user_code, row, cursor, current_time)
+            process_ielts_scores(user_code, row, cursor, current_time)
+            process_other_test_scores(user_code, row, cursor, current_time)
+
             records_processed += 1
 
         conn.commit()
@@ -256,6 +266,103 @@ def get_student_info_by_code(user_code):
         conn.close()
 
         return student_info, None
+
+    except Exception as e:
+        if conn:
+            conn.close()
+        return None, f"Database error: {str(e)}"
+
+
+def get_student_test_scores_by_code(user_code):
+    """Get all test scores for a student by user code"""
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        test_scores = {}
+
+        # TOEFL scores (multiple entries)
+        cursor.execute(
+            """
+            SELECT * FROM toefl WHERE user_code = %s ORDER BY toefl_number
+        """,
+            (user_code,),
+        )
+        test_scores["toefl"] = cursor.fetchall()
+
+        # IELTS scores (multiple entries)
+        cursor.execute(
+            """
+            SELECT * FROM ielts WHERE user_code = %s ORDER BY ielts_number
+        """,
+            (user_code,),
+        )
+        test_scores["ielts"] = cursor.fetchall()
+
+        # Other test scores (single entries)
+        cursor.execute(
+            """
+            SELECT * FROM melab WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["melab"] = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT * FROM pte WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["pte"] = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT * FROM cael WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["cael"] = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT * FROM celpip WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["celpip"] = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT * FROM alt_elpp WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["alt_elpp"] = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT * FROM gre WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["gre"] = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT * FROM gmat WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["gmat"] = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        return test_scores, None
 
     except Exception as e:
         if conn:
