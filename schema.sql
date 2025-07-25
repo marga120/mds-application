@@ -16,15 +16,23 @@ CREATE TABLE IF NOT EXISTS "user" (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create program_info table (new table)
-CREATE TABLE IF NOT EXISTS program_info (
-    program_code VARCHAR(10) PRIMARY KEY,
-    program VARCHAR(100),
-    session VARCHAR(50)
+-- Create session table
+CREATE TABLE IF NOT EXISTS session(
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY, 
+    program_code VARCHAR(10),
+    program VARCHAR(50),
+    session_abbrev VARCHAR(6),
+    year INTEGER,
+    name VARCHAR(30),
+    description VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
 CREATE TABLE IF NOT EXISTS student_info(
     user_code VARCHAR(10) PRIMARY KEY,
+    session_id INT,
     interest_code VARCHAR(10),
     interest VARCHAR(100),
     title VARCHAR(4),
@@ -74,6 +82,14 @@ CREATE TABLE IF NOT EXISTS student_info(
     ubc_academic_history TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create program_info table (new table)
+CREATE TABLE IF NOT EXISTS program_info (
+    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+    program_code VARCHAR(10),
+    program VARCHAR(100),
+    session VARCHAR(50)
 );
 
 CREATE TABLE IF NOT EXISTS student_status(
@@ -149,7 +165,7 @@ CREATE TABLE IF NOT EXISTS institution_info(
     expected_credential_code VARCHAR(100),
     expected_credential VARCHAR(100),
     honours VARCHAR(100),
-    fail_withdraw BOOLEAN,
+    fail_withdraw VARCHAR(3),
     reason VARCHAR(250),
     gpa VARCHAR(50),
     PRIMARY KEY (user_code, institution_number)
@@ -273,9 +289,33 @@ BEGIN
     END IF;
 END $$;
 
+-- Add foreign key constraint from student_info to session with CASCADE DELETE
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'fk_student_info_session' AND table_name = 'student_info'
+    ) THEN
+        ALTER TABLE student_info 
+        ADD CONSTRAINT fk_student_info_session 
+        FOREIGN KEY (session_id) REFERENCES session(id) ON DELETE CASCADE;
+    END IF;
+END $$;
+
+
 -- Add CASCADE DELETE constraints for all tables referencing student_info
 DO $$ 
 BEGIN
+    -- program_info referneces student_info
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'fk_program_info_student_info' AND table_name = 'program_info'
+    ) THEN
+        ALTER TABLE program_info 
+        ADD CONSTRAINT fk_program_info_student_info 
+        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+    END IF;
+
     -- student_status references student_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
@@ -480,6 +520,8 @@ CREATE TRIGGER update_rating_updated_at
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_email ON "user"(email);
 CREATE INDEX IF NOT EXISTS idx_user_role ON "user"(role_user_id);
+CREATE INDEX IF NOT EXISTS idx_student_info_session ON student_info(session_id);
+CREATE INDEX IF NOT EXISTS idx_program_info_user_code ON program_info(user_code);
 CREATE INDEX IF NOT EXISTS idx_institution_info_user_code ON institution_info(user_code);
 CREATE INDEX IF NOT EXISTS idx_toefl_user_code ON toefl(user_code);
 CREATE INDEX IF NOT EXISTS idx_ielts_user_code ON ielts(user_code);
@@ -507,3 +549,4 @@ WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser3@example.com');
 INSERT INTO "user" (first_name, last_name, email, password, role_user_id) 
 SELECT 'Test4', 'User4', 'testuser4@example.com', '$2b$12$mJpl.O3Y12Ti66e8NEENMerKi7obcA3glVon5ZayXT7pMCheIcFbq', 3
 WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser4@example.com');
+
