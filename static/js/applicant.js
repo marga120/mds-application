@@ -1,7 +1,9 @@
 class ApplicantManager {
   constructor() {
     this.allApplicants = [];
+    this.sessionName = ""; // Add property to store session name
     this.initializeEventListeners();
+    this.loadSessionName(); // Load session name first
     this.loadApplicants();
   }
 
@@ -27,6 +29,56 @@ class ApplicantManager {
       this.filterApplicants();
     });
   }
+
+ // Debug version of loadSessionName method
+async loadSessionName() {
+  console.log("🔍 Starting to load session name...");
+  
+  try {
+    console.log("📡 Making request to /api/session");
+    const response = await fetch("/api/session");
+    console.log("📊 Response status:", response.status);
+    console.log("📊 Response ok:", response.ok);
+    
+    const result = await response.json();
+    console.log("📄 Full API response:", result);
+    
+    if (result.success && result.session_name) {
+      console.log("✅ Session name loaded successfully:", result.session_name);
+      this.sessionName = result.session_name;
+      this.updateSectionTitle();
+      console.log("🎯 Title updated to:", `${this.sessionName} Applicants Database`);
+    } else {
+      console.log("❌ API returned unsuccessful result:", result);
+      // Fallback to default if no session name found
+      this.sessionName = "Default Session";
+      this.updateSectionTitle();
+      console.log("🔄 Using fallback title:", `${this.sessionName} Applicants Database`);
+    }
+  } catch (error) {
+    console.error("💥 Failed to load session name:", error);
+    // Fallback to default
+    this.sessionName = "Default Session";
+    this.updateSectionTitle();
+    console.log("🔄 Using fallback after error:", `${this.sessionName} Applicants Database`);
+  }
+}
+
+// Debug version of updateSectionTitle method
+updateSectionTitle() {
+  console.log("🏷️ Updating section title...");
+  const titleElement = document.getElementById("applicantsSectionTitle");
+  console.log("🔍 Title element found:", titleElement);
+  
+  if (titleElement) {
+    const newTitle = `${this.sessionName} Applicants Database`;
+    console.log("📝 Setting title to:", newTitle);
+    titleElement.textContent = newTitle;
+    console.log("✅ Title element updated");
+  } else {
+    console.error("❌ Could not find element with ID 'applicantsSectionTitle'");
+  }
+}
 
   handleFileSelect(file) {
     if (file && file.name.endsWith(".csv")) {
