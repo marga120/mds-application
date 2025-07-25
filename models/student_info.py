@@ -20,38 +20,44 @@ def create_or_get_session(cursor, program_code, program, session_abbrev):
     try:
         # Truncate values to fit database column limits
         program_code = program_code[:10]  # program_code VARCHAR(10)
-        program = program[:20]            # program VARCHAR(20)
+        program = program[:20]  # program VARCHAR(20)
         session_abbrev = session_abbrev[:6]  # session_abbrev VARCHAR(6)
-        
+
         # Extract year from session_abbrev (first 4 characters)
         if len(session_abbrev) < 4:
-            return None, f"Session abbreviation '{session_abbrev}' is too short (need at least 4 characters)"
-            
+            return (
+                None,
+                f"Session abbreviation '{session_abbrev}' is too short (need at least 4 characters)",
+            )
+
         year_str = session_abbrev[:4]
-        
+
         if not year_str.isdigit():
-            return None, f"First 4 characters of session '{session_abbrev}' are not numeric: '{year_str}'"
-        
+            return (
+                None,
+                f"First 4 characters of session '{session_abbrev}' are not numeric: '{year_str}'",
+            )
+
         year = int(year_str)
-        
+
         # Create name in format "Session year - year+1" (truncate to 20 chars if needed)
         name = f"Session {year} - {year + 1}"
         if len(name) > 20:
             name = name[:20]
-        
+
         # Check if session already exists
         cursor.execute(
             """
             SELECT id FROM session 
             WHERE program_code = %s AND year = %s AND session_abbrev = %s
             """,
-            (program_code, year, session_abbrev)
+            (program_code, year, session_abbrev),
         )
-        
+
         existing_session = cursor.fetchone()
         if existing_session:
             return existing_session[0], f"Found existing session: {name}"
-        
+
         # Create new session
         cursor.execute(
             """
@@ -67,13 +73,13 @@ def create_or_get_session(cursor, program_code, program, session_abbrev):
                 name,
                 "",  # Empty description
                 datetime.now(),
-                datetime.now()
-            )
+                datetime.now(),
+            ),
         )
-        
+
         session_id = cursor.fetchone()[0]
         return session_id, f"Created new session: {name} (ID: {session_id})"
-        
+
     except ValueError as e:
         return None, f"Error parsing year from session_abbrev '{session_abbrev}': {e}"
     except Exception as e:
@@ -97,19 +103,33 @@ def process_csv_data(df):
             program_code = str(first_row.get("Program CODE", "")).strip()
             program = str(first_row.get("Program", "")).strip()
             session_abbrev = str(first_row.get("Session", "")).strip()
-            
+
             # Check for empty or nan values
             if not program_code or program_code == "nan" or program_code == "":
-                return False, f"Invalid Program CODE: '{first_row.get('Program CODE', 'NOT_FOUND')}'", 0
+                return (
+                    False,
+                    f"Invalid Program CODE: '{first_row.get('Program CODE', 'NOT_FOUND')}'",
+                    0,
+                )
             if not program or program == "nan" or program == "":
-                return False, f"Invalid Program: '{first_row.get('Program', 'NOT_FOUND')}'", 0
+                return (
+                    False,
+                    f"Invalid Program: '{first_row.get('Program', 'NOT_FOUND')}'",
+                    0,
+                )
             if not session_abbrev or session_abbrev == "nan" or session_abbrev == "":
-                return False, f"Invalid Session: '{first_row.get('Session', 'NOT_FOUND')}'", 0
-            
-            session_result, message = create_or_get_session(cursor, program_code, program, session_abbrev)
+                return (
+                    False,
+                    f"Invalid Session: '{first_row.get('Session', 'NOT_FOUND')}'",
+                    0,
+                )
+
+            session_result, message = create_or_get_session(
+                cursor, program_code, program, session_abbrev
+            )
             if session_result is None:
                 return False, f"Session creation failed: {message}", 0
-            
+
             session_id = session_result
         else:
             return False, "CSV file is empty", 0
@@ -201,7 +221,9 @@ def process_csv_data(df):
                     row.get("Aboriginal Type First Nations"),  # first_nation
                     row.get("Aboriginal Type Inuit"),  # inuit
                     row.get("Aboriginal Type Métis"),  # metis
-                    row.get("Aboriginal Type Not Specified"),  # aboriginal_not_specified
+                    row.get(
+                        "Aboriginal Type Not Specified"
+                    ),  # aboriginal_not_specified
                     row.get("Aboriginal Info"),
                     row.get("Academic History Source CODE"),
                     row.get("IAcademic History Source Value"),
@@ -361,7 +383,8 @@ def get_all_sessions():
 
     except Exception as e:
         return None, f"Database error: {str(e)}"
-    
+
+
 def get_student_info_by_code(user_code):
     """Get detailed student information by user code"""
     conn = get_db_connection()
@@ -497,6 +520,7 @@ def get_student_test_scores_by_code(user_code):
         if conn:
             conn.close()
         return None, f"Database error: {str(e)}"
+
 
 def get_student_institutions_by_code(user_code):
     """Get all institution information for a student by user code"""

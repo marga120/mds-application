@@ -31,55 +31,69 @@ class ApplicantManager {
     });
   }
 
- // Debug version of loadSessionName method
-async loadSessionName() {
-  console.log("🔍 Starting to load session name...");
-  
-  try {
-    console.log("📡 Making request to /api/session");
-    const response = await fetch("/api/session");
-    console.log("📊 Response status:", response.status);
-    console.log("📊 Response ok:", response.ok);
-    
-    const result = await response.json();
-    console.log("📄 Full API response:", result);
-    
-    if (result.success && result.session_name) {
-      console.log("✅ Session name loaded successfully:", result.session_name);
-      this.sessionName = result.session_name;
-      this.updateSectionTitle();
-      console.log("🎯 Title updated to:", `${this.sessionName} Applicants Database`);
-    } else {
-      console.log("❌ API returned unsuccessful result:", result);
-      // Fallback to default if no session name found
+  // Debug version of loadSessionName method
+  async loadSessionName() {
+    console.log("🔍 Starting to load session name...");
+
+    try {
+      console.log("📡 Making request to /api/session");
+      const response = await fetch("/api/session");
+      console.log("📊 Response status:", response.status);
+      console.log("📊 Response ok:", response.ok);
+
+      const result = await response.json();
+      console.log("📄 Full API response:", result);
+
+      if (result.success && result.session_name) {
+        console.log(
+          "✅ Session name loaded successfully:",
+          result.session_name
+        );
+        this.sessionName = result.session_name;
+        this.updateSectionTitle();
+        console.log(
+          "🎯 Title updated to:",
+          `${this.sessionName} Applicants Database`
+        );
+      } else {
+        console.log("❌ API returned unsuccessful result:", result);
+        // Fallback to default if no session name found
+        this.sessionName = "Default Session";
+        this.updateSectionTitle();
+        console.log(
+          "🔄 Using fallback title:",
+          `${this.sessionName} Applicants Database`
+        );
+      }
+    } catch (error) {
+      console.error("💥 Failed to load session name:", error);
+      // Fallback to default
       this.sessionName = "Default Session";
       this.updateSectionTitle();
-      console.log("🔄 Using fallback title:", `${this.sessionName} Applicants Database`);
+      console.log(
+        "🔄 Using fallback after error:",
+        `${this.sessionName} Applicants Database`
+      );
     }
-  } catch (error) {
-    console.error("💥 Failed to load session name:", error);
-    // Fallback to default
-    this.sessionName = "Default Session";
-    this.updateSectionTitle();
-    console.log("🔄 Using fallback after error:", `${this.sessionName} Applicants Database`);
   }
-}
 
-// Debug version of updateSectionTitle method
-updateSectionTitle() {
-  console.log("🏷️ Updating section title...");
-  const titleElement = document.getElementById("applicantsSectionTitle");
-  console.log("🔍 Title element found:", titleElement);
-  
-  if (titleElement) {
-    const newTitle = `${this.sessionName} Applicants Database`;
-    console.log("📝 Setting title to:", newTitle);
-    titleElement.textContent = newTitle;
-    console.log("✅ Title element updated");
-  } else {
-    console.error("❌ Could not find element with ID 'applicantsSectionTitle'");
+  // Debug version of updateSectionTitle method
+  updateSectionTitle() {
+    console.log("🏷️ Updating section title...");
+    const titleElement = document.getElementById("applicantsSectionTitle");
+    console.log("🔍 Title element found:", titleElement);
+
+    if (titleElement) {
+      const newTitle = `${this.sessionName} Applicants Database`;
+      console.log("📝 Setting title to:", newTitle);
+      titleElement.textContent = newTitle;
+      console.log("✅ Title element updated");
+    } else {
+      console.error(
+        "❌ Could not find element with ID 'applicantsSectionTitle'"
+      );
+    }
   }
-}
 
   handleFileSelect(file) {
     if (file && file.name.endsWith(".csv")) {
@@ -1553,7 +1567,11 @@ updateSectionTitle() {
 
       const container = document.getElementById("institutionInfoContainer");
 
-      if (result.success && result.institutions && result.institutions.length > 0) {
+      if (
+        result.success &&
+        result.institutions &&
+        result.institutions.length > 0
+      ) {
         container.innerHTML = `
           <div class="max-h-96 overflow-y-auto pr-2">
             <h4 class="text-xl font-semibold text-ubc-blue mb-6 flex items-center">
@@ -1564,7 +1582,9 @@ updateSectionTitle() {
             </h4>
             
             <div class="space-y-6">
-              ${result.institutions.map((institution, index) => `
+              ${result.institutions
+                .map(
+                  (institution, index) => `
                 <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
                   <div class="flex items-start justify-between mb-4">
                     <div class="flex items-center">
@@ -1572,40 +1592,95 @@ updateSectionTitle() {
                         ${institution.institution_number}
                       </div>
                       <div>
-                        <h5 class="text-lg font-semibold text-gray-900">${institution.full_name || 'Institution Name Not Provided'}</h5>
-                        <p class="text-sm text-gray-600">${institution.country || 'Country Not Specified'}</p>
+                        <h5 class="text-lg font-semibold text-gray-900">${
+                          institution.full_name ||
+                          "Institution Name Not Provided"
+                        }</h5>
+                        <p class="text-sm text-gray-600">${
+                          institution.country || "Country Not Specified"
+                        }</p>
                       </div>
                     </div>
-                    ${institution.gpa ? `
+                    ${
+                      institution.gpa
+                        ? `
                       <div class="bg-blue-50 px-3 py-1 rounded-full">
                         <span class="text-sm font-medium text-ubc-blue">GPA: ${institution.gpa}</span>
                       </div>
-                    ` : ''}
+                    `
+                        : ""
+                    }
                   </div>
                   
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div class="space-y-2">
-                      ${institution.program_study ? `<p><span class="font-medium text-gray-700">Program:</span> ${institution.program_study}</p>` : ''}
-                      ${institution.start_date ? `<p><span class="font-medium text-gray-700">Start Date:</span> ${new Date(institution.start_date).toLocaleDateString()}</p>` : ''}
-                      ${institution.end_date ? `<p><span class="font-medium text-gray-700">End Date:</span> ${new Date(institution.end_date).toLocaleDateString()}</p>` : ''}
-                      ${institution.degree_confer ? `<p><span class="font-medium text-gray-700">Degree Conferred:</span> ${institution.degree_confer}</p>` : ''}
+                      ${
+                        institution.program_study
+                          ? `<p><span class="font-medium text-gray-700">Program:</span> ${institution.program_study}</p>`
+                          : ""
+                      }
+                      ${
+                        institution.start_date
+                          ? `<p><span class="font-medium text-gray-700">Start Date:</span> ${new Date(
+                              institution.start_date
+                            ).toLocaleDateString()}</p>`
+                          : ""
+                      }
+                      ${
+                        institution.end_date
+                          ? `<p><span class="font-medium text-gray-700">End Date:</span> ${new Date(
+                              institution.end_date
+                            ).toLocaleDateString()}</p>`
+                          : ""
+                      }
+                      ${
+                        institution.degree_confer
+                          ? `<p><span class="font-medium text-gray-700">Degree Conferred:</span> ${institution.degree_confer}</p>`
+                          : ""
+                      }
                     </div>
                     
                     <div class="space-y-2">
-                      ${institution.credential_receive ? `<p><span class="font-medium text-gray-700">Credential:</span> ${institution.credential_receive}</p>` : ''}
-                      ${institution.date_confer ? `<p><span class="font-medium text-gray-700">Date Conferred:</span> ${new Date(institution.date_confer).toLocaleDateString()}</p>` : ''}
-                      ${institution.expected_confer_date ? `<p><span class="font-medium text-gray-700">Expected Graduation:</span> ${new Date(institution.expected_confer_date).toLocaleDateString()}</p>` : ''}
-                      ${institution.honours ? `<p><span class="font-medium text-gray-700">Honours:</span> ${institution.honours}</p>` : ''}
+                      ${
+                        institution.credential_receive
+                          ? `<p><span class="font-medium text-gray-700">Credential:</span> ${institution.credential_receive}</p>`
+                          : ""
+                      }
+                      ${
+                        institution.date_confer
+                          ? `<p><span class="font-medium text-gray-700">Date Conferred:</span> ${new Date(
+                              institution.date_confer
+                            ).toLocaleDateString()}</p>`
+                          : ""
+                      }
+                      ${
+                        institution.expected_confer_date
+                          ? `<p><span class="font-medium text-gray-700">Expected Graduation:</span> ${new Date(
+                              institution.expected_confer_date
+                            ).toLocaleDateString()}</p>`
+                          : ""
+                      }
+                      ${
+                        institution.honours
+                          ? `<p><span class="font-medium text-gray-700">Honours:</span> ${institution.honours}</p>`
+                          : ""
+                      }
                     </div>
                   </div>
                   
-                  ${institution.fail_withdraw && institution.reason ? `
+                  ${
+                    institution.fail_withdraw && institution.reason
+                      ? `
                     <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
                       <p class="text-sm text-red-800"><span class="font-medium">Withdrawal/Academic Issue:</span> ${institution.reason}</p>
                     </div>
-                  ` : ''}
+                  `
+                      : ""
+                  }
                 </div>
-              `).join('')}
+              `
+                )
+                .join("")}
             </div>
           </div>
         `;

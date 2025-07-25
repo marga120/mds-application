@@ -53,7 +53,7 @@ def process_institution_info(user_code, row, cursor, current_time):
                 except:
                     expected_confer_date = None
 
-            # Convert withdrawal/failure to boolean
+            # Convert withdrawal/failure to string (VARCHAR(3))
             fail_withdraw = None
             withdraw_field = row.get(
                 f"{prefix} Were you required to withdraw or did you have a failed year from this institution?"
@@ -63,13 +63,9 @@ def process_institution_info(user_code, row, cursor, current_time):
                 withdraw_field = row.get(f"{prefix} Withdrawal?")
 
             if pd.notna(withdraw_field):
-                # Convert to boolean - assuming "Yes"/"No" or similar values
-                fail_withdraw = str(withdraw_field).lower().strip() in [
-                    "yes",
-                    "y",
-                    "true",
-                    "1",
-                ]
+                # Convert to string limited to 3 characters for VARCHAR(3)
+                withdraw_str = str(withdraw_field).strip()[:3]
+                fail_withdraw = withdraw_str if withdraw_str else None
 
             # Helper function to safely convert values to strings
             def safe_str(value):
