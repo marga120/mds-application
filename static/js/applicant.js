@@ -471,6 +471,8 @@ class ApplicantManager {
     this.loadMyRating(userCode);
 
     this.loadTestScores(userCode);
+
+    this.loadInstitutionInfo(userCode);
   }
 
   createApplicantModal() {
@@ -503,8 +505,8 @@ class ApplicantManager {
             <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="student-info">
               Student Info
             </button>
-            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="academic-info">
-              Academic Info
+            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="institution-info">
+              Institution Info
             </button>
             <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap active" data-tab="comments-ratings">
               Comments & Ratings
@@ -527,9 +529,14 @@ class ApplicantManager {
             </div>
           </div>
 
-          <!-- Academic Info Tab -->
-          <div id="academic-info" class="tab-content hidden">
-            <p class="text-gray-600">Academic information will be displayed here.</p>
+          <!-- Institution Info Tab -->
+          <div id="institution-info" class="tab-content hidden">
+            <div id="institutionInfoContainer" class="space-y-6">
+              <div class="text-center py-8 text-gray-500">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+                Loading institution information...
+              </div>
+            </div>
           </div>
 
           <!-- Comments & Ratings Tab -->
@@ -1485,5 +1492,89 @@ class ApplicantManager {
     if (value === "Y") return "Yes";
     if (value === "N") return "No";
     return null;
+  }
+
+  async loadInstitutionInfo(userCode) {
+    try {
+      const response = await fetch(`/api/student-institutions/${userCode}`);
+      const result = await response.json();
+
+      const container = document.getElementById("institutionInfoContainer");
+
+      if (result.success && result.institutions && result.institutions.length > 0) {
+        container.innerHTML = `
+          <div class="max-h-96 overflow-y-auto pr-2">
+            <h4 class="text-xl font-semibold text-ubc-blue mb-6 flex items-center">
+              <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 3v18M13 3v18"></path>
+              </svg>
+              Educational Background
+            </h4>
+            
+            <div class="space-y-6">
+              ${result.institutions.map((institution, index) => `
+                <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
+                  <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center">
+                      <div class="bg-ubc-blue text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">
+                        ${institution.institution_number}
+                      </div>
+                      <div>
+                        <h5 class="text-lg font-semibold text-gray-900">${institution.full_name || 'Institution Name Not Provided'}</h5>
+                        <p class="text-sm text-gray-600">${institution.country || 'Country Not Specified'}</p>
+                      </div>
+                    </div>
+                    ${institution.gpa ? `
+                      <div class="bg-blue-50 px-3 py-1 rounded-full">
+                        <span class="text-sm font-medium text-ubc-blue">GPA: ${institution.gpa}</span>
+                      </div>
+                    ` : ''}
+                  </div>
+                  
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div class="space-y-2">
+                      ${institution.program_study ? `<p><span class="font-medium text-gray-700">Program:</span> ${institution.program_study}</p>` : ''}
+                      ${institution.start_date ? `<p><span class="font-medium text-gray-700">Start Date:</span> ${new Date(institution.start_date).toLocaleDateString()}</p>` : ''}
+                      ${institution.end_date ? `<p><span class="font-medium text-gray-700">End Date:</span> ${new Date(institution.end_date).toLocaleDateString()}</p>` : ''}
+                      ${institution.degree_confer ? `<p><span class="font-medium text-gray-700">Degree Conferred:</span> ${institution.degree_confer}</p>` : ''}
+                    </div>
+                    
+                    <div class="space-y-2">
+                      ${institution.credential_receive ? `<p><span class="font-medium text-gray-700">Credential:</span> ${institution.credential_receive}</p>` : ''}
+                      ${institution.date_confer ? `<p><span class="font-medium text-gray-700">Date Conferred:</span> ${new Date(institution.date_confer).toLocaleDateString()}</p>` : ''}
+                      ${institution.expected_confer_date ? `<p><span class="font-medium text-gray-700">Expected Graduation:</span> ${new Date(institution.expected_confer_date).toLocaleDateString()}</p>` : ''}
+                      ${institution.honours ? `<p><span class="font-medium text-gray-700">Honours:</span> ${institution.honours}</p>` : ''}
+                    </div>
+                  </div>
+                  
+                  ${institution.fail_withdraw && institution.reason ? `
+                    <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                      <p class="text-sm text-red-800"><span class="font-medium">Withdrawal/Academic Issue:</span> ${institution.reason}</p>
+                    </div>
+                  ` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="text-center py-12 text-gray-500">
+            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 3v18M13 3v18"></path>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-400 mb-2">No Institution Information</h3>
+            <p class="text-gray-400">No educational background information is available for this applicant.</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      const container = document.getElementById("institutionInfoContainer");
+      container.innerHTML = `
+        <div class="text-center py-8 text-red-500">
+          <p>Error loading institution information: ${error.message}</p>
+        </div>
+      `;
+    }
   }
 }
