@@ -164,12 +164,13 @@ class ApplicantManager {
         <table class="modern-table">
           <thead>
             <tr>
-              <th style="width: 25%;">Applicant</th>
-              <th style="width: 12%;">User Code</th>
-              <th style="width: 13%;">Student Number</th>
-              <th style="width: 16%;">Application Status</th>
-              <th style="width: 17%;">Submit Date</th>
-              <th style="width: 15%;">Last Updated</th>
+              <th style="width: 23%;">Applicant</th>
+              <th style="width: 11%;">User Code</th>
+              <th style="width: 12%;">Student Number</th>
+              <th style="width: 14%;">Application Status</th>
+              <th style="width: 15%;">Submit Date</th>
+              <th style="width: 12%;">Overall Rating</th>
+              <th style="width: 13%;">Last Updated</th>
               <th style="width: 10%;">Actions</th>
             </tr>
           </thead>
@@ -228,6 +229,9 @@ class ApplicantManager {
                       })}</div>`
                         : '<div class="text-gray-400 text-sm">Not submitted</div>'
                     }
+                  </td>
+                  <td class="text-center">
+                    ${this.getOverallRatingDisplay(applicant.overall_rating)}
                   </td>
                   <td>
                     <span class="${
@@ -303,6 +307,35 @@ class ApplicantManager {
     } else {
       return `<span class="status-badge status-unsubmitted">${status}</span>`;
     }
+  }
+
+  getOverallRatingDisplay(rating) {
+    if (!rating || rating === null) {
+      return '<div class="text-gray-400 text-sm">No ratings</div>';
+    }
+
+    const ratingValue = parseFloat(rating);
+    let colorClass = "text-gray-600";
+
+    // Color coding based on rating
+    if (ratingValue >= 8.0) {
+      colorClass = "text-green-600";
+    } else if (ratingValue >= 6.0) {
+      colorClass = "text-blue-600";
+    } else if (ratingValue >= 4.0) {
+      colorClass = "text-yellow-600";
+    } else {
+      colorClass = "text-red-600";
+    }
+
+    return `
+      <div class="text-center">
+        <div class="text-lg font-semibold ${colorClass}">${ratingValue.toFixed(
+      1
+    )}</div>
+        <div class="text-xs text-gray-500">/10.0</div>
+      </div>
+    `;
   }
 
   isRecentUpdate(secondsAgo) {

@@ -202,9 +202,14 @@ def get_all_student_status():
                 ss.status,
                 ss.detail_status,
                 ss.updated_at,
-                EXTRACT(EPOCH FROM (NOW() - ss.updated_at)) as seconds_since_update
+                EXTRACT(EPOCH FROM (NOW() - ss.updated_at)) as seconds_since_update,
+                ROUND(AVG(r.rating), 1) as overall_rating
             FROM student_status ss
             LEFT JOIN student_info si ON ss.user_code = si.user_code
+            LEFT JOIN rating r ON ss.user_code = r.user_code
+            GROUP BY ss.user_code, si.family_name, si.given_name, si.email, 
+                     ss.student_number, ss.app_start, ss.submit_date, 
+                     ss.status_code, ss.status, ss.detail_status, ss.updated_at
             ORDER BY ss.submit_date DESC, si.family_name
         """
         )
