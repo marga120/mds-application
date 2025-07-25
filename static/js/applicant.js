@@ -469,6 +469,8 @@ class ApplicantManager {
     this.loadRatings(userCode);
 
     this.loadMyRating(userCode);
+
+    this.loadTestScores(userCode);
   }
 
   createApplicantModal() {
@@ -568,8 +570,14 @@ class ApplicantManager {
 
           <!-- Test Scores Tab -->
           <div id="test-scores" class="tab-content hidden">
-            <p class="text-gray-600">Test scores will be displayed here.</p>
+            <div id="testScoresContainer" class="space-y-6">
+              <div class="text-center py-8 text-gray-500">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+                Loading test scores...
+              </div>
+            </div>
           </div>
+        </div>
         </div>
       </div>
     `;
@@ -988,6 +996,403 @@ class ApplicantManager {
           <p class="text-sm text-gray-600">${error.message}</p>
         </div>
       `;
+    }
+  }
+
+  async loadTestScores(userCode) {
+    try {
+      const response = await fetch(`/api/student-test-scores/${userCode}`);
+      const result = await response.json();
+
+      const container = document.getElementById("testScoresContainer");
+
+      if (result.success && result.test_scores) {
+        const scores = result.test_scores;
+
+        container.innerHTML = `
+          <div class="max-h-96 overflow-y-auto pr-2">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              <!-- English Language Tests -->
+              <div class="lg:col-span-2">
+                <h4 class="text-xl font-semibold text-ubc-blue mb-6 flex items-center">
+                  <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
+                  </svg>
+                  English Language Proficiency Tests
+                </h4>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  ${this.renderTOEFLScores(scores.toefl)}
+                  ${this.renderIELTSScores(scores.ielts)}
+                  ${this.renderSingleTestScore("MELAB", scores.melab, [
+                    "ref_num",
+                    "date_written",
+                    "total",
+                  ])}
+                  ${this.renderSingleTestScore("PTE", scores.pte, [
+                    "ref_num",
+                    "date_written",
+                    "total",
+                  ])}
+                  ${this.renderCAELScore(scores.cael)}
+                  ${this.renderCELPIPScore(scores.celpip)}
+                  ${this.renderAltELPPScore(scores.alt_elpp)}
+                </div>
+              </div>
+
+              <!-- Graduate Tests -->
+              <div class="lg:col-span-2">
+                <h4 class="text-xl font-semibold text-ubc-blue mb-6 flex items-center mt-8">
+                  <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                  </svg>
+                  Graduate Admission Tests
+                </h4>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  ${this.renderGREScore(scores.gre)}
+                  ${this.renderGMATScore(scores.gmat)}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="text-center py-12 text-gray-500">
+            <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-600 mb-2">No Test Scores Available</h3>
+            <p class="text-sm">This applicant has not submitted any test scores yet.</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      document.getElementById("testScoresContainer").innerHTML = `
+        <div class="text-center py-12 text-red-500">
+          <svg class="w-16 h-16 text-red-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <h3 class="text-lg font-medium">Error Loading Test Scores</h3>
+          <p class="text-sm text-gray-600 mt-2">${error.message}</p>
+        </div>
+      `;
+    }
+  }
+
+  renderTOEFLScores(toeflScores) {
+    if (!toeflScores || toeflScores.length === 0) {
+      return this.renderEmptyTestCard("TOEFL");
+    }
+
+    return toeflScores
+      .map(
+        (score, index) => `
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+        <h5 class="font-semibold text-blue-900 mb-3 flex items-center">
+          <span class="bg-blue-600 text-white text-xs px-2 py-1 rounded-full mr-2">${
+            index + 1
+          }</span>
+          TOEFL ${toeflScores.length > 1 ? `Test ${index + 1}` : ""}
+        </h5>
+        <div class="space-y-2">
+          ${this.renderScoreField("Registration #", score.registration_num)}
+          ${this.renderScoreField(
+            "Date Written",
+            this.formatDate(score.date_written)
+          )}
+          ${this.renderScoreField("Total Score", score.total_score, true)}
+          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
+            ${this.renderScoreField("Listening", score.listening)}
+            ${this.renderScoreField("Reading", score.reading)}
+            ${this.renderScoreField("Writing", score.structure_written)}
+            ${this.renderScoreField("Speaking", score.speaking)}
+          </div>
+          ${
+            score.mybest_total
+              ? `
+            <div class="pt-2 border-t border-blue-200">
+              <p class="text-xs font-medium text-blue-800 mb-2">MyBest Scores</p>
+              ${this.renderScoreField("MyBest Total", score.mybest_total, true)}
+              ${this.renderScoreField(
+                "MyBest Date",
+                this.formatDate(score.mybest_date)
+              )}
+            </div>
+          `
+              : ""
+          }
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  }
+
+  renderIELTSScores(ieltsScores) {
+    if (!ieltsScores || ieltsScores.length === 0) {
+      return this.renderEmptyTestCard("IELTS");
+    }
+
+    return ieltsScores
+      .map(
+        (score, index) => `
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+        <h5 class="font-semibold text-blue-900 mb-3 flex items-center">
+          <span class="bg-blue-600 text-white text-xs px-2 py-1 rounded-full mr-2">${
+            index + 1
+          }</span>
+          IELTS ${ieltsScores.length > 1 ? `Test ${index + 1}` : ""}
+        </h5>
+        <div class="space-y-2">
+          ${this.renderScoreField("Candidate #", score.candidate_num)}
+          ${this.renderScoreField(
+            "Date Written",
+            this.formatDate(score.date_written)
+          )}
+          ${this.renderScoreField(
+            "Total Band Score",
+            score.total_band_score,
+            true
+          )}
+          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
+            ${this.renderScoreField("Listening", score.listening)}
+            ${this.renderScoreField("Reading", score.reading)}
+            ${this.renderScoreField("Writing", score.writing)}
+            ${this.renderScoreField("Speaking", score.speaking)}
+          </div>
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  }
+
+  renderSingleTestScore(testName, score, fields) {
+    if (!score) {
+      return this.renderEmptyTestCard(testName);
+    }
+
+    // CHANGE THIS: Use the same blue design for all tests
+    return `
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+        <h5 class="font-semibold text-blue-900 mb-3">${testName}</h5>
+        <div class="space-y-2">
+          ${fields
+            .map((field) => {
+              const value =
+                field === "date_written"
+                  ? this.formatDate(score[field])
+                  : score[field];
+              const isMainScore = field === "total";
+              const label = field
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (l) => l.toUpperCase());
+              return this.renderScoreField(label, value, isMainScore);
+            })
+            .join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  renderCAELScore(score) {
+    if (!score) {
+      return this.renderEmptyTestCard("CAEL");
+    }
+
+    return `
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+        <h5 class="font-semibold text-blue-900 mb-3">CAEL</h5>
+        <div class="space-y-2">
+          ${this.renderScoreField("Reference #", score.ref_num)}
+          ${this.renderScoreField(
+            "Date Written",
+            this.formatDate(score.date_written)
+          )}
+          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
+            ${this.renderScoreField("Reading", score.reading)}
+            ${this.renderScoreField("Listening", score.listening)}
+            ${this.renderScoreField("Writing", score.writing)}
+            ${this.renderScoreField("Speaking", score.speaking)}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderCELPIPScore(score) {
+    if (!score) {
+      return this.renderEmptyTestCard("CELPIP");
+    }
+
+    return `
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+        <h5 class="font-semibold text-blue-900 mb-3">CELPIP</h5>
+        <div class="space-y-2">
+          ${this.renderScoreField("Reference #", score.ref_num)}
+          ${this.renderScoreField(
+            "Date Written",
+            this.formatDate(score.date_written)
+          )}
+          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
+            ${this.renderScoreField("Listening", score.listening)}
+            ${this.renderScoreField("Speaking", score.speaking)}
+            ${this.renderScoreField("Reading & Writing", score.reading_writing)}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderAltELPPScore(score) {
+    if (!score) {
+      return this.renderEmptyTestCard("ALT ELPP");
+    }
+
+    return `
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+        <h5 class="font-semibold text-blue-900 mb-3">ALT ELPP</h5>
+        <div class="space-y-2">
+          ${this.renderScoreField("Reference #", score.ref_num)}
+          ${this.renderScoreField(
+            "Date Written",
+            this.formatDate(score.date_written)
+          )}
+          ${this.renderScoreField("Total Score", score.total, true)}
+          ${this.renderScoreField("Test Type", score.test_type)}
+        </div>
+      </div>
+    `;
+  }
+
+  renderGREScore(score) {
+    if (!score) {
+      return this.renderEmptyTestCard("GRE");
+    }
+
+    return `
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+        <h5 class="font-semibold text-blue-900 mb-3">GRE</h5>
+        <div class="space-y-2">
+          ${this.renderScoreField("Registration #", score.reg_num)}
+          ${this.renderScoreField(
+            "Date Written",
+            this.formatDate(score.date_written)
+          )}
+          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
+            ${this.renderScoreField(
+              "Verbal",
+              `${score.verbal}${
+                score.verbal_below ? ` (${score.verbal_below}%)` : ""
+              }`
+            )}
+            ${this.renderScoreField(
+              "Quantitative",
+              `${score.quantitative}${
+                score.quantitative_below
+                  ? ` (${score.quantitative_below}%)`
+                  : ""
+              }`
+            )}
+            ${this.renderScoreField(
+              "Writing",
+              `${score.writing}${
+                score.writing_below ? ` (${score.writing_below}%)` : ""
+              }`
+            )}
+          </div>
+          ${
+            score.subject_tests
+              ? `
+            <div class="pt-2 border-t border-blue-200">
+              <p class="text-xs font-medium text-blue-800 mb-2">Subject Test</p>
+              ${this.renderScoreField(
+                "Subject Score",
+                score.subject_scaled_score
+              )}
+              ${this.renderScoreField("Subject %", score.subject_below)}
+            </div>
+          `
+              : ""
+          }
+        </div>
+      </div>
+    `;
+  }
+
+  renderGMATScore(score) {
+    if (!score) {
+      return this.renderEmptyTestCard("GMAT");
+    }
+
+    return `
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+        <h5 class="font-semibold text-blue-900 mb-3">GMAT</h5>
+        <div class="space-y-2">
+          ${this.renderScoreField("Reference #", score.ref_num)}
+          ${this.renderScoreField(
+            "Date Written",
+            this.formatDate(score.date_written)
+          )}
+          ${this.renderScoreField("Total Score", score.total, true)}
+          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
+            ${this.renderScoreField("Quantitative", score.quantitative)}
+            ${this.renderScoreField("Verbal", score.verbal)}
+            ${this.renderScoreField(
+              "Integrated Reasoning",
+              score.integrated_reasoning
+            )}
+            ${this.renderScoreField("Writing", score.writing)}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderScoreField(label, value, isHighlight = false) {
+    if (!value || value === "null" || value === "undefined") {
+      return `
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-medium opacity-70">${label}:</span>
+          <span class="text-xs opacity-50 italic">N/A</span>
+        </div>
+      `;
+    }
+
+    const highlightClass = isHighlight ? "font-bold text-lg" : "text-sm";
+
+    return `
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-medium opacity-70">${label}:</span>
+        <span class="${highlightClass} font-semibold">${value}</span>
+      </div>
+    `;
+  }
+
+  renderEmptyTestCard(testName) {
+    return `
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200 opacity-60">
+        <h5 class="font-semibold text-blue-900 mb-3">${testName}</h5>
+        <div class="text-center py-4">
+          <p class="text-xs text-blue-500 italic">No ${testName} scores submitted</p>
+        </div>
+      </div>
+    `;
+  }
+
+  formatDate(dateString) {
+    if (!dateString) return null;
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return dateString;
     }
   }
 
