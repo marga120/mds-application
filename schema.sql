@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS app_info (
     scholarship BOOLEAN
 );
 
-CREATE TABLE IF NOT EXISTS ratings(
+CREATE TABLE IF NOT EXISTS rating(
     user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
     user_id INTEGER REFERENCES "user"(id),
     rating VARCHAR(20),
@@ -279,13 +279,13 @@ BEGIN
         FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
     END IF;
 
-    -- ratings references student_info
+    -- rating references student_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_ratings_student_info' AND table_name = 'ratings'
+        WHERE constraint_name = 'fk_rating_student_info' AND table_name = 'rating'
     ) THEN
-        ALTER TABLE ratings 
-        ADD CONSTRAINT fk_ratings_student_info 
+        ALTER TABLE rating 
+        ADD CONSTRAINT fk_rating_student_info 
         FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
     END IF;
 
@@ -301,10 +301,10 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_ratings_user' AND table_name = 'ratings'
+        WHERE constraint_name = 'fk_rating_user' AND table_name = 'rating'
     ) THEN
-        ALTER TABLE ratings 
-        ADD CONSTRAINT fk_ratings_user 
+        ALTER TABLE rating 
+        ADD CONSTRAINT fk_rating_user 
         FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE;
     END IF;
 
@@ -421,12 +421,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create function to handle user deletion - deletes related ratings
+-- Create function to handle user deletion - deletes related rating
 CREATE OR REPLACE FUNCTION handle_user_deletion()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- When a user is deleted, delete their ratings
-    DELETE FROM ratings WHERE user_id = OLD.id;
+    -- When a user is deleted, delete their rating
+    DELETE FROM rating WHERE user_id = OLD.id;
     
     RETURN OLD;
 END;
