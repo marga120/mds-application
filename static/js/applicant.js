@@ -3,6 +3,7 @@ class ApplicantManager {
     this.allApplicants = [];
     this.initializeEventListeners();
     this.loadApplicants();
+    this.initializeActionButtons();
   }
 
   initializeEventListeners() {
@@ -168,7 +169,8 @@ class ApplicantManager {
               <th style="width: 13%;">Student Number</th>
               <th style="width: 16%;">Application Status</th>
               <th style="width: 17%;">Submit Date</th>
-              <th style="width: 17%;">Last Updated</th>
+              <th style="width: 15%;">Last Updated</th>
+              <th style="width: 10%;">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -235,6 +237,17 @@ class ApplicantManager {
                     }">
                       ${this.formatLastChanged(applicant.seconds_since_update)}
                     </span>
+                  </td>
+                  <td>
+                    <button class="btn-actions" data-user-code="${
+                      applicant.user_code
+                    }" data-user-name="${applicant.given_name} ${
+                  applicant.family_name
+                }">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zM12 13a1 1 0 110-2 1 1 0 010 2zM12 20a1 1 0 110-2 1 1 0 010 2z"></path>
+                      </svg>
+                    </button>
                   </td>
                 </tr>
               `
@@ -369,5 +382,357 @@ class ApplicantManager {
     setTimeout(() => {
       message.style.display = "none";
     }, 5000); // Extended to 5 seconds for timestamp messages
+  }
+
+  initializeActionButtons() {
+    // Add event delegation for action buttons
+    document.addEventListener("click", (e) => {
+      if (e.target.closest(".btn-actions")) {
+        const button = e.target.closest(".btn-actions");
+        const userCode = button.dataset.userCode;
+        const userName = button.dataset.userName;
+        this.showApplicantModal(userCode, userName);
+      }
+    });
+  }
+
+  showApplicantModal(userCode, userName) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById("applicantModal");
+    if (!modal) {
+      modal = this.createApplicantModal();
+      document.body.appendChild(modal);
+    }
+
+    // Update modal content
+    document.getElementById("modalApplicantName").textContent = userName;
+    document.getElementById("modalUserCode").textContent = userCode;
+
+    // Find the student number from the applicant data
+    const applicant = this.allApplicants.find(
+      (app) => app.user_code === userCode
+    );
+    const studentNumber =
+      applicant &&
+      applicant.student_number &&
+      applicant.student_number !== "NaN"
+        ? Math.floor(parseFloat(applicant.student_number))
+        : "N/A";
+    document.getElementById("modalStudentNumber").textContent = studentNumber;
+
+    // Set current user code for the modal
+    modal.dataset.currentUserCode = userCode;
+
+    // Show modal
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+
+    // Load ratings and show Comments & Ratings tab by default
+    this.showTab("comments-ratings");
+    this.loadRatings(userCode);
+    this.loadMyRating(userCode);
+  }
+
+  createApplicantModal() {
+    const modal = document.createElement("div");
+    modal.id = "applicantModal";
+    modal.className =
+      "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50";
+
+    modal.innerHTML = `
+      <div class="relative top-10 mx-auto p-6 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white mb-10">
+       <!-- Modal Header -->
+        <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+          <div>
+            <h3 class="text-xl font-semibold text-gray-900" id="modalApplicantName">Applicant Details</h3>
+            <div class="text-sm text-gray-500 space-y-1">
+              <p>User Code: <span id="modalUserCode"></span></p>
+              <p>Student Number: <span id="modalStudentNumber"></span></p>
+            </div>
+          </div>
+          <button class="modal-close text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="border-b border-gray-200 mt-4">
+          <nav class="flex space-x-8">
+            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="general-info">
+              General Info
+            </button>
+            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="academic-info">
+              Academic Info
+            </button>
+            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap active" data-tab="comments-ratings">
+              Comments & Ratings
+            </button>
+            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="test-scores">
+              Test Scores
+            </button>
+          </nav>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="mt-6">
+          <!-- General Info Tab -->
+          <div id="general-info" class="tab-content hidden">
+            <p class="text-gray-600">General information will be displayed here.</p>
+          </div>
+
+          <!-- Academic Info Tab -->
+          <div id="academic-info" class="tab-content hidden">
+            <p class="text-gray-600">Academic information will be displayed here.</p>
+          </div>
+
+          <!-- Comments & Ratings Tab -->
+          <div id="comments-ratings" class="tab-content">
+            <div class="max-h-96 overflow-y-auto pr-2">
+              <!-- Add/Edit Rating Section -->
+              <div class="bg-blue-50 p-6 rounded-lg mb-6">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Your Rating & Comment</h4>
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Rating (0.0 - 10.0)</label>
+                    <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter rating (e.g., 8.5)">
+                    <p class="text-xs text-gray-500 mt-1">Enter a rating between 0.0 and 10.0</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
+                    <textarea id="commentTextarea" rows="3" class="input-ubc w-full resize-none" placeholder="Add your comments about this applicant..."></textarea>
+                  </div>
+                  <div class="flex gap-3">
+                    <button id="saveRatingBtn" class="btn-ubc">Save Rating</button>
+                    <button id="clearRatingBtn" class="btn-ubc-outline">Clear</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- All Ratings Section -->
+              <div class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">All Ratings & Comments</h4>
+                <div id="ratingsContainer" class="space-y-3">
+                  <div class="text-center py-8 text-gray-500">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+                    Loading ratings...
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Test Scores Tab -->
+          <div id="test-scores" class="tab-content hidden">
+            <p class="text-gray-600">Test scores will be displayed here.</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add event listeners
+    modal.querySelector(".modal-close").addEventListener("click", () => {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    });
+
+    // Tab switching
+    modal.addEventListener("click", (e) => {
+      if (e.target.matches(".tab-button")) {
+        const tabName = e.target.dataset.tab;
+        this.showTab(tabName);
+      }
+    });
+
+    // Rating form handlers
+    modal.querySelector("#saveRatingBtn").addEventListener("click", () => {
+      this.saveRating();
+    });
+
+    modal.querySelector("#clearRatingBtn").addEventListener("click", () => {
+      this.clearRatingForm();
+    });
+
+    // Close modal when clicking outside
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+    });
+
+    return modal;
+  }
+
+  showTab(tabName) {
+    const modal = document.getElementById("applicantModal");
+
+    // Update tab buttons
+    modal.querySelectorAll(".tab-button").forEach((btn) => {
+      if (btn.dataset.tab === tabName) {
+        btn.classList.add("active", "border-ubc-blue", "text-ubc-blue");
+        btn.classList.remove("border-transparent", "text-gray-500");
+      } else {
+        btn.classList.remove("active", "border-ubc-blue", "text-ubc-blue");
+        btn.classList.add("border-transparent", "text-gray-500");
+      }
+    });
+
+    // Update tab content
+    modal.querySelectorAll(".tab-content").forEach((content) => {
+      if (content.id === tabName) {
+        content.classList.remove("hidden");
+      } else {
+        content.classList.add("hidden");
+      }
+    });
+  }
+
+  async loadRatings(userCode) {
+    try {
+      const response = await fetch(`/api/ratings/${userCode}`);
+      const result = await response.json();
+
+      const container = document.getElementById("ratingsContainer");
+
+      if (result.success && result.ratings.length > 0) {
+        container.innerHTML = result.ratings
+          .map(
+            (rating) => `
+          <div class="rating-card-container">
+            <div class="rating-card-header">
+              <div class="rating-user-avatar">
+                <span class="text-white font-semibold text-xs">${
+                  rating.first_name[0]
+                }${rating.last_name[0]}</span>
+              </div>
+              <div class="rating-user-details">
+                <p class="font-medium text-gray-900">${rating.first_name} ${
+              rating.last_name
+            }</p>
+                <p class="text-sm text-gray-500">${rating.email}</p>
+              </div>
+              <div class="rating-score">
+                <span class="text-lg font-bold text-ubc-blue">${parseFloat(
+                  rating.rating
+                ).toFixed(1)}</span>
+                <span class="text-sm text-gray-500">/10.0</span>
+              </div>
+            </div>
+            ${
+              rating.user_comment
+                ? `
+              <div class="rating-comment-container">
+                <div class="rating-comment-content">
+                  ${rating.user_comment}
+                </div>
+              </div>
+            `
+                : ""
+            }
+          </div>
+        `
+          )
+          .join("");
+      } else {
+        container.innerHTML = `
+          <div class="text-center py-8 text-gray-500">
+            <p>No ratings yet. Be the first to rate this applicant!</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      document.getElementById("ratingsContainer").innerHTML = `
+        <div class="text-center py-8 text-red-500">
+          <p>Error loading ratings: ${error.message}</p>
+        </div>
+      `;
+    }
+  }
+
+  async loadMyRating(userCode) {
+    try {
+      const response = await fetch(`/api/ratings/${userCode}/my-rating`);
+      const result = await response.json();
+
+      if (result.success && result.rating) {
+        document.getElementById("ratingInput").value =
+          result.rating.rating || "";
+        document.getElementById("commentTextarea").value =
+          result.rating.user_comment || "";
+      } else {
+        // Clear inputs if no rating exists
+        document.getElementById("ratingInput").value = "";
+        document.getElementById("commentTextarea").value = "";
+      }
+    } catch (error) {
+      console.error("Error loading user rating:", error);
+      // Clear inputs on error as well
+      document.getElementById("ratingInput").value = "";
+      document.getElementById("commentTextarea").value = "";
+    }
+  }
+
+  async saveRating() {
+    const modal = document.getElementById("applicantModal");
+    const userCode = modal.dataset.currentUserCode;
+    const rating = document.getElementById("ratingInput").value;
+    const comment = document.getElementById("commentTextarea").value;
+
+    if (!rating || rating === "") {
+      this.showMessage("Please enter a rating", "error");
+      return;
+    }
+
+    // Validate rating
+    const ratingFloat = parseFloat(rating);
+    if (isNaN(ratingFloat) || ratingFloat < 0.0 || ratingFloat > 10.0) {
+      this.showMessage("Rating must be between 0.0 and 10.0", "error");
+      return;
+    }
+
+    // Check decimal places
+    if (Math.round(ratingFloat * 10) / 10 !== ratingFloat) {
+      this.showMessage("Rating can only have one decimal place", "error");
+      return;
+    }
+
+    const saveBtn = document.getElementById("saveRatingBtn");
+    const originalText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+
+    try {
+      const response = await fetch(`/api/ratings/${userCode}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          rating: rating,
+          comment: comment,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        this.showMessage(result.message, "success");
+        this.loadRatings(userCode); // Reload all ratings
+      } else {
+        this.showMessage(result.message, "error");
+      }
+    } catch (error) {
+      this.showMessage(`Error saving rating: ${error.message}`, "error");
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalText;
+    }
+  }
+
+  clearRatingForm() {
+    document.getElementById("ratingInput").value = "";
+    document.getElementById("commentTextarea").value = "";
   }
 }
