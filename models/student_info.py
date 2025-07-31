@@ -292,6 +292,9 @@ def process_csv_data(df):
             # Process institution information
             process_institution_info(user_code, row, cursor, current_time)
 
+            # Process app_info processing
+            process_app_info(user_code, row, cursor, current_time)
+
             records_processed += 1
 
         conn.commit()
@@ -550,6 +553,72 @@ def get_student_institutions_by_code(user_code):
         conn.close()
 
         return institutions, None
+
+    except Exception as e:
+        if conn:
+            conn.close()
+        return None, f"Database error: {str(e)}"
+
+
+def process_app_info(user_code, row, cursor, current_time):
+    """Process and insert app_info data"""
+    try:
+        # Determine if student is Canadian
+        country_citizenship = str(row.get("Country of Current Citizenship", "")).strip()
+        dual_citizenship = str(row.get("Dual Citizenship", "")).strip()
+
+        is_canadian = (
+            country_citizenship.lower() == "canada"
+            or dual_citizenship.lower() == "canada"
+        )
+
+        # Create full name
+        given_name = str(row.get("Given Name", "")).strip()
+        family_name = str(row.get("Family Name", "")).strip()
+        full_name = f"{given_name} {family_name}".strip()
+
+        # Insert into app_info table
+        app_info_query = """
+        INSERT INTO app_info (
+            user_code, full_name, canadian
+        ) VALUES (%s, %s, %s)
+        ON CONFLICT (user_code) DO UPDATE SET
+            full_name = EXCLUDED.full_name,
+            canadian = EXCLUDED.canadian
+        """
+
+        cursor.execute(app_info_query, (user_code, full_name, is_canadian))
+
+    except Exception as e:
+        # Log error but don't fail the entire process
+        print(f"Error processing app_info for user {user_code}: {str(e)}")
+
+
+def get_student_app_info_by_code(user_code):
+    """Get app_info data for a student by user code"""
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute(
+            """
+            SELECT 
+                user_code, status, sent, full_name, canadian, english,
+                cs, stat, math, gpa, highest_degree, degree_area,
+                mds_v, mds_cl, scholarship
+            FROM app_info 
+            WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+
+        app_info = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        return app_info, None
 
     except Exception as e:
         if conn:
