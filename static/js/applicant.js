@@ -560,17 +560,17 @@ class ApplicantManager {
         <!-- Tabs Navigation -->
         <div class="border-b border-gray-200 mt-4">
           <nav class="flex space-x-8">
-            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="student-info">
+            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap active" data-tab="student-info">
               Student Info
             </button>
             <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="institution-info">
               Institution Info
             </button>
-            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap active" data-tab="comments-ratings">
-              Comments & Ratings
-            </button>
             <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="test-scores">
               Test Scores
+            </button>
+            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="comments-ratings">
+              Comments & Ratings
             </button>
           </nav>
         </div>
