@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS session(
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-
+-- Create student_info table
+-- age is calculated based on date_birth
 CREATE TABLE IF NOT EXISTS student_info(
     user_code VARCHAR(10) PRIMARY KEY,
     session_id INT,
@@ -46,6 +47,7 @@ CREATE TABLE IF NOT EXISTS student_info(
     country_birth_code VARCHAR(10),
     country_birth VARCHAR(100),
     date_birth DATE,
+    age INTEGER,
     country_citizenship_code VARCHAR(10),
     country_citizenship VARCHAR(100),
     dual_citizenship_code VARCHAR(10),
