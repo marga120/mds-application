@@ -487,6 +487,22 @@ class ApplicantManager {
     });
   }
 
+  async updateRatingFormForViewer() {
+    try {
+      const response = await fetch("/api/auth/user");
+      const result = await response.json();
+
+      if (result.success && result.user.role === "Viewer") {
+        const ratingFormSection = document.getElementById("ratingFormSection");
+        if (ratingFormSection) {
+          ratingFormSection.style.display = "none";
+        }
+      }
+    } catch (error) {
+      console.error("Error checking user role:", error);
+    }
+  }
+
   showApplicantModal(userCode, userName) {
     // Create modal if it doesn't exist
     let modal = document.getElementById("applicantModal");
@@ -527,6 +543,9 @@ class ApplicantManager {
     this.loadRatings(userCode);
 
     this.loadMyRating(userCode);
+
+    // Update rating form for viewers
+    this.updateRatingFormForViewer();
 
     this.loadTestScores(userCode);
 
@@ -601,7 +620,7 @@ class ApplicantManager {
           <div id="comments-ratings" class="tab-content">
             <div class="max-h-96 overflow-y-auto pr-2">
               <!-- Add/Edit Rating Section -->
-              <div class="bg-blue-50 p-6 rounded-lg mb-6">
+              <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg mb-6">
                 <h4 class="text-lg font-semibold text-gray-900 mb-4">Your Rating & Comment</h4>
                 <div class="space-y-4">
                   <div>

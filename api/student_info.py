@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 import pandas as pd
 import io
 from datetime import datetime, timezone
+from flask_login import current_user
 
 # Import our model functions
 from models.student_info import process_csv_data, get_all_student_status
@@ -12,7 +13,10 @@ student_info_api = Blueprint("student_info_api", __name__)
 
 @student_info_api.route("/upload", methods=["POST"])
 def upload_csv():
-    """Handle CSV file upload and processing"""
+    """Handle CSV file upload and processing (Admin/Faculty only)"""
+    if not current_user.is_authenticated or current_user.is_viewer:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
     if "file" not in request.files:
         return jsonify({"success": False, "message": "No file uploaded"})
 
@@ -96,6 +100,7 @@ def get_student_test_scores(user_code):
         return jsonify({"success": False, "message": error})
 
     return jsonify({"success": True, "test_scores": test_scores})
+
 
 @student_info_api.route("/student-institutions/<user_code>", methods=["GET"])
 def get_student_institutions(user_code):
