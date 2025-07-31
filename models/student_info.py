@@ -1,7 +1,7 @@
 from utils.database import get_db_connection
 from psycopg2.extras import RealDictCursor
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date
 from models.test_scores import (
     process_toefl_scores,
     process_ielts_scores,
@@ -14,6 +14,19 @@ from models.test_scores import (
 )
 from models.institutions import process_institution_info
 
+def calculate_age(birth_date):
+    """Calculate age from birth date"""
+    if not birth_date:
+        return None
+    
+    today = date.today()
+    age = today.year - birth_date.year
+    
+    # Check if birthday has occurred this year
+    if today.month < birth_date.month or (today.month == birth_date.month and today.day < birth_date.day):
+        age -= 1
+    
+    return age
 
 def create_or_get_session(cursor, program_code, program, session_abbrev):
     """Create or get session based on CSV data"""
@@ -147,6 +160,9 @@ def process_csv_data(df):
                 except:
                     date_birth = None
 
+            # Calculate age
+            age = calculate_age(date_birth)
+
             # Get current timestamp
             current_time = datetime.now()
 
@@ -154,7 +170,7 @@ def process_csv_data(df):
             student_info_query = """
             INSERT INTO student_info (
                 user_code, session_id, title, family_name, given_name, middle_name, preferred_name,
-                former_family_name, gender_code, gender, date_birth, country_birth_code,
+                former_family_name, gender_code, gender, date_birth, age, country_birth_code,
                 country_citizenship_code, country_citizenship, dual_citizenship_code,
                 dual_citizenship, primary_spoken_lang_code, primary_spoken_lang,
                 other_spoken_lang_code, other_spoken_lang, visa_type_code, visa_type,
@@ -164,7 +180,7 @@ def process_csv_data(df):
                 aboriginal_info, academic_history_code, academic_history, interest_code, interest,
                 created_at, updated_at
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s)
             ON CONFLICT (user_code) DO UPDATE SET
@@ -196,6 +212,7 @@ def process_csv_data(df):
                     row.get("Gender CODE"),
                     row.get("Gender"),
                     date_birth,
+                    age,
                     row.get("Country of Birth CODE"),
                     row.get("Country of Current Citizenship CODE"),
                     row.get("Country of Current Citizenship"),
@@ -401,7 +418,7 @@ def get_student_info_by_code(user_code):
             SELECT 
                 interest_code, interest, title, family_name, given_name, 
                 middle_name, preferred_name, former_family_name, gender_code, 
-                gender, country_birth_code, country_birth, date_birth, 
+                gender, country_birth_code, country_birth, date_birth, age,
                 country_citizenship_code, country_citizenship, dual_citizenship_code, 
                 dual_citizenship, primary_spoken_lang_code, primary_spoken_lang, 
                 other_spoken_lang_code, other_spoken_lang, visa_type_code, 

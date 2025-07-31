@@ -891,6 +891,10 @@ class ApplicantManager {
                       : null
                   )}
                   ${this.renderInfoField("Gender", student.gender)}
+                  ${this.renderInfoField(
+                    "Age",
+                    student.age ? `${student.age} years old` : null
+                  )}
                   ${this.renderInfoField("Email", student.email, "email")}
                 </div>
               </div>
