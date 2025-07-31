@@ -29,29 +29,31 @@ class AuthManager {
       "sessionsDropdownArea"
     );
     if (sessionsDropdownArea) {
-      // Only show Sessions dropdown for Admin/Faculty
-      if (user.role === "Admin" || user.role === "Faculty") {
-        sessionsDropdownArea.innerHTML = `
-          <div class="relative">
-            <button id="sessionsDropdownBtn" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20">
-              Sessions
-              <svg class="w-3 h-3 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
+      // Show Sessions dropdown for all users, but different content based on role
+      const createSessionOption =
+        user.role === "Admin" || user.role === "Faculty"
+          ? `<a href="/create-new-session" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+             Create New Session
+           </a>
+           <div class="border-t border-gray-100"></div>`
+          : "";
+
+      sessionsDropdownArea.innerHTML = `
+        <div class="relative">
+          <button id="sessionsDropdownBtn" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20">
+            Sessions
+            <svg class="w-3 h-3 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+          <div id="sessionsDropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+            ${createSessionOption}
+            <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+              View All Sessions
             </button>
-            <div id="sessionsDropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-              <a href="/create-new-session" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
-                Create New Session
-              </a>
-              <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md border-t border-gray-100">
-                View All Sessions
-              </button>
-            </div>
           </div>
-        `;
-      } else {
-        sessionsDropdownArea.innerHTML = "";
-      }
+        </div>
+      `;
     }
 
     // Add user dropdown to the right
