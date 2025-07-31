@@ -284,12 +284,7 @@ class ApplicantManager {
                             month: "short",
                             day: "numeric",
                             year: "numeric",
-                          })}</div>
-                      <div class="date-secondary">${new Date(
-                        applicant.submit_date
-                      ).toLocaleDateString("en-US", {
-                        weekday: "short",
-                      })}</div>`
+                          })}</div>`
                         : '<div class="text-gray-400 text-sm">Not submitted</div>'
                     }
                   </td>
