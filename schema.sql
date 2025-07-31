@@ -124,20 +124,6 @@ CREATE TABLE IF NOT EXISTS app_info (
     scholarship BOOLEAN
 );
 
--- CREATE TABLE IF NOT EXISTS rating(
---     user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
---     user_id INTEGER REFERENCES "user"(id),
---     rating VARCHAR(20),
---     user_comment VARCHAR(300)
--- );
--- CREATE TABLE IF NOT EXISTS rating(
--- 	user_id INTEGER PRIMARY KEY REFERENCES "user"(id),
--- 	user_code VARCHAR(10) REFERENCES student_info(user_code),
--- 	rating DECIMAL(3,1) CHECK (rating >= 0.0 AND rating <= 10.0),
--- 	user_comment VARCHAR(300),
--- 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
--- 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
--- );
 CREATE TABLE IF NOT EXISTS rating(
 	user_id INTEGER REFERENCES "user"(id),
 	user_code VARCHAR(10) REFERENCES student_info(user_code),
