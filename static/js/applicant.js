@@ -230,12 +230,11 @@ class ApplicantManager {
         <table class="modern-table">
           <thead>
             <tr>
-              <th style="width: 23%;">Applicant</th>
-              <th style="width: 11%;">User Code</th>
-              <th style="width: 12%;">Student Number</th>
-              <th style="width: 14%;">Application Status</th>
-              <th style="width: 15%;">Submit Date</th>
-              <th style="width: 12%;">Overall Rating</th>
+              <th style="width: 28%;">Applicant</th>
+              <th style="width: 14%;">Student Number</th>
+              <th style="width: 16%;">Application Status</th>
+              <th style="width: 16%;">Submit Date</th>
+              <th style="width: 13%;">Overall Rating</th>
               <th style="width: 13%;">Last Updated</th>
               <th style="width: 10%;">Actions</th>
             </tr>
@@ -257,13 +256,11 @@ class ApplicantManager {
                         <h3>${applicant.given_name} ${
                   applicant.family_name
                 }</h3>
+                        <p>User Code: ${Math.floor(
+                          parseFloat(applicant.user_code)
+                        )}</p>
                       </div>
                     </div>
-                  </td>
-                  <td class="text-center">
-                    <span class="user-code-badge">${Math.floor(
-                      parseFloat(applicant.user_code)
-                    )}</span>
                   </td>
                   <td class="text-center">
                     ${
