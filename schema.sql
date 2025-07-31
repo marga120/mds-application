@@ -108,8 +108,7 @@ CREATE TABLE IF NOT EXISTS student_status(
 
 CREATE TABLE IF NOT EXISTS app_info (
     user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
-    status VARCHAR(20),
-    sent BOOLEAN,
+    sent VARCHAR(100) DEFAULT 'Not Reviewed' CHECK (sent IN ('Not Reviewed', 'Waitlist', 'Offer', 'CoGS', 'Offer Sent')),
     full_name VARCHAR(100),
     canadian BOOLEAN,
     english BOOLEAN,
