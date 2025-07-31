@@ -113,3 +113,16 @@ def get_student_institutions(user_code):
         return jsonify({"success": False, "message": error})
 
     return jsonify({"success": True, "institutions": institutions})
+
+
+@student_info_api.route("/student-app-info/<user_code>", methods=["GET"])
+def get_student_app_info(user_code):
+    """Get app_info for a student by user code"""
+    from models.student_info import get_student_app_info_by_code
+
+    app_info, error = get_student_app_info_by_code(user_code)
+
+    if error:
+        return jsonify({"success": False, "message": error})
+
+    return jsonify({"success": True, "app_info": app_info})
