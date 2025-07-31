@@ -71,7 +71,9 @@ def dashboard():
 @app.route("/create-new-session")
 @login_required
 def create_new_session_page():
-    """Create new session page"""
+    """Create new session page (Admin/Faculty only)"""
+    if current_user.is_viewer:
+        return redirect(url_for("index"))
     return render_template("create-session.html")
 
 
