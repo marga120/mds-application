@@ -93,17 +93,7 @@ class AuthManager {
   updateUploadSection(user) {
     const uploadSection = document.getElementById("uploadSection");
     if (uploadSection && user.role === "Viewer") {
-      uploadSection.innerHTML = `
-        <h3 class="text-xl font-semibold text-ubc-blue mb-4">
-          Upload CSV File
-        </h3>
-        <div class="bg-gray-100 border-2 border-gray-300 rounded-lg p-8 text-center">
-          <h4 class="text-lg font-medium text-gray-700 mb-2">Access Restricted</h4>
-          <p class="text-gray-600">
-            Viewers do not have permission to upload CSV files. Please contact an administrator or faculty member to upload data.
-          </p>
-        </div>
-      `;
+      uploadSection.style.display = "none";
     }
   }
 

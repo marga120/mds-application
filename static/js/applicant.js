@@ -495,16 +495,7 @@ class ApplicantManager {
       if (result.success && result.user.role === "Viewer") {
         const ratingFormSection = document.getElementById("ratingFormSection");
         if (ratingFormSection) {
-          ratingFormSection.innerHTML = `
-            <div class="bg-gray-100 border border-gray-300 rounded-lg p-6">
-              <div class="text-center">
-                <h4 class="text-lg font-medium text-gray-700 mb-2">Access Restricted</h4>
-                <p class="text-gray-600">
-                  Viewers cannot add their own comments and ratings.
-                </p>
-              </div>
-            </div>
-          `;
+          ratingFormSection.style.display = "none";
         }
       }
     } catch (error) {
