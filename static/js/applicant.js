@@ -483,7 +483,9 @@ class ApplicantManager {
 
     // Update modal content
     document.getElementById("modalApplicantName").textContent = userName;
-    document.getElementById("modalUserCode").textContent = userCode;
+    document.getElementById("modalUserCode").textContent = Math.floor(
+      parseFloat(userCode)
+    );
 
     // Find the student number from the applicant data
     const applicant = this.allApplicants.find(
