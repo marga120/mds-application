@@ -531,148 +531,146 @@ class ApplicantManager {
       "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50";
 
     modal.innerHTML = `
-      <div class="relative top-5 mx-auto p-6 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white mb-10">
-       <!-- Modal Header -->
-        <div class="flex items-center justify-between pb-4 border-b border-gray-200">
-          <div>
-            <h3 class="text-xl font-semibold text-gray-900" id="modalApplicantName">Applicant Details</h3>
-            <div class="text-sm text-gray-500 space-y-1">
-              <p>User Code: <span id="modalUserCode"></span></p>
-              <p>Student Number: <span id="modalStudentNumber"></span></p>
-            </div>
-          </div>
-          <button class="modal-close text-gray-400 hover:text-gray-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Tabs Navigation -->
-        <div class="border-b border-gray-200 mt-4">
-          <nav class="flex space-x-8">
-            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap active" data-tab="student-info">
-              Student Info
-            </button>
-            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="institution-info">
-              Institution Info
-            </button>
-            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="test-scores">
-              Test Scores
-            </button>
-            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="status-tab">
-              Status: <span id="statusTabLabel">Not Reviewed</span>
-            </button>
-            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="comments-ratings">
-              Comments & Ratings
-            </button>
-          </nav>
-        </div>
-
-        <!-- Tab Content -->
-        <div class="mt-6">
-          <!-- Student Info Tab -->
-          <div id="student-info" class="tab-content hidden">
-            <div id="studentInfoContainer" class="space-y-6">
-              <div class="text-center py-8 text-gray-500">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
-                Loading student information...
-              </div>
-            </div>
-          </div>
-
-          <!-- Institution Info Tab -->
-          <div id="institution-info" class="tab-content hidden">
-            <div id="institutionInfoContainer" class="space-y-6">
-              <div class="text-center py-8 text-gray-500">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
-                Loading institution information...
-              </div>
-            </div>
-          </div>
-
-          <!-- Comments & Ratings Tab -->
-          <div id="comments-ratings" class="tab-content">
-            <div class="max-h-96 overflow-y-auto pr-2">
-              <!-- Add/Edit Rating Section -->
-              <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg mb-6">
-                <h4 class="text-lg font-semibold text-gray-900 mb-4">Your Rating & Comment</h4>
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Rating (0.0 - 10.0)</label>
-                    <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter rating (e.g., 8.5)">
-                    <p class="text-xs text-gray-500 mt-1">Enter a rating between 0.0 and 10.0</p>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
-                    <textarea id="commentTextarea" rows="3" class="input-ubc w-full resize-none" placeholder="Add your comments about this applicant..."></textarea>
-                  </div>
-                  <div class="flex gap-3">
-                    <button id="saveRatingBtn" class="btn-ubc">Save Rating</button>
-                    <button id="clearRatingBtn" class="btn-ubc-outline">Clear</button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- All Ratings Section -->
-              <div class="mb-6">
-                <h4 class="text-lg font-semibold text-gray-900 mb-4">All Ratings & Comments</h4>
-                <div id="ratingsContainer" class="space-y-3">
-                  <div class="text-center py-8 text-gray-500">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
-                    Loading ratings...
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Test Scores Tab -->
-          <div id="test-scores" class="tab-content hidden">
-            <div id="testScoresContainer" class="space-y-6">
-              <div class="text-center py-8 text-gray-500">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
-                Loading test scores...
-              </div>
-            </div>
+    <div class="relative top-5 mx-auto p-6 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white mb-10">
+     <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+        <div>
+          <h3 class="text-xl font-semibold text-gray-900" id="modalApplicantName">Applicant Details</h3>
+          <div class="text-sm text-gray-500 space-y-1">
+            <p>User Code: <span id="modalUserCode"></span></p>
+            <p>Student Number: <span id="modalStudentNumber"></span></p>
           </div>
         </div>
-
-         <!-- Status Tab -->
-          <div id="status-tab" class="tab-content hidden">
-            <div class="max-h-96 overflow-y-auto pr-2">
-              <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
-                <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
-                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  Application Status
-                </h4>
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Current Status</label>
-                    <div id="statusDropdownContainer">
-                      <select id="statusSelect" class="input-ubc w-full">
-                        <option value="Not Reviewed">Not Reviewed</option>
-                        <option value="Waitlist">Waitlist</option>
-                        <option value="Offer">Offer</option>
-                        <option value="CoGS">CoGS</option>
-                        <option value="Offer Sent">Offer Sent</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div id="statusUpdateButtons" class="flex gap-3">
-                    <button id="updateStatusBtn" class="btn-ubc">Update Status</button>
-                    <button id="cancelStatusBtn" class="btn-ubc-outline">Cancel</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        
+        <button class="modal-close text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
       </div>
-    `;
+
+      <!-- Tabs Navigation -->
+      <div class="border-b border-gray-200 mt-4">
+        <nav class="flex space-x-8">
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap active" data-tab="student-info">
+            Student Info
+          </button>
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="institution-info">
+            Institution Info
+          </button>
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="test-scores">
+            Test Scores
+          </button>
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="comments-ratings">
+            Comments & Ratings
+          </button>
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="status-tab">
+            Status: <span id="statusTabLabel">Not Reviewed</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="mt-6">
+        <!-- Student Info Tab -->
+        <div id="student-info" class="tab-content hidden">
+          <div id="studentInfoContainer" class="space-y-6">
+            <div class="text-center py-8 text-gray-500">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+              Loading student information...
+            </div>
+          </div>
+        </div>
+
+        <!-- Institution Info Tab -->
+        <div id="institution-info" class="tab-content hidden">
+          <div id="institutionInfoContainer" class="space-y-6">
+            <div class="text-center py-8 text-gray-500">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+              Loading institution information...
+            </div>
+          </div>
+        </div>
+
+        <!-- Test Scores Tab -->
+        <div id="test-scores" class="tab-content hidden">
+          <div id="testScoresContainer" class="space-y-6">
+            <div class="text-center py-8 text-gray-500">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+              Loading test scores...
+            </div>
+          </div>
+        </div>
+
+        <!-- Comments & Ratings Tab -->
+        <div id="comments-ratings" class="tab-content">
+          <div class="max-h-96 overflow-y-auto pr-2">
+            <!-- Add/Edit Rating Section -->
+            <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg mb-6">
+              <h4 class="text-lg font-semibold text-gray-900 mb-4">Your Rating & Comment</h4>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Rating (0.0 - 10.0)</label>
+                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter rating (e.g., 8.5)">
+                  <p class="text-xs text-gray-500 mt-1">Enter a rating between 0.0 and 10.0</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
+                  <textarea id="commentTextarea" rows="3" class="input-ubc w-full resize-none" placeholder="Add your comments about this applicant..."></textarea>
+                </div>
+                <div class="flex gap-3">
+                  <button id="saveRatingBtn" class="btn-ubc">Save Rating</button>
+                  <button id="clearRatingBtn" class="btn-ubc-outline">Clear</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- All Ratings Section -->
+            <div class="mb-6">
+              <h4 class="text-lg font-semibold text-gray-900 mb-4">All Ratings & Comments</h4>
+              <div id="ratingsContainer" class="space-y-3">
+                <div class="text-center py-8 text-gray-500">
+                  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+                  Loading ratings...
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status Tab -->
+        <div id="status-tab" class="tab-content hidden">
+          <div class="max-h-96 overflow-y-auto pr-2">
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
+              <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Application Status
+              </h4>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Current Status</label>
+                  <div id="statusDropdownContainer">
+                    <select id="statusSelect" class="input-ubc w-full">
+                      <option value="Not Reviewed">Not Reviewed</option>
+                      <option value="Waitlist">Waitlist</option>
+                      <option value="Offer">Offer</option>
+                      <option value="CoGS">CoGS</option>
+                      <option value="Offer Sent">Offer Sent</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="statusUpdateButtons" class="flex gap-3">
+                  <button id="updateStatusBtn" class="btn-ubc">Update Status</button>
+                  <button id="cancelStatusBtn" class="btn-ubc-outline">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 
     // Add event listeners
     modal.querySelector(".modal-close").addEventListener("click", () => {
@@ -680,10 +678,12 @@ class ApplicantManager {
       modal.classList.remove("flex");
     });
 
-    // Tab switching
+    // Tab switching - handle clicks on both button and nested elements
     modal.addEventListener("click", (e) => {
-      if (e.target.matches(".tab-button")) {
-        const tabName = e.target.dataset.tab;
+      // Check if the clicked element is a tab button or inside a tab button
+      const tabButton = e.target.closest(".tab-button");
+      if (tabButton) {
+        const tabName = tabButton.dataset.tab;
         this.showTab(tabName);
       }
     });
