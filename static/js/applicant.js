@@ -1084,6 +1084,14 @@ class ApplicantManager {
                     student.dual_citizenship
                   )}
                   ${this.renderInfoField(
+                    "Canadian Citizen/Resident",
+                    appInfo && appInfo.canadian !== null
+                      ? appInfo.canadian
+                        ? "Yes"
+                        : "No"
+                      : "Not determined"
+                  )}
+                  ${this.renderInfoField(
                     "Primary Spoken Language",
                     student.primary_spoken_lang
                   )}
@@ -1166,25 +1174,6 @@ class ApplicantManager {
                   : ""
               }
 
-              <!-- Canadian Status - NEW SECTION -->
-              <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
-                <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
-                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6H8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path>
-                  </svg>
-                  Canadian Status
-                </h4>
-                <div class="space-y-3">
-                  ${this.renderInfoField(
-                    "Canadian Citizen/Resident",
-                    appInfo && appInfo.canadian !== null
-                      ? appInfo.canadian
-                        ? "Yes"
-                        : "No"
-                      : "Not determined"
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         `;
@@ -1719,6 +1708,25 @@ class ApplicantManager {
               </svg>
               Educational Background
             </h4>
+
+             <!-- Academic Summary Section -->
+            <div class="bg-gradient-to-r from-ubc-blue to-blue-600 text-white rounded-lg p-6 mb-6">
+              <h5 class="text-lg font-semibold mb-4">Academic Summary</h5>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="text-center">
+                  <p class="text-blue-100 text-sm">Highest Degree</p>
+                  <p class="text-xl font-bold" id="highestDegreeDisplay">-</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-blue-100 text-sm">Field of Study</p>
+                  <p class="text-xl font-bold" id="degreeAreaDisplay">-</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-blue-100 text-sm">GPA</p>
+                  <p class="text-xl font-bold" id="gpaDisplay">-</p>
+                </div>
+              </div>
+            </div>
             
             <div class="space-y-6">
               ${result.institutions
@@ -1823,6 +1831,7 @@ class ApplicantManager {
             </div>
           </div>
         `;
+        this.loadAcademicSummary(userCode);
       } else {
         container.innerHTML = `
           <div class="text-center py-12 text-gray-500">
@@ -1841,6 +1850,30 @@ class ApplicantManager {
           <p>Error loading institution information: ${error.message}</p>
         </div>
       `;
+    }
+  }
+
+  async loadAcademicSummary(userCode) {
+    try {
+      const response = await fetch(`/api/student-app-info/${userCode}`);
+      const result = await response.json();
+
+      if (result.success && result.app_info) {
+        const appInfo = result.app_info;
+
+        // Update academic summary displays
+        document.getElementById("highestDegreeDisplay").textContent =
+          appInfo.highest_degree || "-";
+        document.getElementById("degreeAreaDisplay").textContent =
+          appInfo.degree_area || "-";
+        document.getElementById("gpaDisplay").textContent = appInfo.gpa || "-";
+      }
+    } catch (error) {
+      console.error("Error loading academic summary:", error);
+      // Set default values if there's an error
+      document.getElementById("highestDegreeDisplay").textContent = "-";
+      document.getElementById("degreeAreaDisplay").textContent = "-";
+      document.getElementById("gpaDisplay").textContent = "-";
     }
   }
 
