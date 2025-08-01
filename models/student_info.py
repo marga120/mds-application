@@ -14,19 +14,23 @@ from models.test_scores import (
 )
 from models.institutions import process_institution_info
 
+
 def calculate_age(birth_date):
     """Calculate age from birth date"""
     if not birth_date:
         return None
-    
+
     today = date.today()
     age = today.year - birth_date.year
-    
+
     # Check if birthday has occurred this year
-    if today.month < birth_date.month or (today.month == birth_date.month and today.day < birth_date.day):
+    if today.month < birth_date.month or (
+        today.month == birth_date.month and today.day < birth_date.day
+    ):
         age -= 1
-    
+
     return age
+
 
 def create_or_get_session(cursor, program_code, program, session_abbrev):
     """Create or get session based on CSV data"""
@@ -597,14 +601,16 @@ def process_app_info(user_code, row, cursor, current_time):
         # Insert into app_info table
         app_info_query = """
         INSERT INTO app_info (
-            user_code, full_name, canadian
-        ) VALUES (%s, %s, %s)
+            user_code, full_name, canadian, sent
+        ) VALUES (%s, %s, %s, %s)
         ON CONFLICT (user_code) DO UPDATE SET
             full_name = EXCLUDED.full_name,
             canadian = EXCLUDED.canadian
         """
 
-        cursor.execute(app_info_query, (user_code, full_name, is_canadian))
+        cursor.execute(
+            app_info_query, (user_code, full_name, is_canadian, "Not Reviewed")
+        )
 
     except Exception as e:
         # Log error but don't fail the entire process
@@ -622,7 +628,7 @@ def get_student_app_info_by_code(user_code):
         cursor.execute(
             """
             SELECT 
-                user_code, status, sent, full_name, canadian, english,
+                user_code, sent, full_name, canadian, english,
                 cs, stat, math, gpa, highest_degree, degree_area,
                 mds_v, mds_cl, scholarship
             FROM app_info 
@@ -641,3 +647,43 @@ def get_student_app_info_by_code(user_code):
         if conn:
             conn.close()
         return None, f"Database error: {str(e)}"
+
+
+def update_student_app_status(user_code, status):
+    """Update student status in app_info table"""
+    conn = get_db_connection()
+    if not conn:
+        return False, "Database connection failed"
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE app_info 
+            SET sent = %s
+            WHERE user_code = %s
+        """,
+            (status, user_code),
+        )
+
+        if cursor.rowcount == 0:
+            # If no rows updated, create new record
+            cursor.execute(
+                """
+                INSERT INTO app_info (user_code, sent) 
+                VALUES (%s, %s)
+            """,
+                (user_code, status),
+            )
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return True, "Status updated successfully"
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return False, f"Database error: {str(e)}"

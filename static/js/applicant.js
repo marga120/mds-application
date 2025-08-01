@@ -61,9 +61,7 @@ class ApplicantManager {
       const newTitle = `${this.sessionName} Applicants Database`;
       titleElement.textContent = newTitle;
     } else {
-      console.error(
-        "❌ Could not find element with ID 'applicantsSectionTitle'"
-      );
+      console.error("Could not find element with ID 'applicantsSectionTitle'");
     }
   }
 
@@ -522,6 +520,8 @@ class ApplicantManager {
     this.loadTestScores(userCode);
 
     this.loadInstitutionInfo(userCode);
+
+    this.loadAppStatus(userCode);
   }
 
   createApplicantModal() {
@@ -531,112 +531,199 @@ class ApplicantManager {
       "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50";
 
     modal.innerHTML = `
-      <div class="relative top-5 mx-auto p-6 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white mb-10">
-       <!-- Modal Header -->
-        <div class="flex items-center justify-between pb-4 border-b border-gray-200">
-          <div>
-            <h3 class="text-xl font-semibold text-gray-900" id="modalApplicantName">Applicant Details</h3>
-            <div class="text-sm text-gray-500 space-y-1">
-              <p>User Code: <span id="modalUserCode"></span></p>
-              <p>Student Number: <span id="modalStudentNumber"></span></p>
-            </div>
-          </div>
-          <button class="modal-close text-gray-400 hover:text-gray-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Tabs Navigation -->
-        <div class="border-b border-gray-200 mt-4">
-          <nav class="flex space-x-8">
-            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap active" data-tab="student-info">
-              Student Info
-            </button>
-            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="institution-info">
-              Institution Info
-            </button>
-            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="test-scores">
-              Test Scores
-            </button>
-            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="comments-ratings">
-              Comments & Ratings
-            </button>
-          </nav>
-        </div>
-
-        <!-- Tab Content -->
-        <div class="mt-6">
-          <!-- Student Info Tab -->
-          <div id="student-info" class="tab-content hidden">
-            <div id="studentInfoContainer" class="space-y-6">
-              <div class="text-center py-8 text-gray-500">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
-                Loading student information...
-              </div>
-            </div>
-          </div>
-
-          <!-- Institution Info Tab -->
-          <div id="institution-info" class="tab-content hidden">
-            <div id="institutionInfoContainer" class="space-y-6">
-              <div class="text-center py-8 text-gray-500">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
-                Loading institution information...
-              </div>
-            </div>
-          </div>
-
-          <!-- Comments & Ratings Tab -->
-          <div id="comments-ratings" class="tab-content">
-            <div class="max-h-96 overflow-y-auto pr-2">
-              <!-- Add/Edit Rating Section -->
-              <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg mb-6">
-                <h4 class="text-lg font-semibold text-gray-900 mb-4">Your Rating & Comment</h4>
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Rating (0.0 - 10.0)</label>
-                    <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter rating (e.g., 8.5)">
-                    <p class="text-xs text-gray-500 mt-1">Enter a rating between 0.0 and 10.0</p>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
-                    <textarea id="commentTextarea" rows="3" class="input-ubc w-full resize-none" placeholder="Add your comments about this applicant..."></textarea>
-                  </div>
-                  <div class="flex gap-3">
-                    <button id="saveRatingBtn" class="btn-ubc">Save Rating</button>
-                    <button id="clearRatingBtn" class="btn-ubc-outline">Clear</button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- All Ratings Section -->
-              <div class="mb-6">
-                <h4 class="text-lg font-semibold text-gray-900 mb-4">All Ratings & Comments</h4>
-                <div id="ratingsContainer" class="space-y-3">
-                  <div class="text-center py-8 text-gray-500">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
-                    Loading ratings...
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Test Scores Tab -->
-          <div id="test-scores" class="tab-content hidden">
-            <div id="testScoresContainer" class="space-y-6">
-              <div class="text-center py-8 text-gray-500">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
-                Loading test scores...
-              </div>
-            </div>
+    <div class="relative top-5 mx-auto p-6 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white mb-10">
+     <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+        <div>
+          <h3 class="text-xl font-semibold text-gray-900" id="modalApplicantName">Applicant Details</h3>
+          <div class="text-sm text-gray-500 space-y-1">
+            <p>User Code: <span id="modalUserCode"></span></p>
+            <p>Student Number: <span id="modalStudentNumber"></span></p>
           </div>
         </div>
-        </div>
+        <button class="modal-close text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
       </div>
-    `;
+
+      <!-- Tabs Navigation -->
+      <div class="border-b border-gray-200 mt-4">
+        <nav class="flex space-x-8">
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap active" data-tab="student-info">
+            Student Info
+          </button>
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="institution-info">
+            Institution Info
+          </button>
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="test-scores">
+            Test Scores
+          </button>
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="comments-ratings">
+            Comments & Ratings
+          </button>
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="status-tab">
+            Status: <span id="statusTabLabel">Not Reviewed</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="mt-6">
+        <!-- Student Info Tab -->
+        <div id="student-info" class="tab-content hidden">
+          <div id="studentInfoContainer" class="space-y-6">
+            <div class="text-center py-8 text-gray-500">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+              Loading student information...
+            </div>
+          </div>
+        </div>
+
+        <!-- Institution Info Tab -->
+        <div id="institution-info" class="tab-content hidden">
+          <div id="institutionInfoContainer" class="space-y-6">
+            <div class="text-center py-8 text-gray-500">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+              Loading institution information...
+            </div>
+          </div>
+        </div>
+
+        <!-- Test Scores Tab -->
+        <div id="test-scores" class="tab-content hidden">
+          <div id="testScoresContainer" class="space-y-6">
+            <div class="text-center py-8 text-gray-500">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+              Loading test scores...
+            </div>
+          </div>
+        </div>
+
+        <!-- Comments & Ratings Tab -->
+        <div id="comments-ratings" class="tab-content">
+          <div class="max-h-96 overflow-y-auto pr-2">
+            <!-- Add/Edit Rating Section -->
+            <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg mb-6">
+              <h4 class="text-lg font-semibold text-gray-900 mb-4">Your Rating & Comment</h4>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Rating (0.0 - 10.0)</label>
+                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter rating (e.g., 8.5)">
+                  <p class="text-xs text-gray-500 mt-1">Enter a rating between 0.0 and 10.0</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
+                  <textarea id="commentTextarea" rows="3" class="input-ubc w-full resize-none" placeholder="Add your comments about this applicant..."></textarea>
+                </div>
+                <div class="flex gap-3">
+                  <button id="saveRatingBtn" class="btn-ubc">Save Rating</button>
+                  <button id="clearRatingBtn" class="btn-ubc-outline">Clear</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- All Ratings Section -->
+            <div class="mb-6">
+              <h4 class="text-lg font-semibold text-gray-900 mb-4">All Ratings & Comments</h4>
+              <div id="ratingsContainer" class="space-y-3">
+                <div class="text-center py-8 text-gray-500">
+                  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+                  Loading ratings...
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status Tab -->
+        <div id="status-tab" class="tab-content hidden">
+          <div class="max-h-96 overflow-y-auto pr-2">
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
+              <h4 class="text-lg font-semibold text-ubc-blue mb-6 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Application Status Management
+              </h4>
+              
+              <!-- Current Status Display -->
+              <div class="mb-6">
+                <div class="bg-white rounded-lg p-4 border border-blue-200 shadow-sm">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="text-sm font-medium text-gray-600 mb-1">Current Status</p>
+                      <p class="text-lg font-bold text-gray-900" id="currentStatusDisplay">Not Reviewed</p>
+                    </div>
+                    <div class="flex items-center">
+                      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium" id="currentStatusBadge">
+                        <div class="w-2 h-2 rounded-full mr-2" id="currentStatusDot"></div>
+                        <span id="currentStatusText">Not Reviewed</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Status Change Section -->
+              <div id="statusChangeSection">
+                <div class="border-t border-blue-200 pt-6">
+                  <h5 class="text-md font-semibold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                    </svg>
+                    Change Status
+                  </h5>
+                  
+                  <div class="space-y-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Select New Status</label>
+                      <div id="statusDropdownContainer">
+                        <select id="statusSelect" class="input-ubc w-full text-base">
+                          <option value="Not Reviewed">Not Reviewed</option>
+                          <option value="Waitlist">Waitlist</option>
+                          <option value="Offer">Offer</option>
+                          <option value="CoGS">CoGS</option>
+                          <option value="Offer Sent">Offer Sent</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Preview Section -->
+                    <div id="statusPreview" class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 hidden">
+                      <div class="flex items-center">
+                        <svg class="w-4 h-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-sm text-yellow-800">
+                          <span class="font-medium">Preview:</span> 
+                          <span id="currentStatusPreview">Not Reviewed</span> 
+                          <span class="mx-2">→</span> 
+                          <span class="font-semibold" id="newStatusPreview">Not Reviewed</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div id="statusUpdateButtons" class="flex gap-3 pt-2">
+                      <button id="updateStatusBtn" class="btn-ubc flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Update Status
+                      </button>
+                      <button id="cancelStatusBtn" class="btn-ubc-outline">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  `;
 
     // Add event listeners
     modal.querySelector(".modal-close").addEventListener("click", () => {
@@ -644,10 +731,12 @@ class ApplicantManager {
       modal.classList.remove("flex");
     });
 
-    // Tab switching
+    // Tab switching - handle clicks on both button and nested elements
     modal.addEventListener("click", (e) => {
-      if (e.target.matches(".tab-button")) {
-        const tabName = e.target.dataset.tab;
+      // Check if the clicked element is a tab button or inside a tab button
+      const tabButton = e.target.closest(".tab-button");
+      if (tabButton) {
+        const tabName = tabButton.dataset.tab;
         this.showTab(tabName);
       }
     });
@@ -659,6 +748,14 @@ class ApplicantManager {
 
     modal.querySelector("#clearRatingBtn").addEventListener("click", () => {
       this.clearRatingForm();
+    });
+
+    modal.querySelector("#updateStatusBtn").addEventListener("click", () => {
+      this.updateStatus();
+    });
+
+    modal.querySelector("#cancelStatusBtn").addEventListener("click", () => {
+      this.loadAppStatus(modal.dataset.currentUserCode);
     });
 
     // Close modal when clicking outside
@@ -1717,5 +1814,222 @@ class ApplicantManager {
         </div>
       `;
     }
+  }
+
+  async loadAppStatus(userCode) {
+    try {
+      const response = await fetch(`/api/student-app-info/${userCode}`);
+      const result = await response.json();
+
+      if (result.success && result.app_info) {
+        const currentStatus = result.app_info.sent || "Not Reviewed";
+
+        // Update tab label
+        document.getElementById("statusTabLabel").textContent = currentStatus;
+
+        // Update current status display
+        document.getElementById("currentStatusDisplay").textContent =
+          currentStatus;
+        document.getElementById("currentStatusText").textContent =
+          currentStatus;
+
+        // Update status badge styling
+        this.updateStatusBadge(currentStatus);
+
+        // Update select dropdown
+        document.getElementById("statusSelect").value = currentStatus;
+
+        // Hide preview initially
+        document.getElementById("statusPreview").classList.add("hidden");
+
+        // Update status change buttons visibility based on user role
+        this.updateStatusFormForViewer();
+
+        // Add change listener for preview
+        this.setupStatusPreview(currentStatus);
+      }
+    } catch (error) {
+      console.error("Error loading app status:", error);
+    }
+  }
+
+  updateStatusFormForViewer() {
+    const statusButtons = document.getElementById("statusUpdateButtons");
+    const statusSelect = document.getElementById("statusSelect");
+    const statusChangeSection = document.getElementById("statusChangeSection");
+
+    // Check user role from auth
+    fetch("/api/auth/check-session")
+      .then((response) => response.json())
+      .then((result) => {
+        if (
+          result.authenticated &&
+          (result.user?.role === "Admin" || result.user?.role === "Faculty")
+        ) {
+          // Admin and Faculty can update status - show everything
+          if (statusChangeSection) {
+            statusChangeSection.style.display = "block";
+          }
+          if (statusButtons) {
+            statusButtons.style.display = "flex";
+          }
+          statusSelect.disabled = false;
+
+          // Set title for Admin/Faculty
+          const statusTitle = document.querySelector("#status-tab h4");
+          if (statusTitle) {
+            statusTitle.innerHTML = `
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Application Status Management
+          `;
+          }
+        } else {
+          // Viewers can see current status but not change it - hide the change section
+          if (statusChangeSection) {
+            statusChangeSection.style.display = "none";
+          }
+
+          // Set title for Viewers
+          const statusTitle = document.querySelector("#status-tab h4");
+          if (statusTitle) {
+            statusTitle.innerHTML = `
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Application Status
+          `;
+          }
+        }
+      })
+      .catch((error) => {
+        console.error("Error checking user permissions:", error);
+      });
+  }
+
+  async updateStatus() {
+    const userCode =
+      document.getElementById("applicantModal").dataset.currentUserCode;
+    const newStatus = document.getElementById("statusSelect").value;
+    const updateBtn = document.getElementById("updateStatusBtn");
+
+    if (!userCode || !newStatus) return;
+
+    const originalHTML = updateBtn.innerHTML;
+    updateBtn.disabled = true;
+    updateBtn.innerHTML = `
+    <svg class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+    </svg>
+    Updating...
+  `;
+
+    try {
+      const response = await fetch(`/api/student-app-info/${userCode}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: newStatus,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        this.showMessage(result.message, "success");
+
+        // Update tab label
+        document.getElementById("statusTabLabel").textContent = newStatus;
+
+        // Reload the entire status display
+        this.loadAppStatus(userCode);
+      } else {
+        this.showMessage(result.message, "error");
+      }
+    } catch (error) {
+      this.showMessage(`Error updating status: ${error.message}`, "error");
+    } finally {
+      updateBtn.disabled = false;
+      updateBtn.innerHTML = originalHTML;
+    }
+  }
+
+  updateStatusBadge(status) {
+    const badge = document.getElementById("currentStatusBadge");
+    const dot = document.getElementById("currentStatusDot");
+
+    // Remove existing classes
+    badge.className =
+      "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium";
+
+    // Add status-specific styling
+    switch (status) {
+      case "Not Reviewed":
+        badge.classList.add("bg-gray-100", "text-gray-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-gray-400";
+        break;
+      case "Waitlist":
+        badge.classList.add("bg-yellow-100", "text-yellow-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-yellow-400";
+        break;
+      case "Offer":
+        badge.classList.add("bg-green-100", "text-green-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-green-400";
+        break;
+      case "CoGS":
+        badge.classList.add("bg-blue-100", "text-blue-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-blue-400";
+        break;
+      case "Offer Sent":
+        badge.classList.add("bg-purple-100", "text-purple-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-purple-400";
+        break;
+      default:
+        badge.classList.add("bg-gray-100", "text-gray-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-gray-400";
+    }
+  }
+
+  setupStatusPreview(currentStatus) {
+    const statusSelect = document.getElementById("statusSelect");
+    const statusPreview = document.getElementById("statusPreview");
+    const currentStatusPreview = document.getElementById(
+      "currentStatusPreview"
+    );
+    const newStatusPreview = document.getElementById("newStatusPreview");
+    const updateBtn = document.getElementById("updateStatusBtn");
+
+    // Clear any existing event listeners without cloning
+    statusSelect.removeEventListener(
+      "change",
+      statusSelect._statusChangeHandler
+    );
+
+    // Create new handler and store reference
+    const changeHandler = () => {
+      const newStatus = statusSelect.value;
+
+      if (newStatus !== currentStatus) {
+        // Show preview
+        statusPreview.classList.remove("hidden");
+        currentStatusPreview.textContent = currentStatus;
+        newStatusPreview.textContent = newStatus;
+        updateBtn.disabled = false;
+      } else {
+        // Hide preview if same as current
+        statusPreview.classList.add("hidden");
+        updateBtn.disabled = true;
+      }
+    };
+
+    // Store handler reference and add listener
+    statusSelect._statusChangeHandler = changeHandler;
+    statusSelect.addEventListener("change", changeHandler);
+
+    // Make sure the update button starts disabled
+    updateBtn.disabled = true;
   }
 }

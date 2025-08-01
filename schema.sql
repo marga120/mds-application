@@ -108,8 +108,7 @@ CREATE TABLE IF NOT EXISTS student_status(
 
 CREATE TABLE IF NOT EXISTS app_info (
     user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
-    status VARCHAR(20),
-    sent BOOLEAN,
+    sent VARCHAR(100) DEFAULT 'Not Reviewed' CHECK (sent IN ('Not Reviewed', 'Waitlist', 'Offer', 'CoGS', 'Offer Sent')),
     full_name VARCHAR(100),
     canadian BOOLEAN,
     english BOOLEAN,
@@ -124,20 +123,6 @@ CREATE TABLE IF NOT EXISTS app_info (
     scholarship BOOLEAN
 );
 
--- CREATE TABLE IF NOT EXISTS rating(
---     user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
---     user_id INTEGER REFERENCES "user"(id),
---     rating VARCHAR(20),
---     user_comment VARCHAR(300)
--- );
--- CREATE TABLE IF NOT EXISTS rating(
--- 	user_id INTEGER PRIMARY KEY REFERENCES "user"(id),
--- 	user_code VARCHAR(10) REFERENCES student_info(user_code),
--- 	rating DECIMAL(3,1) CHECK (rating >= 0.0 AND rating <= 10.0),
--- 	user_comment VARCHAR(300),
--- 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
--- 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
--- );
 CREATE TABLE IF NOT EXISTS rating(
 	user_id INTEGER REFERENCES "user"(id),
 	user_code VARCHAR(10) REFERENCES student_info(user_code),
