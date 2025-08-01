@@ -30,10 +30,14 @@ def get_session_name():
         return None, f"Database error: {str(e)}"
 
 
+# COPY PASTE: Add authorization to session endpoint around line 33:
+
+
 @session_api.route("/session", methods=["GET"])
 @login_required
 def api_get_session():
     """API endpoint to get session information"""
+    # Session info is read-only, so all authenticated users can access
     try:
         session_name, error = get_session_name()
 
