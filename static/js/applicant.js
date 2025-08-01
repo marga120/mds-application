@@ -1630,7 +1630,12 @@ class ApplicantManager {
   }
 
   renderInfoField(label, value, type = "text") {
-    if (!value || value === "null" || value === "undefined") {
+    if (
+      !value ||
+      value === "null" ||
+      value === "undefined" ||
+      value === "NaN"
+    ) {
       return `
         <div class="flex justify-between items-center py-2 border-b border-white/30">
           <span class="text-sm font-medium text-gray-600">${label}:</span>
