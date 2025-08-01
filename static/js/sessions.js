@@ -33,6 +33,10 @@ class SessionManager {
     if (file && file.name.endsWith(".csv")) {
       this.selectedSessionFile = file;
       this.validateSessionForm();
+      const fileStatusElement = document.getElementById("sessionFileStatus");
+      if (fileStatusElement) {
+        fileStatusElement.textContent = file.name;
+      }
 
       const timestamp = new Date().toLocaleString();
       this.showSessionMessage(
@@ -50,6 +54,10 @@ class SessionManager {
       this.showSessionMessage("Please select a CSV file", "error");
       this.selectedSessionFile = null;
       this.validateSessionForm();
+      const fileStatusElement = document.getElementById("sessionFileStatus");
+      if (fileStatusElement) {
+        fileStatusElement.textContent = "No file chosen";
+      }
 
       // Hide preview section
       const previewSection = document.getElementById("previewSection");

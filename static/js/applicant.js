@@ -69,6 +69,7 @@ class ApplicantManager {
     if (file && file.name.endsWith(".csv")) {
       this.selectedFile = file;
       document.getElementById("uploadBtn").disabled = false;
+      document.getElementById("fileStatus").textContent = file.name;
 
       // Add timestamp to file selection
       const timestamp = new Date().toLocaleString();
@@ -76,6 +77,7 @@ class ApplicantManager {
     } else {
       this.showMessage("Please select a CSV file", "error");
       document.getElementById("uploadBtn").disabled = true;
+      document.getElementById("fileStatus").textContent = "No file chosen";
     }
   }
 

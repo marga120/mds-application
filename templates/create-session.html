@@ -92,6 +92,7 @@
               <div
                 class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-ubc-light-blue transition-colors"
               >
+                <!-- COPY PASTE: Replace with modern file input design -->
                 <div class="space-y-4">
                   <div class="mx-auto w-12 h-12 text-gray-400">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 48 48">
@@ -104,13 +105,39 @@
                     </svg>
                   </div>
                   <div>
-                    <input
-                      type="file"
-                      id="sessionFileInput"
-                      accept=".csv"
-                      class="mb-4"
-                    />
-                    <p class="text-sm text-gray-600">
+                    <label for="sessionFileInput" class="cursor-pointer">
+                      <span
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ubc-blue transition-colors"
+                      >
+                        <svg
+                          class="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                          />
+                        </svg>
+                        Choose CSV File
+                      </span>
+                      <input
+                        type="file"
+                        id="sessionFileInput"
+                        accept=".csv"
+                        class="sr-only"
+                      />
+                    </label>
+                    <p
+                      class="mt-2 text-sm text-gray-500"
+                      id="sessionFileStatus"
+                    >
+                      No file chosen
+                    </p>
+                    <p class="text-sm text-gray-600 mt-1">
                       Upload your assessment CSV file to automatically detect
                       the schema
                     </p>
