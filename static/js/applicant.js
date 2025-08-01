@@ -522,6 +522,8 @@ class ApplicantManager {
     this.loadInstitutionInfo(userCode);
 
     this.loadAppStatus(userCode);
+
+    this.loadPrerequisites(userCode);
   }
 
   createApplicantModal() {
@@ -604,6 +606,32 @@ class ApplicantManager {
         <!-- Comments & Ratings Tab -->
         <div id="comments-ratings" class="tab-content">
           <div class="max-h-96 overflow-y-auto pr-2">
+
+          <!-- Prerequisite Courses Section -->
+            <div class="mb-6">
+              <h4 class="text-lg font-semibold text-gray-900 mb-4">Prerequisite Courses</h4>
+              <div id="prerequisitesContainer" class="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Computer Science:</label>
+                    <input type="text" id="csInput" class="input-ubc w-full" placeholder="Enter review of Computer Science prerequisite courses">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Statistics:</label>
+                    <input type="text" id="statInput" class="input-ubc w-full" placeholder="Enter review of Statistics prerequisite courses">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Math:</label>
+                    <input type="text" id="mathInput" class="input-ubc w-full" placeholder="Enter review of Math prerequisite courses">
+                  </div>
+                  <div id="prerequisiteButtons" class="flex gap-3 mt-4">
+                    <button id="savePrerequisitesBtn" class="btn-ubc">Save Prerequisites Review</button>
+                    <button id="clearPrerequisitesBtn" class="btn-ubc-outline">Clear</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Add/Edit Rating Section -->
             <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg mb-6">
               <h4 class="text-lg font-semibold text-gray-900 mb-4">Your Rating & Comment</h4>
@@ -842,7 +870,7 @@ class ApplicantManager {
       } else {
         container.innerHTML = `
           <div class="text-center py-8 text-gray-500">
-            <p>No ratings yet. Be the first to rate this applicant!</p>
+            <p>No ratings yet.</p>
           </div>
         `;
       }
@@ -1991,6 +2019,114 @@ class ApplicantManager {
         badge.classList.add("bg-gray-100", "text-gray-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-gray-400";
     }
+  }
+
+  async loadPrerequisites(userCode) {
+    try {
+      const response = await fetch(`/api/student-app-info/${userCode}`);
+      const result = await response.json();
+
+      if (result.success && result.app_info) {
+        const appInfo = result.app_info;
+
+        // Populate the input fields
+        document.getElementById("csInput").value = appInfo.cs || "";
+        document.getElementById("statInput").value = appInfo.stat || "";
+        document.getElementById("mathInput").value = appInfo.math || "";
+      }
+
+      // Update prerequisites form for viewers
+      this.updatePrerequisitesFormForViewer();
+    } catch (error) {
+      console.error("Error loading prerequisites:", error);
+    }
+  }
+
+  async updatePrerequisitesFormForViewer() {
+    try {
+      const response = await fetch("/api/auth/check-session");
+      const result = await response.json();
+
+      const prerequisiteButtons = document.getElementById(
+        "prerequisiteButtons"
+      );
+      const csInput = document.getElementById("csInput");
+      const statInput = document.getElementById("statInput");
+      const mathInput = document.getElementById("mathInput");
+
+      if (
+        result.authenticated &&
+        (result.user?.role === "Admin" || result.user?.role === "Faculty")
+      ) {
+        // Admin and Faculty can edit prerequisites
+        prerequisiteButtons.style.display = "flex";
+        csInput.disabled = false;
+        statInput.disabled = false;
+        mathInput.disabled = false;
+
+        // Add event listeners for save and clear buttons
+        document.getElementById("savePrerequisitesBtn").onclick = () =>
+          this.savePrerequisites();
+        document.getElementById("clearPrerequisitesBtn").onclick = () =>
+          this.clearPrerequisites();
+      } else {
+        // Viewers can only see the values
+        prerequisiteButtons.style.display = "none";
+        csInput.disabled = true;
+        statInput.disabled = true;
+        mathInput.disabled = true;
+      }
+    } catch (error) {
+      console.error("Error checking user permissions:", error);
+    }
+  }
+
+  async savePrerequisites() {
+    const userCode =
+      document.getElementById("applicantModal").dataset.currentUserCode;
+    const saveBtn = document.getElementById("savePrerequisitesBtn");
+
+    if (!userCode) return;
+
+    const originalText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+
+    try {
+      const response = await fetch(
+        `/api/student-app-info/${userCode}/prerequisites`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            cs: document.getElementById("csInput").value,
+            stat: document.getElementById("statInput").value,
+            math: document.getElementById("mathInput").value,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        this.showMessage(result.message, "success");
+      } else {
+        this.showMessage(result.message, "error");
+      }
+    } catch (error) {
+      this.showMessage(`Error saving prerequisites: ${error.message}`, "error");
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalText;
+    }
+  }
+
+  clearPrerequisites() {
+    document.getElementById("csInput").value = "";
+    document.getElementById("statInput").value = "";
+    document.getElementById("mathInput").value = "";
   }
 
   setupStatusPreview(currentStatus) {
