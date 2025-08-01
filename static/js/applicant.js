@@ -1856,6 +1856,7 @@ class ApplicantManager {
   updateStatusFormForViewer() {
     const statusButtons = document.getElementById("statusUpdateButtons");
     const statusSelect = document.getElementById("statusSelect");
+    const statusChangeSection = document.getElementById("statusChangeSection");
 
     // Check user role from auth
     fetch("/api/auth/check-session")
@@ -1865,17 +1866,41 @@ class ApplicantManager {
           result.authenticated &&
           (result.user?.role === "Admin" || result.user?.role === "Faculty")
         ) {
-          // Admin and Faculty can update status
+          // Admin and Faculty can update status - show everything
+          if (statusChangeSection) {
+            statusChangeSection.style.display = "block";
+          }
           if (statusButtons) {
             statusButtons.style.display = "flex";
           }
           statusSelect.disabled = false;
-        } else {
-          // Viewers cannot update status
-          if (statusButtons) {
-            statusButtons.style.display = "none";
+
+          // Set title for Admin/Faculty
+          const statusTitle = document.querySelector("#status-tab h4");
+          if (statusTitle) {
+            statusTitle.innerHTML = `
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Application Status Management
+          `;
           }
-          statusSelect.disabled = true;
+        } else {
+          // Viewers can see current status but not change it - hide the change section
+          if (statusChangeSection) {
+            statusChangeSection.style.display = "none";
+          }
+
+          // Set title for Viewers
+          const statusTitle = document.querySelector("#status-tab h4");
+          if (statusTitle) {
+            statusTitle.innerHTML = `
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Application Status
+          `;
+          }
         }
       })
       .catch((error) => {
