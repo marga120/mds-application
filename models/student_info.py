@@ -697,6 +697,16 @@ def update_student_prerequisites(user_code, cs, stat, math):
 
     try:
         cursor = conn.cursor()
+
+        # Validate user_code exists in student_info first
+        cursor.execute(
+            "SELECT user_code FROM student_info WHERE user_code = %s", (user_code,)
+        )
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return False, "Student not found"
+
         cursor.execute(
             """
             UPDATE app_info 

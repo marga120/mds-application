@@ -164,9 +164,17 @@ def update_student_prerequisites(user_code):
     from models.student_info import update_student_prerequisites
 
     data = request.get_json()
-    cs = data.get("cs", "")
-    stat = data.get("stat", "")
-    math = data.get("math", "")
+    if not data:
+        return jsonify({"success": False, "message": "Invalid request data"}), 400
+
+    # Validate user_code format
+    if not user_code or not user_code.strip():
+        return jsonify({"success": False, "message": "Invalid user code"}), 400
+
+    # Sanitize inputs and limit length
+    cs = str(data.get("cs", "")).strip()[:1000]  # Limit to 1000 chars
+    stat = str(data.get("stat", "")).strip()[:1000]
+    math = str(data.get("math", "")).strip()[:1000]
 
     success, message = update_student_prerequisites(user_code, cs, stat, math)
 

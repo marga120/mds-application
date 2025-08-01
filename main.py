@@ -72,8 +72,8 @@ def dashboard():
 @login_required
 def create_new_session_page():
     """Create new session page (Admin/Faculty only)"""
-    if current_user.is_viewer:
-        return redirect(url_for("index"))
+    if not current_user.is_authenticated or current_user.is_viewer:
+        return redirect(url_for("index"))  # Redirect viewers to main page
     return render_template("create-session.html")
 
 
