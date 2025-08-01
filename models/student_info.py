@@ -310,10 +310,10 @@ def process_csv_data(df):
             process_ielts_scores(user_code, row, cursor, current_time)
             process_other_test_scores(user_code, row, cursor, current_time)
 
-            # Process institution information
+            # Process institution information first
             process_institution_info(user_code, row, cursor, current_time)
 
-            # Process app_info processing
+            # Process app_info after institutions to calculate fields from institution data
             process_app_info(user_code, row, cursor, current_time)
 
             records_processed += 1
@@ -580,6 +580,104 @@ def get_student_institutions_by_code(user_code):
             conn.close()
         return None, f"Database error: {str(e)}"
 
+def calculate_app_info_fields(user_code, cursor):
+    """Calculate highest_degree, degree_area, and gpa based on institution data"""
+    try:
+        # Define degree hierarchy (higher number = higher degree)
+        degree_hierarchy = {
+            'phd': 4, 'doctorate': 4, 'doctoral': 4, 'ph.d': 4, 'ph.d.': 4,
+            'master': 3, "master's": 3, 'masters': 3, 'msc': 3, 'ma': 3, 'mba': 3, 'med': 3,
+            'bachelor': 2, "bachelor's": 2, 'bachelors': 2, 'bsc': 2, 'ba': 2, 'beng': 2,
+            'associate': 1, 'diploma': 1, 'certificate': 1
+        }
+        
+        # Get all institutions with degree information for this user
+        cursor.execute("""
+            SELECT institution_number, credential_receive, date_confer, program_study, gpa
+            FROM institution_info 
+            WHERE user_code = %s 
+            AND credential_receive IS NOT NULL 
+            AND credential_receive != ''
+            ORDER BY institution_number
+        """, (user_code,))
+        
+        institutions = cursor.fetchall()
+        
+        if not institutions:
+            return None, None, None
+            
+        # Find the highest degree with latest date
+        highest_degree_level = 0
+        selected_institution = None
+        
+        for institution in institutions:
+            # Handle both tuple and dict results - access by index for tuples
+            if isinstance(institution, tuple):
+                institution_number = institution[0]
+                credential_receive = institution[1]
+                date_confer = institution[2]
+                program_study = institution[3]
+                gpa = institution[4]
+            else:
+                # Dictionary access (for RealDictCursor)
+                institution_number = institution['institution_number']
+                credential_receive = institution['credential_receive']
+                date_confer = institution['date_confer']
+                program_study = institution['program_study']
+                gpa = institution['gpa']
+            
+            if not credential_receive:
+                continue
+                
+            credential = str(credential_receive).lower().strip()
+            
+            # Find matching degree level
+            current_degree_level = 0
+            for degree_key, level in degree_hierarchy.items():
+                if degree_key in credential:
+                    current_degree_level = max(current_degree_level, level)
+            
+            # If this is a higher degree, or same degree with later date
+            if current_degree_level > highest_degree_level:
+                highest_degree_level = current_degree_level
+                selected_institution = {
+                    'credential_receive': credential_receive,
+                    'date_confer': date_confer,
+                    'program_study': program_study,
+                    'gpa': gpa
+                }
+            elif current_degree_level == highest_degree_level and selected_institution:
+                # Same degree level - choose the one with latest date_confer
+                current_date = date_confer
+                selected_date = selected_institution['date_confer']
+                
+                if current_date and selected_date:
+                    if current_date > selected_date:
+                        selected_institution = {
+                            'credential_receive': credential_receive,
+                            'date_confer': date_confer,
+                            'program_study': program_study,
+                            'gpa': gpa
+                        }
+                elif current_date and not selected_date:
+                    selected_institution = {
+                        'credential_receive': credential_receive,
+                        'date_confer': date_confer,
+                        'program_study': program_study,
+                        'gpa': gpa
+                    }
+        
+        if selected_institution:
+            highest_degree = selected_institution['credential_receive']
+            degree_area = selected_institution['program_study']
+            gpa = selected_institution['gpa']
+            return highest_degree, degree_area, gpa
+        
+        return None, None, None
+        
+    except Exception as e:
+        print(f"Error calculating app_info fields for user {user_code}: {str(e)}")
+        return None, None, None
 
 def process_app_info(user_code, row, cursor, current_time):
     """Process and insert app_info data"""
@@ -598,18 +696,24 @@ def process_app_info(user_code, row, cursor, current_time):
         family_name = str(row.get("Family Name", "")).strip()
         full_name = f"{given_name} {family_name}".strip()
 
+        # Calculate highest_degree, degree_area, and gpa
+        highest_degree, degree_area, gpa = calculate_app_info_fields(user_code, cursor)
+
         # Insert into app_info table
         app_info_query = """
         INSERT INTO app_info (
-            user_code, full_name, canadian, sent
-        ) VALUES (%s, %s, %s, %s)
+            user_code, full_name, canadian, sent, gpa, highest_degree, degree_area
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (user_code) DO UPDATE SET
             full_name = EXCLUDED.full_name,
-            canadian = EXCLUDED.canadian
+            canadian = EXCLUDED.canadian,
+            gpa = EXCLUDED.gpa,
+            highest_degree = EXCLUDED.highest_degree,
+            degree_area = EXCLUDED.degree_area
         """
 
         cursor.execute(
-            app_info_query, (user_code, full_name, is_canadian, "Not Reviewed")
+            app_info_query, (user_code, full_name, is_canadian, "Not Reviewed", gpa, highest_degree, degree_area)
         )
 
     except Exception as e:
