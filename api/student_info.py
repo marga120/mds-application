@@ -153,3 +153,24 @@ def update_student_status(user_code):
         return jsonify({"success": True, "message": message})
     else:
         return jsonify({"success": False, "message": message}), 400
+
+
+@student_info_api.route("/student-app-info/<user_code>/prerequisites", methods=["PUT"])
+def update_student_prerequisites(user_code):
+    """Update student prerequisite courses (Admin/Faculty only)"""
+    if not current_user.is_authenticated or current_user.is_viewer:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    from models.student_info import update_student_prerequisites
+
+    data = request.get_json()
+    cs = data.get("cs", "")
+    stat = data.get("stat", "")
+    math = data.get("math", "")
+
+    success, message = update_student_prerequisites(user_code, cs, stat, math)
+
+    if success:
+        return jsonify({"success": True, "message": message})
+    else:
+        return jsonify({"success": False, "message": message}), 400

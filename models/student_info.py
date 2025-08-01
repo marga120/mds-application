@@ -687,3 +687,43 @@ def update_student_app_status(user_code, status):
             conn.rollback()
             conn.close()
         return False, f"Database error: {str(e)}"
+
+
+def update_student_prerequisites(user_code, cs, stat, math):
+    """Update student prerequisite courses in app_info table"""
+    conn = get_db_connection()
+    if not conn:
+        return False, "Database connection failed"
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE app_info 
+            SET cs = %s, stat = %s, math = %s
+            WHERE user_code = %s
+        """,
+            (cs, stat, math, user_code),
+        )
+
+        if cursor.rowcount == 0:
+            # If no rows updated, create new record
+            cursor.execute(
+                """
+                INSERT INTO app_info (user_code, cs, stat, math) 
+                VALUES (%s, %s, %s, %s)
+            """,
+                (user_code, cs, stat, math),
+            )
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return True, "Prerequisites updated successfully"
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return False, f"Database error: {str(e)}"

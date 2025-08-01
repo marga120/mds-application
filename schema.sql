@@ -106,15 +106,17 @@ CREATE TABLE IF NOT EXISTS student_status(
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create app_info table
+-- canadian determined by country_citizenship and dual_citizenship if they have 'Canada' as value
 CREATE TABLE IF NOT EXISTS app_info (
     user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
     sent VARCHAR(100) DEFAULT 'Not Reviewed' CHECK (sent IN ('Not Reviewed', 'Waitlist', 'Offer', 'CoGS', 'Offer Sent')),
     full_name VARCHAR(100),
     canadian BOOLEAN,
     english BOOLEAN,
-    cs VARCHAR(20),
-    stat VARCHAR(20),
-    math VARCHAR(20),
+    cs TEXT,
+    stat TEXT,
+    math TEXT,
     gpa VARCHAR(10),
     highest_degree VARCHAR(50),
     degree_area VARCHAR(50),
