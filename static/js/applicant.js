@@ -117,6 +117,7 @@ class ApplicantManager {
                 `;
         timestampElement.style.display = "block";
 
+        this.loadSessionName();
         this.loadApplicants();
         document.getElementById("fileInput").value = "";
         this.selectedFile = null;
