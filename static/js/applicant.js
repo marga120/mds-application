@@ -61,9 +61,7 @@ class ApplicantManager {
       const newTitle = `${this.sessionName} Applicants Database`;
       titleElement.textContent = newTitle;
     } else {
-      console.error(
-        "❌ Could not find element with ID 'applicantsSectionTitle'"
-      );
+      console.error("Could not find element with ID 'applicantsSectionTitle'");
     }
   }
 
@@ -522,6 +520,8 @@ class ApplicantManager {
     this.loadTestScores(userCode);
 
     this.loadInstitutionInfo(userCode);
+
+    this.loadAppStatus(userCode);
   }
 
   createApplicantModal() {
@@ -559,6 +559,9 @@ class ApplicantManager {
             </button>
             <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="test-scores">
               Test Scores
+            </button>
+            <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="status-tab">
+              Status: <span id="statusTabLabel">Not Reviewed</span>
             </button>
             <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="comments-ratings">
               Comments & Ratings
@@ -634,7 +637,40 @@ class ApplicantManager {
             </div>
           </div>
         </div>
-        </div>
+
+         <!-- Status Tab -->
+          <div id="status-tab" class="tab-content hidden">
+            <div class="max-h-96 overflow-y-auto pr-2">
+              <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
+                <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Application Status
+                </h4>
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Current Status</label>
+                    <div id="statusDropdownContainer">
+                      <select id="statusSelect" class="input-ubc w-full">
+                        <option value="Not Reviewed">Not Reviewed</option>
+                        <option value="Waitlist">Waitlist</option>
+                        <option value="Offer">Offer</option>
+                        <option value="CoGS">CoGS</option>
+                        <option value="Offer Sent">Offer Sent</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div id="statusUpdateButtons" class="flex gap-3">
+                    <button id="updateStatusBtn" class="btn-ubc">Update Status</button>
+                    <button id="cancelStatusBtn" class="btn-ubc-outline">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        
       </div>
     `;
 
@@ -659,6 +695,14 @@ class ApplicantManager {
 
     modal.querySelector("#clearRatingBtn").addEventListener("click", () => {
       this.clearRatingForm();
+    });
+
+    modal.querySelector("#updateStatusBtn").addEventListener("click", () => {
+      this.updateStatus();
+    });
+
+    modal.querySelector("#cancelStatusBtn").addEventListener("click", () => {
+      this.loadAppStatus(modal.dataset.currentUserCode);
     });
 
     // Close modal when clicking outside
@@ -1716,6 +1760,91 @@ class ApplicantManager {
           <p>Error loading institution information: ${error.message}</p>
         </div>
       `;
+    }
+  }
+
+  async loadAppStatus(userCode) {
+    try {
+      const response = await fetch(`/api/student-app-info/${userCode}`);
+      const result = await response.json();
+
+      if (result.success && result.app_info) {
+        const currentStatus = result.app_info.sent || "Not Reviewed";
+
+        // Update tab label
+        document.getElementById("statusTabLabel").textContent = currentStatus;
+
+        // Update select dropdown
+        document.getElementById("statusSelect").value = currentStatus;
+
+        // Update status change buttons visibility based on user role
+        this.updateStatusFormForViewer();
+      }
+    } catch (error) {
+      console.error("Error loading app status:", error);
+    }
+  }
+
+  updateStatusFormForViewer() {
+    const statusButtons = document.getElementById("statusUpdateButtons");
+    const statusSelect = document.getElementById("statusSelect");
+
+    // Check user role from auth
+    fetch("/api/auth/check-session")
+      .then((response) => response.json())
+      .then((result) => {
+        if (
+          result.authenticated &&
+          (result.user.is_admin || result.user.is_faculty)
+        ) {
+          // Admin and Faculty can update status
+          statusButtons.style.display = "flex";
+          statusSelect.disabled = false;
+        } else {
+          // Viewers cannot update status
+          statusButtons.style.display = "none";
+          statusSelect.disabled = true;
+        }
+      });
+  }
+
+  async updateStatus() {
+    const userCode =
+      document.getElementById("applicantModal").dataset.currentUserCode;
+    const newStatus = document.getElementById("statusSelect").value;
+    const updateBtn = document.getElementById("updateStatusBtn");
+
+    if (!userCode || !newStatus) return;
+
+    const originalText = updateBtn.textContent;
+    updateBtn.disabled = true;
+    updateBtn.textContent = "Updating...";
+
+    try {
+      const response = await fetch(`/api/student-app-info/${userCode}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: newStatus,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        this.showMessage(result.message, "success");
+        // Update tab label
+        document.getElementById("statusTabLabel").textContent = newStatus;
+      } else {
+        this.showMessage(result.message, "error");
+      }
+    } catch (error) {
+      this.showMessage(`Error updating status: ${error.message}`, "error");
+    } finally {
+      updateBtn.disabled = false;
+      updateBtn.textContent = originalText;
     }
   }
 }

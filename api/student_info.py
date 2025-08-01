@@ -126,3 +126,30 @@ def get_student_app_info(user_code):
         return jsonify({"success": False, "message": error})
 
     return jsonify({"success": True, "app_info": app_info})
+
+
+@student_info_api.route("/student-app-info/<user_code>/status", methods=["PUT"])
+def update_student_status(user_code):
+    """Update student status in app_info (Admin/Faculty only)"""
+    if not current_user.is_authenticated or current_user.is_viewer:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    from models.student_info import update_student_app_status
+
+    data = request.get_json()
+    status = data.get("status")
+
+    if not status:
+        return jsonify({"success": False, "message": "Status is required"}), 400
+
+    # Validate status values
+    valid_statuses = ["Not Reviewed", "Waitlist", "Offer", "CoGS", "Offer Sent"]
+    if status not in valid_statuses:
+        return jsonify({"success": False, "message": "Invalid status value"}), 400
+
+    success, message = update_student_app_status(user_code, status)
+
+    if success:
+        return jsonify({"success": True, "message": message})
+    else:
+        return jsonify({"success": False, "message": message}), 400
