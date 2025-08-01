@@ -628,7 +628,7 @@ def get_student_app_info_by_code(user_code):
         cursor.execute(
             """
             SELECT 
-                user_code, status, sent, full_name, canadian, english,
+                user_code, sent, full_name, canadian, english,
                 cs, stat, math, gpa, highest_degree, degree_area,
                 mds_v, mds_cl, scholarship
             FROM app_info 

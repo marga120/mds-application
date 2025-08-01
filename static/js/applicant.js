@@ -641,33 +641,86 @@ class ApplicantManager {
         <div id="status-tab" class="tab-content hidden">
           <div class="max-h-96 overflow-y-auto pr-2">
             <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
-              <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+              <h4 class="text-lg font-semibold text-ubc-blue mb-6 flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                Application Status
+                Application Status Management
               </h4>
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Current Status</label>
-                  <div id="statusDropdownContainer">
-                    <select id="statusSelect" class="input-ubc w-full">
-                      <option value="Not Reviewed">Not Reviewed</option>
-                      <option value="Waitlist">Waitlist</option>
-                      <option value="Offer">Offer</option>
-                      <option value="CoGS">CoGS</option>
-                      <option value="Offer Sent">Offer Sent</option>
-                    </select>
+              
+              <!-- Current Status Display -->
+              <div class="mb-6">
+                <div class="bg-white rounded-lg p-4 border border-blue-200 shadow-sm">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="text-sm font-medium text-gray-600 mb-1">Current Status</p>
+                      <p class="text-lg font-bold text-gray-900" id="currentStatusDisplay">Not Reviewed</p>
+                    </div>
+                    <div class="flex items-center">
+                      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium" id="currentStatusBadge">
+                        <div class="w-2 h-2 rounded-full mr-2" id="currentStatusDot"></div>
+                        <span id="currentStatusText">Not Reviewed</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div id="statusUpdateButtons" class="flex gap-3">
-                  <button id="updateStatusBtn" class="btn-ubc">Update Status</button>
-                  <button id="cancelStatusBtn" class="btn-ubc-outline">Cancel</button>
+              </div>
+
+              <!-- Status Change Section -->
+              <div id="statusChangeSection">
+                <div class="border-t border-blue-200 pt-6">
+                  <h5 class="text-md font-semibold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                    </svg>
+                    Change Status
+                  </h5>
+                  
+                  <div class="space-y-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Select New Status</label>
+                      <div id="statusDropdownContainer">
+                        <select id="statusSelect" class="input-ubc w-full text-base">
+                          <option value="Not Reviewed">Not Reviewed</option>
+                          <option value="Waitlist">Waitlist</option>
+                          <option value="Offer">Offer</option>
+                          <option value="CoGS">CoGS</option>
+                          <option value="Offer Sent">Offer Sent</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Preview Section -->
+                    <div id="statusPreview" class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 hidden">
+                      <div class="flex items-center">
+                        <svg class="w-4 h-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-sm text-yellow-800">
+                          <span class="font-medium">Preview:</span> 
+                          <span id="currentStatusPreview">Not Reviewed</span> 
+                          <span class="mx-2">→</span> 
+                          <span class="font-semibold" id="newStatusPreview">Not Reviewed</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div id="statusUpdateButtons" class="flex gap-3 pt-2">
+                      <button id="updateStatusBtn" class="btn-ubc flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Update Status
+                      </button>
+                      <button id="cancelStatusBtn" class="btn-ubc-outline">Cancel</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
       </div>
     </div>
   `;
@@ -1774,11 +1827,26 @@ class ApplicantManager {
         // Update tab label
         document.getElementById("statusTabLabel").textContent = currentStatus;
 
+        // Update current status display
+        document.getElementById("currentStatusDisplay").textContent =
+          currentStatus;
+        document.getElementById("currentStatusText").textContent =
+          currentStatus;
+
+        // Update status badge styling
+        this.updateStatusBadge(currentStatus);
+
         // Update select dropdown
         document.getElementById("statusSelect").value = currentStatus;
 
+        // Hide preview initially
+        document.getElementById("statusPreview").classList.add("hidden");
+
         // Update status change buttons visibility based on user role
         this.updateStatusFormForViewer();
+
+        // Add change listener for preview
+        this.setupStatusPreview(currentStatus);
       }
     } catch (error) {
       console.error("Error loading app status:", error);
@@ -1795,16 +1863,23 @@ class ApplicantManager {
       .then((result) => {
         if (
           result.authenticated &&
-          (result.user.is_admin || result.user.is_faculty)
+          (result.user?.role === "Admin" || result.user?.role === "Faculty")
         ) {
           // Admin and Faculty can update status
-          statusButtons.style.display = "flex";
+          if (statusButtons) {
+            statusButtons.style.display = "flex";
+          }
           statusSelect.disabled = false;
         } else {
           // Viewers cannot update status
-          statusButtons.style.display = "none";
+          if (statusButtons) {
+            statusButtons.style.display = "none";
+          }
           statusSelect.disabled = true;
         }
+      })
+      .catch((error) => {
+        console.error("Error checking user permissions:", error);
       });
   }
 
@@ -1816,9 +1891,14 @@ class ApplicantManager {
 
     if (!userCode || !newStatus) return;
 
-    const originalText = updateBtn.textContent;
+    const originalHTML = updateBtn.innerHTML;
     updateBtn.disabled = true;
-    updateBtn.textContent = "Updating...";
+    updateBtn.innerHTML = `
+    <svg class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+    </svg>
+    Updating...
+  `;
 
     try {
       const response = await fetch(`/api/student-app-info/${userCode}/status`, {
@@ -1835,8 +1915,12 @@ class ApplicantManager {
 
       if (result.success) {
         this.showMessage(result.message, "success");
+
         // Update tab label
         document.getElementById("statusTabLabel").textContent = newStatus;
+
+        // Reload the entire status display
+        this.loadAppStatus(userCode);
       } else {
         this.showMessage(result.message, "error");
       }
@@ -1844,7 +1928,83 @@ class ApplicantManager {
       this.showMessage(`Error updating status: ${error.message}`, "error");
     } finally {
       updateBtn.disabled = false;
-      updateBtn.textContent = originalText;
+      updateBtn.innerHTML = originalHTML;
     }
+  }
+
+  updateStatusBadge(status) {
+    const badge = document.getElementById("currentStatusBadge");
+    const dot = document.getElementById("currentStatusDot");
+
+    // Remove existing classes
+    badge.className =
+      "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium";
+
+    // Add status-specific styling
+    switch (status) {
+      case "Not Reviewed":
+        badge.classList.add("bg-gray-100", "text-gray-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-gray-400";
+        break;
+      case "Waitlist":
+        badge.classList.add("bg-yellow-100", "text-yellow-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-yellow-400";
+        break;
+      case "Offer":
+        badge.classList.add("bg-green-100", "text-green-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-green-400";
+        break;
+      case "CoGS":
+        badge.classList.add("bg-blue-100", "text-blue-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-blue-400";
+        break;
+      case "Offer Sent":
+        badge.classList.add("bg-purple-100", "text-purple-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-purple-400";
+        break;
+      default:
+        badge.classList.add("bg-gray-100", "text-gray-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-gray-400";
+    }
+  }
+
+  setupStatusPreview(currentStatus) {
+    const statusSelect = document.getElementById("statusSelect");
+    const statusPreview = document.getElementById("statusPreview");
+    const currentStatusPreview = document.getElementById(
+      "currentStatusPreview"
+    );
+    const newStatusPreview = document.getElementById("newStatusPreview");
+    const updateBtn = document.getElementById("updateStatusBtn");
+
+    // Clear any existing event listeners without cloning
+    statusSelect.removeEventListener(
+      "change",
+      statusSelect._statusChangeHandler
+    );
+
+    // Create new handler and store reference
+    const changeHandler = () => {
+      const newStatus = statusSelect.value;
+
+      if (newStatus !== currentStatus) {
+        // Show preview
+        statusPreview.classList.remove("hidden");
+        currentStatusPreview.textContent = currentStatus;
+        newStatusPreview.textContent = newStatus;
+        updateBtn.disabled = false;
+      } else {
+        // Hide preview if same as current
+        statusPreview.classList.add("hidden");
+        updateBtn.disabled = true;
+      }
+    };
+
+    // Store handler reference and add listener
+    statusSelect._statusChangeHandler = changeHandler;
+    statusSelect.addEventListener("change", changeHandler);
+
+    // Make sure the update button starts disabled
+    updateBtn.disabled = true;
   }
 }
