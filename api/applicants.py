@@ -5,13 +5,13 @@ from datetime import datetime, timezone
 from flask_login import current_user
 
 # Import our model functions
-from models.student_info import process_csv_data, get_all_student_status
+from models.applicants import process_csv_data, get_all_applicant_status
 
-# Create a Blueprint for student info API routes
-student_info_api = Blueprint("student_info_api", __name__)
+# Create a Blueprint for applicant info API routes
+applicants_api = Blueprint("applicants_api", __name__)
 
 
-@student_info_api.route("/upload", methods=["POST"])
+@applicants_api.route("/upload", methods=["POST"])
 def upload_csv():
     """Handle CSV file upload and processing (Admin/Faculty only)"""
     if not current_user.is_authenticated or current_user.is_viewer:
@@ -65,36 +65,36 @@ def upload_csv():
         )
 
 
-@student_info_api.route("/students", methods=["GET"])
-def get_students():
-    """Get all students from database"""
-    students, error = get_all_student_status()
+@applicants_api.route("/applicants", methods=["GET"])
+def get_applicants():
+    """Get all applicants from database"""
+    applicants, error = get_all_applicant_status()
 
     if error:
         return jsonify({"success": False, "message": error})
 
-    return jsonify({"success": True, "students": students})
+    return jsonify({"success": True, "applicants": applicants})
 
 
-@student_info_api.route("/student-info/<user_code>", methods=["GET"])
-def get_student_info(user_code):
-    """Get detailed student information by user code"""
-    from models.student_info import get_student_info_by_code
+@applicants_api.route("/applicant-info/<user_code>", methods=["GET"])
+def get_applicant_info(user_code):
+    """Get detailed applicant information by user code"""
+    from models.applicants import get_applicant_info_by_code
 
-    student_info, error = get_student_info_by_code(user_code)
+    applicant_info, error = get_applicant_info_by_code(user_code)
 
     if error:
         return jsonify({"success": False, "message": error})
 
-    return jsonify({"success": True, "student": student_info})
+    return jsonify({"success": True, "applicant": applicant_info})
 
 
-@student_info_api.route("/student-test-scores/<user_code>", methods=["GET"])
-def get_student_test_scores(user_code):
-    """Get all test scores for a student by user code"""
-    from models.student_info import get_student_test_scores_by_code
+@applicants_api.route("/applicant-test-scores/<user_code>", methods=["GET"])
+def get_applicant_test_scores(user_code):
+    """Get all test scores for a applicant by user code"""
+    from models.applicants import get_applicant_test_scores_by_code
 
-    test_scores, error = get_student_test_scores_by_code(user_code)
+    test_scores, error = get_applicant_test_scores_by_code(user_code)
 
     if error:
         return jsonify({"success": False, "message": error})
@@ -102,12 +102,12 @@ def get_student_test_scores(user_code):
     return jsonify({"success": True, "test_scores": test_scores})
 
 
-@student_info_api.route("/student-institutions/<user_code>", methods=["GET"])
-def get_student_institutions(user_code):
-    """Get all institution information for a student by user code"""
-    from models.student_info import get_student_institutions_by_code
+@applicants_api.route("/applicant-institutions/<user_code>", methods=["GET"])
+def get_applicant_institutions(user_code):
+    """Get all institution information for a applicant by user code"""
+    from models.applicants import get_applicant_institutions_by_code
 
-    institutions, error = get_student_institutions_by_code(user_code)
+    institutions, error = get_applicant_institutions_by_code(user_code)
 
     if error:
         return jsonify({"success": False, "message": error})
@@ -115,26 +115,26 @@ def get_student_institutions(user_code):
     return jsonify({"success": True, "institutions": institutions})
 
 
-@student_info_api.route("/student-app-info/<user_code>", methods=["GET"])
-def get_student_app_info(user_code):
-    """Get app_info for a student by user code"""
-    from models.student_info import get_student_app_info_by_code
+@applicants_api.route("/applicant-application-info/<user_code>", methods=["GET"])
+def get_applicant_application_info(user_code):
+    """Get application_info for a applicant by user code"""
+    from models.applicants import get_applicant_application_info_by_code
 
-    app_info, error = get_student_app_info_by_code(user_code)
+    application_info, error = get_applicant_application_info_by_code(user_code)
 
     if error:
         return jsonify({"success": False, "message": error})
 
-    return jsonify({"success": True, "app_info": app_info})
+    return jsonify({"success": True, "application_info": application_info})
 
 
-@student_info_api.route("/student-app-info/<user_code>/status", methods=["PUT"])
-def update_student_status(user_code):
-    """Update student status in app_info (Admin/Faculty only)"""
+@applicants_api.route("/applicant-application-info/<user_code>/status", methods=["PUT"])
+def update_applicant_status(user_code):
+    """Update applicant status in application_info (Admin/Faculty only)"""
     if not current_user.is_authenticated or current_user.is_viewer:
         return jsonify({"success": False, "message": "Access denied"}), 403
 
-    from models.student_info import update_student_app_status
+    from models.applicants import update_applicant_application_status
 
     data = request.get_json()
     status = data.get("status")
@@ -147,7 +147,7 @@ def update_student_status(user_code):
     if status not in valid_statuses:
         return jsonify({"success": False, "message": "Invalid status value"}), 400
 
-    success, message = update_student_app_status(user_code, status)
+    success, message = update_applicant_application_status(user_code, status)
 
     if success:
         return jsonify({"success": True, "message": message})
@@ -155,13 +155,13 @@ def update_student_status(user_code):
         return jsonify({"success": False, "message": message}), 400
 
 
-@student_info_api.route("/student-app-info/<user_code>/prerequisites", methods=["PUT"])
-def update_student_prerequisites(user_code):
-    """Update student prerequisite courses (Admin/Faculty only)"""
+@applicants_api.route("/applicant-application-info/<user_code>/prerequisites", methods=["PUT"])
+def update_applicant_prerequisites(user_code):
+    """Update applicant prerequisite courses (Admin/Faculty only)"""
     if not current_user.is_authenticated or current_user.is_viewer:
         return jsonify({"success": False, "message": "Access denied"}), 403
 
-    from models.student_info import update_student_prerequisites
+    from models.applicants import update_applicant_prerequisites
 
     data = request.get_json()
     if not data:
@@ -176,7 +176,7 @@ def update_student_prerequisites(user_code):
     stat = str(data.get("stat", "")).strip()[:1000]
     math = str(data.get("math", "")).strip()[:1000]
 
-    success, message = update_student_prerequisites(user_code, cs, stat, math)
+    success, message = update_applicant_prerequisites(user_code, cs, stat, math)
 
     if success:
         return jsonify({"success": True, "message": message})

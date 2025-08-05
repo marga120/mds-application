@@ -10,7 +10,7 @@ def get_session_name():
 
     try:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("SELECT name FROM session LIMIT 1")
+        cursor.execute("SELECT name FROM sessions LIMIT 1")
         result = cursor.fetchone()
         cursor.close()
         conn.close()

@@ -3,7 +3,7 @@ from flask_login import login_required
 from utils.database import get_db_connection
 from psycopg2.extras import RealDictCursor
 
-session_api = Blueprint("session_api", __name__)
+sessions_api = Blueprint("sessions_api", __name__)
 
 
 def get_session_name():
@@ -14,7 +14,7 @@ def get_session_name():
 
     try:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("SELECT name FROM session LIMIT 1")
+        cursor.execute("SELECT name FROM sessions LIMIT 1")
         result = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -33,7 +33,7 @@ def get_session_name():
 # COPY PASTE: Add authorization to session endpoint around line 33:
 
 
-@session_api.route("/session", methods=["GET"])
+@sessions_api.route("/sessions", methods=["GET"])
 @login_required
 def api_get_session():
     """API endpoint to get session information"""

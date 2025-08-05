@@ -32,7 +32,7 @@ def calculate_age(birth_date):
     return age
 
 
-def create_or_get_session(cursor, program_code, program, session_abbrev):
+def create_or_get_sessions(cursor, program_code, program, session_abbrev):
     """Create or get session based on CSV data"""
     try:
         # Truncate values to fit database column limits
@@ -65,7 +65,7 @@ def create_or_get_session(cursor, program_code, program, session_abbrev):
         # Check if session already exists
         cursor.execute(
             """
-            SELECT id FROM session 
+            SELECT id FROM sessions 
             WHERE program_code = %s AND year = %s AND session_abbrev = %s
             """,
             (program_code, year, session_abbrev),
@@ -78,7 +78,7 @@ def create_or_get_session(cursor, program_code, program, session_abbrev):
         # Create new session
         cursor.execute(
             """
-            INSERT INTO session (program_code, program, session_abbrev, year, name, description, created_at, updated_at)
+            INSERT INTO sessions (program_code, program, session_abbrev, year, name, description, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
@@ -104,7 +104,7 @@ def create_or_get_session(cursor, program_code, program, session_abbrev):
 
 
 def process_csv_data(df):
-    """Process CSV data and insert into session, student_info and student_status tables"""
+    """Process CSV data and insert into sessions, applicant_info and applicant_status tables"""
     conn = get_db_connection()
     if not conn:
         return False, "Database connection failed", 0
@@ -141,13 +141,13 @@ def process_csv_data(df):
                     0,
                 )
 
-            session_result, message = create_or_get_session(
+            sessions_result, message = create_or_get_sessions(
                 cursor, program_code, program, session_abbrev
             )
-            if session_result is None:
+            if sessions_result is None:
                 return False, f"Session creation failed: {message}", 0
 
-            session_id = session_result
+            session_id = sessions_result
         else:
             return False, "CSV file is empty", 0
 
@@ -170,9 +170,9 @@ def process_csv_data(df):
             # Get current timestamp
             current_time = datetime.now()
 
-            # Insert into student_info table (now with session_id)
-            student_info_query = """
-            INSERT INTO student_info (
+            # Insert into applicant_info table (now with session_id)
+            applicant_info_query = """
+            INSERT INTO applicant_info (
                 user_code, session_id, title, family_name, given_name, middle_name, preferred_name,
                 former_family_name, gender_code, gender, date_birth, age, country_birth_code,
                 country_citizenship_code, country_citizenship, dual_citizenship_code,
@@ -193,17 +193,17 @@ def process_csv_data(df):
                 given_name = EXCLUDED.given_name,
                 email = EXCLUDED.email,
                 updated_at = CASE 
-                    WHEN student_info.session_id IS DISTINCT FROM EXCLUDED.session_id
-                      OR student_info.family_name IS DISTINCT FROM EXCLUDED.family_name 
-                      OR student_info.given_name IS DISTINCT FROM EXCLUDED.given_name 
-                      OR student_info.email IS DISTINCT FROM EXCLUDED.email 
+                    WHEN applicant_info.session_id IS DISTINCT FROM EXCLUDED.session_id
+                      OR applicant_info.family_name IS DISTINCT FROM EXCLUDED.family_name 
+                      OR applicant_info.given_name IS DISTINCT FROM EXCLUDED.given_name 
+                      OR applicant_info.email IS DISTINCT FROM EXCLUDED.email 
                     THEN EXCLUDED.updated_at 
-                    ELSE student_info.updated_at 
+                    ELSE applicant_info.updated_at 
                 END
             """
 
             cursor.execute(
-                student_info_query,
+                applicant_info_query,
                 (
                     user_code,
                     session_id,  # Add session_id here
@@ -271,9 +271,9 @@ def process_csv_data(df):
                 except:
                     pass
 
-            # Insert into student_status table
+            # Insert into applicant_status table
             status_query = """
-            INSERT INTO student_status (
+            INSERT INTO applicant_status (
                 user_code, student_number, app_start, submit_date, 
                 status_code, status, detail_status, created_at, updated_at
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -282,11 +282,11 @@ def process_csv_data(df):
                 status = EXCLUDED.status,
                 detail_status = EXCLUDED.detail_status,
                 updated_at = CASE 
-                    WHEN student_status.student_number IS DISTINCT FROM EXCLUDED.student_number 
-                      OR student_status.status IS DISTINCT FROM EXCLUDED.status 
-                      OR student_status.detail_status IS DISTINCT FROM EXCLUDED.detail_status 
+                    WHEN applicant_status.student_number IS DISTINCT FROM EXCLUDED.student_number 
+                      OR applicant_status.status IS DISTINCT FROM EXCLUDED.status 
+                      OR applicant_status.detail_status IS DISTINCT FROM EXCLUDED.detail_status 
                     THEN EXCLUDED.updated_at 
-                    ELSE student_status.updated_at 
+                    ELSE applicant_status.updated_at 
                 END
             """
 
@@ -313,8 +313,8 @@ def process_csv_data(df):
             # Process institution information first
             process_institution_info(user_code, row, cursor, current_time)
 
-            # Process app_info after institutions to calculate fields from institution data
-            process_app_info(user_code, row, cursor, current_time)
+            # Process application_info after institutions to calculate fields from institution data
+            process_application_info(user_code, row, cursor, current_time)
 
             records_processed += 1
 
@@ -330,8 +330,8 @@ def process_csv_data(df):
         return False, f"Database error: {str(e)}", 0
 
 
-def get_all_student_status():
-    """Get all students from student_status joined with student_info and session"""
+def get_all_applicant_status():
+    """Get all students from applicant_status joined with applicant_info and sessions"""
     conn = get_db_connection()
     if not conn:
         return None, "Database connection failed"
@@ -354,27 +354,27 @@ def get_all_student_status():
                 ss.updated_at,
                 EXTRACT(EPOCH FROM (NOW() - ss.updated_at)) as seconds_since_update,
                 ROUND(AVG(r.rating), 1) as overall_rating
-            FROM student_status ss
-            LEFT JOIN student_info si ON ss.user_code = si.user_code
-            LEFT JOIN rating r ON ss.user_code = r.user_code
+            FROM applicant_status ss
+            LEFT JOIN applicant_info si ON ss.user_code = si.user_code
+            LEFT JOIN ratings r ON ss.user_code = r.user_code
             GROUP BY ss.user_code, si.family_name, si.given_name, si.email, 
                      ss.student_number, ss.app_start, ss.submit_date, 
                      ss.status_code, ss.status, ss.detail_status, ss.updated_at
             ORDER BY ss.submit_date DESC, si.family_name
         """
         )
-        students = cursor.fetchall()
+        applicants = cursor.fetchall()
         cursor.close()
         conn.close()
 
-        return students, None
+        return applicants, None
 
     except Exception as e:
         return None, f"Database error: {str(e)}"
 
 
 def get_all_sessions():
-    """Get all sessions from the session table"""
+    """Get all sessions from the sessions table"""
     conn = get_db_connection()
     if not conn:
         return None, "Database connection failed"
@@ -392,9 +392,9 @@ def get_all_sessions():
                 s.name,
                 s.description,
                 s.created_at,
-                COUNT(si.user_code) as student_count
-            FROM session s
-            LEFT JOIN student_info si ON s.id = si.session_id
+                COUNT(si.user_code) as applicant_count
+            FROM sessions s
+            LEFT JOIN applicant_info si ON s.id = si.session_id
             GROUP BY s.id, s.program_code, s.program, s.session_abbrev, s.year, s.name, s.description, s.created_at
             ORDER BY s.year DESC, s.program
         """
@@ -409,8 +409,8 @@ def get_all_sessions():
         return None, f"Database error: {str(e)}"
 
 
-def get_student_info_by_code(user_code):
-    """Get detailed student information by user code"""
+def get_applicant_info_by_code(user_code):
+    """Get detailed applicant information by user code"""
     conn = get_db_connection()
     if not conn:
         return None, "Database connection failed"
@@ -431,17 +431,17 @@ def get_student_info_by_code(user_code):
                 secondary_telephone, email, aboriginal, first_nation, inuit, 
                 metis, aboriginal_not_specified, aboriginal_info, 
                 academic_history_code, academic_history, ubc_academic_history
-            FROM student_info 
+            FROM applicant_info 
             WHERE user_code = %s
         """,
             (user_code,),
         )
 
-        student_info = cursor.fetchone()
+        applicant_info = cursor.fetchone()
         cursor.close()
         conn.close()
 
-        return student_info, None
+        return applicant_info, None
 
     except Exception as e:
         if conn:
@@ -449,8 +449,8 @@ def get_student_info_by_code(user_code):
         return None, f"Database error: {str(e)}"
 
 
-def get_student_test_scores_by_code(user_code):
-    """Get all test scores for a student by user code"""
+def get_applicant_test_scores_by_code(user_code):
+    """Get all test scores for a applicant by user code"""
     conn = get_db_connection()
     if not conn:
         return None, "Database connection failed"
@@ -546,8 +546,8 @@ def get_student_test_scores_by_code(user_code):
         return None, f"Database error: {str(e)}"
 
 
-def get_student_institutions_by_code(user_code):
-    """Get all institution information for a student by user code"""
+def get_applicant_institutions_by_code(user_code):
+    """Get all institution information for a applicant by user code"""
     conn = get_db_connection()
     if not conn:
         return None, "Database connection failed"
@@ -580,7 +580,7 @@ def get_student_institutions_by_code(user_code):
             conn.close()
         return None, f"Database error: {str(e)}"
 
-def calculate_app_info_fields(user_code, cursor):
+def calculate_application_info_fields(user_code, cursor):
     """Calculate highest_degree, degree_area, and gpa based on institution data"""
     try:
         # Define degree hierarchy (higher number = higher degree)
@@ -676,13 +676,13 @@ def calculate_app_info_fields(user_code, cursor):
         return None, None, None
         
     except Exception as e:
-        print(f"Error calculating app_info fields for user {user_code}: {str(e)}")
+        print(f"Error calculating application_info fields for user {user_code}: {str(e)}")
         return None, None, None
 
-def process_app_info(user_code, row, cursor, current_time):
-    """Process and insert app_info data"""
+def process_application_info(user_code, row, cursor, current_time):
+    """Process and insert application_info data"""
     try:
-        # Determine if student is Canadian
+        # Determine if applicant is Canadian
         country_citizenship = str(row.get("Country of Current Citizenship", "")).strip()
         dual_citizenship = str(row.get("Dual Citizenship", "")).strip()
 
@@ -697,11 +697,11 @@ def process_app_info(user_code, row, cursor, current_time):
         full_name = f"{given_name} {family_name}".strip()
 
         # Calculate highest_degree, degree_area, and gpa
-        highest_degree, degree_area, gpa = calculate_app_info_fields(user_code, cursor)
+        highest_degree, degree_area, gpa = calculate_application_info_fields(user_code, cursor)
 
-        # Insert into app_info table
-        app_info_query = """
-        INSERT INTO app_info (
+        # Insert into application_info table
+        application_info_query = """
+        INSERT INTO application_info (
             user_code, full_name, canadian, sent, gpa, highest_degree, degree_area
         ) VALUES (%s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (user_code) DO UPDATE SET
@@ -713,16 +713,16 @@ def process_app_info(user_code, row, cursor, current_time):
         """
 
         cursor.execute(
-            app_info_query, (user_code, full_name, is_canadian, "Not Reviewed", gpa, highest_degree, degree_area)
+            application_info_query, (user_code, full_name, is_canadian, "Not Reviewed", gpa, highest_degree, degree_area)
         )
 
     except Exception as e:
         # Log error but don't fail the entire process
-        print(f"Error processing app_info for user {user_code}: {str(e)}")
+        print(f"Error processing application_info for user {user_code}: {str(e)}")
 
 
-def get_student_app_info_by_code(user_code):
-    """Get app_info data for a student by user code"""
+def get_applicant_application_info_by_code(user_code):
+    """Get application_info data for a applicant by user code"""
     conn = get_db_connection()
     if not conn:
         return None, "Database connection failed"
@@ -735,17 +735,17 @@ def get_student_app_info_by_code(user_code):
                 user_code, sent, full_name, canadian, english,
                 cs, stat, math, gpa, highest_degree, degree_area,
                 mds_v, mds_cl, scholarship
-            FROM app_info 
+            FROM application_info 
             WHERE user_code = %s
         """,
             (user_code,),
         )
 
-        app_info = cursor.fetchone()
+        application_info = cursor.fetchone()
         cursor.close()
         conn.close()
 
-        return app_info, None
+        return application_info, None
 
     except Exception as e:
         if conn:
@@ -753,8 +753,8 @@ def get_student_app_info_by_code(user_code):
         return None, f"Database error: {str(e)}"
 
 
-def update_student_app_status(user_code, status):
-    """Update student status in app_info table"""
+def update_applicant_application_status(user_code, status):
+    """Update applicant status in application_info table"""
     conn = get_db_connection()
     if not conn:
         return False, "Database connection failed"
@@ -763,7 +763,7 @@ def update_student_app_status(user_code, status):
         cursor = conn.cursor()
         cursor.execute(
             """
-            UPDATE app_info 
+            UPDATE application_info 
             SET sent = %s
             WHERE user_code = %s
         """,
@@ -774,7 +774,7 @@ def update_student_app_status(user_code, status):
             # If no rows updated, create new record
             cursor.execute(
                 """
-                INSERT INTO app_info (user_code, sent) 
+                INSERT INTO application_info (user_code, sent) 
                 VALUES (%s, %s)
             """,
                 (user_code, status),
@@ -793,8 +793,8 @@ def update_student_app_status(user_code, status):
         return False, f"Database error: {str(e)}"
 
 
-def update_student_prerequisites(user_code, cs, stat, math):
-    """Update student prerequisite courses in app_info table"""
+def update_applicant_prerequisites(user_code, cs, stat, math):
+    """Update applicant prerequisite courses in application_info table"""
     conn = get_db_connection()
     if not conn:
         return False, "Database connection failed"
@@ -802,18 +802,18 @@ def update_student_prerequisites(user_code, cs, stat, math):
     try:
         cursor = conn.cursor()
 
-        # Validate user_code exists in student_info first
+        # Validate user_code exists in applicant_info first
         cursor.execute(
-            "SELECT user_code FROM student_info WHERE user_code = %s", (user_code,)
+            "SELECT user_code FROM applicant_info WHERE user_code = %s", (user_code,)
         )
         if not cursor.fetchone():
             cursor.close()
             conn.close()
-            return False, "Student not found"
+            return False, "Applicant not found"
 
         cursor.execute(
             """
-            UPDATE app_info 
+            UPDATE application_info 
             SET cs = %s, stat = %s, math = %s
             WHERE user_code = %s
         """,
@@ -824,7 +824,7 @@ def update_student_prerequisites(user_code, cs, stat, math):
             # If no rows updated, create new record
             cursor.execute(
                 """
-                INSERT INTO app_info (user_code, cs, stat, math) 
+                INSERT INTO application_info (user_code, cs, stat, math) 
                 VALUES (%s, %s, %s, %s)
             """,
                 (user_code, cs, stat, math),

@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS "user" (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create session table
-CREATE TABLE IF NOT EXISTS session(
+-- Create sessions table
+CREATE TABLE IF NOT EXISTS sessions(
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY, 
     program_code VARCHAR(10),
     program VARCHAR(50),
@@ -29,9 +29,9 @@ CREATE TABLE IF NOT EXISTS session(
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create student_info table
+-- Create applicant_info table
 -- age is calculated based on date_birth
-CREATE TABLE IF NOT EXISTS student_info(
+CREATE TABLE IF NOT EXISTS applicant_info(
     user_code VARCHAR(10) PRIMARY KEY,
     session_id INT,
     interest_code VARCHAR(10),
@@ -88,14 +88,14 @@ CREATE TABLE IF NOT EXISTS student_info(
 
 -- Create program_info table (new table)
 CREATE TABLE IF NOT EXISTS program_info (
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+    user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
     program_code VARCHAR(10),
     program VARCHAR(100),
     session VARCHAR(50)
 );
 
-CREATE TABLE IF NOT EXISTS student_status(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+CREATE TABLE IF NOT EXISTS applicant_status(
+    user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
     student_number VARCHAR(100),
     app_start DATE,
     submit_date DATE,
@@ -106,10 +106,10 @@ CREATE TABLE IF NOT EXISTS student_status(
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create app_info table
+-- Create application_info table
 -- canadian determined by country_citizenship and dual_citizenship if they have 'Canada' as value
-CREATE TABLE IF NOT EXISTS app_info (
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+CREATE TABLE IF NOT EXISTS application_info (
+    user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
     sent VARCHAR(100) DEFAULT 'Not Reviewed' CHECK (sent IN ('Not Reviewed', 'Waitlist', 'Offer', 'CoGS', 'Offer Sent')),
     full_name VARCHAR(100),
     canadian BOOLEAN,
@@ -125,9 +125,9 @@ CREATE TABLE IF NOT EXISTS app_info (
     scholarship BOOLEAN
 );
 
-CREATE TABLE IF NOT EXISTS rating(
+CREATE TABLE IF NOT EXISTS ratings(
 	user_id INTEGER REFERENCES "user"(id),
-	user_code VARCHAR(10) REFERENCES student_info(user_code),
+	user_code VARCHAR(10) REFERENCES applicant_info(user_code),
 	rating DECIMAL(3,1) CHECK (rating >= 0.0 AND rating <= 10.0),
 	user_comment VARCHAR(300),
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS rating(
 
 -- Renamed from academic_info to institution_info
 CREATE TABLE IF NOT EXISTS institution_info(
-    user_code VARCHAR(10) REFERENCES student_info(user_code),
+    user_code VARCHAR(10) REFERENCES applicant_info(user_code),
     institution_number INT,
     institution_code VARCHAR(50),
     full_name VARCHAR(100),
@@ -161,7 +161,7 @@ CREATE TABLE IF NOT EXISTS institution_info(
 );
 
 CREATE TABLE IF NOT EXISTS toefl(
-    user_code VARCHAR(10) REFERENCES student_info(user_code),
+    user_code VARCHAR(10) REFERENCES applicant_info(user_code),
     toefl_number INT,
     registration_num VARCHAR(20),
     date_written DATE,
@@ -184,7 +184,7 @@ CREATE TABLE IF NOT EXISTS toefl(
 );
 
 CREATE TABLE IF NOT EXISTS ielts(
-    user_code VARCHAR(10) REFERENCES student_info(user_code),
+    user_code VARCHAR(10) REFERENCES applicant_info(user_code),
     ielts_number INT,
     candidate_num VARCHAR(20),
     date_written DATE,
@@ -197,21 +197,21 @@ CREATE TABLE IF NOT EXISTS ielts(
 );
 
 CREATE TABLE IF NOT EXISTS melab(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+    user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
     ref_num VARCHAR(20),
     date_written DATE,
     total VARCHAR(2)
 );
 
 CREATE TABLE IF NOT EXISTS pte(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+    user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
     ref_num VARCHAR(20),
     date_written DATE,
     total VARCHAR(2)
 );
 
 CREATE TABLE IF NOT EXISTS cael(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+    user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
     ref_num VARCHAR(20),
     date_written DATE,
     reading VARCHAR(2),
@@ -221,7 +221,7 @@ CREATE TABLE IF NOT EXISTS cael(
 );
 
 CREATE TABLE IF NOT EXISTS celpip(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+    user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
     ref_num VARCHAR(20),
     date_written DATE,
     listening VARCHAR(2),
@@ -230,7 +230,7 @@ CREATE TABLE IF NOT EXISTS celpip(
 );
 
 CREATE TABLE IF NOT EXISTS alt_elpp(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+    user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
     ref_num VARCHAR(20),
     date_written DATE,
     total VARCHAR(20),
@@ -238,7 +238,7 @@ CREATE TABLE IF NOT EXISTS alt_elpp(
 );
 
 CREATE TABLE IF NOT EXISTS gre(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+    user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
     reg_num VARCHAR(20),
     date_written DATE,
     verbal VARCHAR(3),
@@ -255,7 +255,7 @@ CREATE TABLE IF NOT EXISTS gre(
 );
 
 CREATE TABLE IF NOT EXISTS gmat(
-    user_code VARCHAR(10) PRIMARY KEY REFERENCES student_info(user_code),
+    user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
     ref_num VARCHAR(20),
     date_written DATE,
     total VARCHAR(3),
@@ -278,170 +278,170 @@ BEGIN
     END IF;
 END $$;
 
--- Add foreign key constraint from student_info to session with CASCADE DELETE
+-- Add foreign key constraint from applicant_info to sessions with CASCADE DELETE
 DO $$ 
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_student_info_session' AND table_name = 'student_info'
+        WHERE constraint_name = 'fk_applicant_info_sessions' AND table_name = 'applicant_info'
     ) THEN
-        ALTER TABLE student_info 
-        ADD CONSTRAINT fk_student_info_session 
-        FOREIGN KEY (session_id) REFERENCES session(id) ON DELETE CASCADE;
+        ALTER TABLE applicant_info 
+        ADD CONSTRAINT fk_applicant_info_sessions 
+        FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE;
     END IF;
 END $$;
 
 
--- Add CASCADE DELETE constraints for all tables referencing student_info
+-- Add CASCADE DELETE constraints for all tables referencing applicant_info
 DO $$ 
 BEGIN
-    -- program_info referneces student_info
+    -- program_info referneces applicant_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_program_info_student_info' AND table_name = 'program_info'
+        WHERE constraint_name = 'fk_program_info_applicant_info' AND table_name = 'program_info'
     ) THEN
         ALTER TABLE program_info 
-        ADD CONSTRAINT fk_program_info_student_info 
-        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+        ADD CONSTRAINT fk_program_info_applicant_info 
+        FOREIGN KEY (user_code) REFERENCES applicant_info(user_code) ON DELETE CASCADE;
     END IF;
 
-    -- student_status references student_info
+    -- applicant_status references applicant_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_student_status_student_info' AND table_name = 'student_status'
+        WHERE constraint_name = 'fk_applicant_status_applicant_info' AND table_name = 'applicant_status'
     ) THEN
-        ALTER TABLE student_status 
-        ADD CONSTRAINT fk_student_status_student_info 
-        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+        ALTER TABLE applicant_status 
+        ADD CONSTRAINT fk_applicant_status_applicant_info 
+        FOREIGN KEY (user_code) REFERENCES applicant_info(user_code) ON DELETE CASCADE;
     END IF;
 
-    -- app_info references student_info
+    -- application_info references applicant_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_app_info_student_info' AND table_name = 'app_info'
+        WHERE constraint_name = 'fk_application_info_applicant_info' AND table_name = 'application_info'
     ) THEN
-        ALTER TABLE app_info 
-        ADD CONSTRAINT fk_app_info_student_info 
-        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+        ALTER TABLE application_info 
+        ADD CONSTRAINT fk_application_info_applicant_info 
+        FOREIGN KEY (user_code) REFERENCES applicant_info(user_code) ON DELETE CASCADE;
     END IF;
 
-    -- rating references student_info
+    -- ratings references applicant_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_rating_student_info' AND table_name = 'rating'
+        WHERE constraint_name = 'fk_ratings_applicant_info' AND table_name = 'ratings'
     ) THEN
-        ALTER TABLE rating 
-        ADD CONSTRAINT fk_rating_student_info 
-        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+        ALTER TABLE ratings 
+        ADD CONSTRAINT fk_ratings_applicant_info 
+        FOREIGN KEY (user_code) REFERENCES applicant_info(user_code) ON DELETE CASCADE;
     END IF;
 
-    -- institution_info references student_info (renamed from academic_info)
+    -- institution_info references applicant_info (renamed from academic_info)
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_institution_info_student_info' AND table_name = 'institution_info'
+        WHERE constraint_name = 'fk_institution_info_applicant_info' AND table_name = 'institution_info'
     ) THEN
         ALTER TABLE institution_info 
-        ADD CONSTRAINT fk_institution_info_student_info 
-        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+        ADD CONSTRAINT fk_institution_info_applicant_info 
+        FOREIGN KEY (user_code) REFERENCES applicant_info(user_code) ON DELETE CASCADE;
     END IF;
 
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_rating_user' AND table_name = 'rating'
+        WHERE constraint_name = 'fk_ratings_user' AND table_name = 'ratings'
     ) THEN
-        ALTER TABLE rating 
-        ADD CONSTRAINT fk_rating_user 
+        ALTER TABLE ratings 
+        ADD CONSTRAINT fk_ratings_user 
         FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE;
     END IF;
 
-    -- toefl references student_info
+    -- toefl references applicant_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_toefl_student_info' AND table_name = 'toefl'
+        WHERE constraint_name = 'fk_toefl_applicant_info' AND table_name = 'toefl'
     ) THEN
         ALTER TABLE toefl 
-        ADD CONSTRAINT fk_toefl_student_info 
-        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+        ADD CONSTRAINT fk_toefl_applicant_info
+        FOREIGN KEY (user_code) REFERENCES applicant_info(user_code) ON DELETE CASCADE;
     END IF;
 
-    -- ielts references student_info
+    -- ielts references applicant_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_ielts_student_info' AND table_name = 'ielts'
+        WHERE constraint_name = 'fk_ielts_applicant_info' AND table_name = 'ielts'
     ) THEN
         ALTER TABLE ielts 
-        ADD CONSTRAINT fk_ielts_student_info 
-        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+        ADD CONSTRAINT fk_ielts_applicant_info 
+        FOREIGN KEY (user_code) REFERENCES applicant_info(user_code) ON DELETE CASCADE;
     END IF;
 
-    -- melab references student_info
+    -- melab references applicant_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_melab_student_info' AND table_name = 'melab'
+        WHERE constraint_name = 'fk_melab_applicant_info' AND table_name = 'melab'
     ) THEN
         ALTER TABLE melab 
-        ADD CONSTRAINT fk_melab_student_info 
-        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+        ADD CONSTRAINT fk_melab_applicant_info 
+        FOREIGN KEY (user_code) REFERENCES applicant_info(user_code) ON DELETE CASCADE;
     END IF;
 
-    -- pte references student_info
+    -- pte references applicant_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_pte_student_info' AND table_name = 'pte'
+        WHERE constraint_name = 'fk_pte_applicant_info' AND table_name = 'pte'
     ) THEN
         ALTER TABLE pte 
-        ADD CONSTRAINT fk_pte_student_info 
-        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+        ADD CONSTRAINT fk_pte_applicant_info 
+        FOREIGN KEY (user_code) REFERENCES applicant_info(user_code) ON DELETE CASCADE;
     END IF;
 
-    -- cael references student_info
+    -- cael references applicant_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_cael_student_info' AND table_name = 'cael'
+        WHERE constraint_name = 'fk_cael_applicant_info' AND table_name = 'cael'
     ) THEN
         ALTER TABLE cael 
-        ADD CONSTRAINT fk_cael_student_info 
-        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+        ADD CONSTRAINT fk_cael_applicant_info 
+        FOREIGN KEY (user_code) REFERENCES applicant_info(user_code) ON DELETE CASCADE;
     END IF;
 
-    -- celpip references student_info
+    -- celpip references applicant_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_celpip_student_info' AND table_name = 'celpip'
+        WHERE constraint_name = 'fk_celpip_applicant_info' AND table_name = 'celpip'
     ) THEN
         ALTER TABLE celpip 
-        ADD CONSTRAINT fk_celpip_student_info 
-        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+        ADD CONSTRAINT fk_celpip_applicant_info
+        FOREIGN KEY (user_code) REFERENCES applicant_info(user_code) ON DELETE CASCADE;
     END IF;
 
-    -- alt_elpp references student_info
+    -- alt_elpp references applicant_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_alt_elpp_student_info' AND table_name = 'alt_elpp'
+        WHERE constraint_name = 'fk_alt_elpp_applicant_info' AND table_name = 'alt_elpp'
     ) THEN
         ALTER TABLE alt_elpp 
-        ADD CONSTRAINT fk_alt_elpp_student_info 
-        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+        ADD CONSTRAINT fk_alt_elpp_applicant_info 
+        FOREIGN KEY (user_code) REFERENCES applicant_info(user_code) ON DELETE CASCADE;
     END IF;
 
-    -- gre references student_info
+    -- gre references applicant_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_gre_student_info' AND table_name = 'gre'
+        WHERE constraint_name = 'fk_gre_applicant_info' AND table_name = 'gre'
     ) THEN
         ALTER TABLE gre 
-        ADD CONSTRAINT fk_gre_student_info 
-        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+        ADD CONSTRAINT fk_gre_applicant_info 
+        FOREIGN KEY (user_code) REFERENCES applicant_info(user_code) ON DELETE CASCADE;
     END IF;
 
-    -- gmat references student_info
+    -- gmat references applicant_info
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'fk_gmat_student_info' AND table_name = 'gmat'
+        WHERE constraint_name = 'fk_gmat_applicant_info' AND table_name = 'gmat'
     ) THEN
         ALTER TABLE gmat 
-        ADD CONSTRAINT fk_gmat_student_info 
-        FOREIGN KEY (user_code) REFERENCES student_info(user_code) ON DELETE CASCADE;
+        ADD CONSTRAINT fk_gmat_applicant_info 
+        FOREIGN KEY (user_code) REFERENCES applicant_info(user_code) ON DELETE CASCADE;
     END IF;
 END $$;
 
@@ -454,12 +454,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create function to handle institution_info deletion - sets app_info fields to NULL
+-- Create function to handle institution_info deletion - sets application_info fields to NULL
 CREATE OR REPLACE FUNCTION handle_institution_info_deletion()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- When institution_info is deleted, set related fields in app_info to NULL
-    UPDATE app_info 
+    -- When institution_info is deleted, set related fields in application_info to NULL
+    UPDATE application_info 
     SET gpa = NULL, highest_degree = NULL, degree_area = NULL
     WHERE user_code = OLD.user_code;
     
@@ -472,7 +472,7 @@ CREATE OR REPLACE FUNCTION handle_user_deletion()
 RETURNS TRIGGER AS $$
 BEGIN
     -- When a user is deleted, delete their ratings
-    DELETE FROM rating WHERE user_id = OLD.id;
+    DELETE FROM ratings WHERE user_id = OLD.id;
     
     RETURN OLD;
 END;
@@ -499,17 +499,17 @@ CREATE TRIGGER user_deletion_trigger
     FOR EACH ROW 
     EXECUTE FUNCTION handle_user_deletion();
 
--- Create trigger for rating table to auto-update updated_at
-DROP TRIGGER IF EXISTS update_rating_updated_at ON rating;
-CREATE TRIGGER update_rating_updated_at 
-    BEFORE UPDATE ON rating 
+-- Create trigger for ratings table to auto-update updated_at
+DROP TRIGGER IF EXISTS update_ratings_updated_at ON ratings;
+CREATE TRIGGER update_ratings_updated_at 
+    BEFORE UPDATE ON ratings
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_email ON "user"(email);
 CREATE INDEX IF NOT EXISTS idx_user_role ON "user"(role_user_id);
-CREATE INDEX IF NOT EXISTS idx_student_info_session ON student_info(session_id);
+CREATE INDEX IF NOT EXISTS idx_applicant_info_sessions ON applicant_info(session_id);
 CREATE INDEX IF NOT EXISTS idx_program_info_user_code ON program_info(user_code);
 CREATE INDEX IF NOT EXISTS idx_institution_info_user_code ON institution_info(user_code);
 CREATE INDEX IF NOT EXISTS idx_toefl_user_code ON toefl(user_code);
@@ -538,4 +538,3 @@ WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser3@example.com');
 INSERT INTO "user" (first_name, last_name, email, password, role_user_id) 
 SELECT 'Test4', 'User4', 'testuser4@example.com', '$2b$12$mJpl.O3Y12Ti66e8NEENMerKi7obcA3glVon5ZayXT7pMCheIcFbq', 3
 WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser4@example.com');
-
