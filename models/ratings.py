@@ -21,7 +21,7 @@ def get_user_ratings(user_code):
                 u.first_name,
                 u.last_name,
                 u.email
-            FROM rating r
+            FROM ratings r
             JOIN "user" u ON r.user_id = u.id
             WHERE r.user_code = %s
             ORDER BY u.first_name, u.last_name
@@ -41,7 +41,7 @@ def get_user_ratings(user_code):
         return None, f"Database error: {str(e)}"
 
 
-def add_or_update_user_rating(user_code, user_id, rating, comment):
+def add_or_update_user_ratings(user_code, user_id, rating, comment):
     """Add or update a rating for a user"""
     conn = get_db_connection()
     if not conn:
@@ -53,18 +53,18 @@ def add_or_update_user_rating(user_code, user_id, rating, comment):
 
         # Validate rating
         try:
-            rating_decimal = float(rating)
-            if rating_decimal < 0.0 or rating_decimal > 10.0:
+            ratings_decimal = float(rating)
+            if ratings_decimal < 0.0 or ratings_decimal > 10.0:
                 return False, "Rating must be between 0.0 and 10.0"
             # Round to 1 decimal place
-            rating_decimal = round(rating_decimal, 1)
+            ratings_decimal = round(ratings_decimal, 1)
         except (ValueError, TypeError):
             return False, "Invalid rating format"
 
         # Use INSERT ... ON CONFLICT for PostgreSQL with composite primary key
         cursor.execute(
             """
-            INSERT INTO rating (user_id, user_code, rating, user_comment, created_at, updated_at)
+            INSERT INTO ratings (user_id, user_code, rating, user_comment, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s)
             ON CONFLICT (user_id, user_code) 
             DO UPDATE SET 
@@ -72,7 +72,7 @@ def add_or_update_user_rating(user_code, user_id, rating, comment):
                 user_comment = EXCLUDED.user_comment,
                 updated_at = EXCLUDED.updated_at
         """,
-            (user_id, user_code, rating_decimal, comment, current_time, current_time),
+            (user_id, user_code, ratings_decimal, comment, current_time, current_time),
         )
 
         message = "Rating saved successfully"
@@ -101,7 +101,7 @@ def get_user_own_rating(user_code, user_id):
         cursor.execute(
             """
             SELECT rating, user_comment, user_code
-            FROM rating 
+            FROM ratings 
             WHERE user_id = %s AND user_code = %s
         """,
             (user_id, user_code),

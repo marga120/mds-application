@@ -1,4 +1,4 @@
-class SessionManager {
+class SessionsManager {
   constructor() {
     this.selectedSessionFile = null;
     this.initializeEventListeners();

@@ -1,4 +1,4 @@
-class ApplicantManager {
+class ApplicantsManager {
   constructor() {
     this.allApplicants = [];
     this.sessionName = ""; // Add property to store session name
@@ -34,7 +34,7 @@ class ApplicantManager {
   // Debug version of loadSessionName method
   async loadSessionName() {
     try {
-      const response = await fetch("/api/session");
+      const response = await fetch("/api/sessions");
       const result = await response.json();
 
       if (result.success && result.session_name) {
@@ -150,11 +150,11 @@ class ApplicantManager {
       </div>`;
 
     try {
-      const response = await fetch("/api/students");
+      const response = await fetch("/api/applicants");
       const result = await response.json();
 
       if (result.success) {
-        this.allApplicants = result.students;
+        this.allApplicants = result.applicants;
         this.displayApplicants(this.allApplicants);
       } else {
         container.innerHTML = `<div class="no-data">Error: ${result.message}</div>`;
@@ -340,7 +340,7 @@ class ApplicantManager {
 
   getOverallRatingDisplay(rating) {
     if (!rating || rating === null) {
-      return '<div class="text-gray-400 text-sm">No ratings</div>';
+      return '<div class="text-gray-400 text-sm">No rating</div>';
     }
 
     const ratingValue = parseFloat(rating);
@@ -507,8 +507,8 @@ class ApplicantManager {
     modal.classList.remove("hidden");
     modal.classList.add("flex");
 
-    // Load student info and ratings
-    this.loadStudentInfo(userCode);
+    // Load applicant info and ratings
+    this.loadApplicantInfo(userCode);
 
     // Show Comments & Ratings tab by default
     this.showTab("comments-ratings");
@@ -524,7 +524,7 @@ class ApplicantManager {
 
     this.loadInstitutionInfo(userCode);
 
-    this.loadAppStatus(userCode);
+    this.loadApplicationStatus(userCode);
 
     this.loadPrerequisites(userCode);
   }
@@ -556,8 +556,8 @@ class ApplicantManager {
       <!-- Tabs Navigation -->
       <div class="border-b border-gray-200 mt-4">
         <nav class="flex space-x-8">
-          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap active" data-tab="student-info">
-            Student Info
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap active" data-tab="applicant-info">
+            Applicant Info
           </button>
           <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="institution-info">
             Institution Info
@@ -576,12 +576,12 @@ class ApplicantManager {
 
       <!-- Tab Content -->
       <div class="mt-6">
-        <!-- Student Info Tab -->
-        <div id="student-info" class="tab-content hidden">
-          <div id="studentInfoContainer" class="space-y-6">
+        <!-- Applicant Info Tab -->
+        <div id="applicant-info" class="tab-content hidden">
+          <div id="applicantInfoContainer" class="space-y-6">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
-              Loading student information...
+              Loading applicant information...
             </div>
           </div>
         </div>
@@ -797,6 +797,27 @@ class ApplicantManager {
       }
     });
 
+    const savePrereqBtn = modal.querySelector("#savePrerequisitesBtn");
+    const clearPrereqBtn = modal.querySelector("#clearPrerequisitesBtn");
+
+    if (savePrereqBtn) {
+      savePrereqBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.savePrerequisites();
+      });
+    }
+
+    if (clearPrereqBtn) {
+      clearPrereqBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.clearPrerequisites();
+      });
+    }
+
+   
+
     return modal;
   }
 
@@ -971,22 +992,22 @@ class ApplicantManager {
     document.getElementById("commentTextarea").value = "";
   }
 
-  async loadStudentInfo(userCode) {
+  async loadApplicantInfo(userCode) {
     try {
-      const response = await fetch(`/api/student-info/${userCode}`);
+      const response = await fetch(`/api/applicant-info/${userCode}`);
       const result = await response.json();
 
-      const container = document.getElementById("studentInfoContainer");
+      const container = document.getElementById("applicantInfoContainer");
 
-      if (result.success && result.student) {
-        const student = result.student;
+      if (result.success && result.applicant) {
+        const applicant = result.applicant;
 
-        // NEW CODE - Load app_info data
-        const appInfoResponse = await fetch(
-          `/api/student-app-info/${userCode}`
+        // NEW CODE - Load application_info data
+        const applicationInfoResponse = await fetch(
+          `/api/applicant-application-info/${userCode}`
         );
-        const appInfoResult = await appInfoResponse.json();
-        const appInfo = appInfoResult.success ? appInfoResult.app_info : null;
+        const applicationInfoResult = await applicationInfoResponse.json();
+        const applicationInfo = applicationInfoResult.success ? applicationInfoResult.application_info : null;
 
         container.innerHTML = `
           <div class="max-h-96 overflow-y-auto pr-2">
@@ -1000,30 +1021,30 @@ class ApplicantManager {
                   Personal Information
                 </h4>
                 <div class="space-y-3">
-                  ${this.renderInfoField("Title", student.title)}
-                  ${this.renderInfoField("Family Name", student.family_name)}
-                  ${this.renderInfoField("Given Name", student.given_name)}
-                  ${this.renderInfoField("Middle Name", student.middle_name)}
+                  ${this.renderInfoField("Title", applicant.title)}
+                  ${this.renderInfoField("Family Name", applicant.family_name)}
+                  ${this.renderInfoField("Given Name", applicant.given_name)}
+                  ${this.renderInfoField("Middle Name", applicant.middle_name)}
                   ${this.renderInfoField(
                     "Preferred Name",
-                    student.preferred_name
+                    applicant.preferred_name
                   )}
                   ${this.renderInfoField(
                     "Former Family Name",
-                    student.former_family_name
+                    applicant.former_family_name
                   )}
                   ${this.renderInfoField(
                     "Date of Birth",
-                    student.date_birth
-                      ? new Date(student.date_birth).toLocaleDateString("en-CA")
+                    applicant.date_birth
+                      ? new Date(applicant.date_birth).toLocaleDateString("en-CA")
                       : null
                   )}
-                  ${this.renderInfoField("Gender", student.gender)}
+                  ${this.renderInfoField("Gender", applicant.gender)}
                   ${this.renderInfoField(
                     "Age",
-                    student.age ? `${student.age} years old` : null
+                    applicant.age ? `${applicant.age} years old` : null
                   )}
-                  ${this.renderInfoField("Email", student.email, "email")}
+                  ${this.renderInfoField("Email", applicant.email, "email")}
                 </div>
               </div>
 
@@ -1039,27 +1060,27 @@ class ApplicantManager {
                 <div class="space-y-3">
                   ${this.renderInfoField(
                     "Address Line 1",
-                    student.address_line1
+                    applicant.address_line1
                   )}
                   ${this.renderInfoField(
                     "Address Line 2",
-                    student.address_line2
+                    applicant.address_line2
                   )}
-                  ${this.renderInfoField("City", student.city)}
+                  ${this.renderInfoField("City", applicant.city)}
                   ${this.renderInfoField(
                     "Province/State/Region",
-                    student.province_state_region
+                    applicant.province_state_region
                   )}
-                  ${this.renderInfoField("Postal Code", student.postal_code)}
-                  ${this.renderInfoField("Country", student.country)}
+                  ${this.renderInfoField("Postal Code", applicant.postal_code)}
+                  ${this.renderInfoField("Country", applicant.country)}
                   ${this.renderInfoField(
                     "Primary Telephone",
-                    student.primary_telephone,
+                    applicant.primary_telephone,
                     "phone"
                   )}
                   ${this.renderInfoField(
                     "Secondary Telephone",
-                    student.secondary_telephone,
+                    applicant.secondary_telephone,
                     "phone"
                   )}
                 </div>
@@ -1076,33 +1097,33 @@ class ApplicantManager {
                 <div class="space-y-3">
                   ${this.renderInfoField(
                     "Country of Birth",
-                    student.country_birth
+                    applicant.country_birth
                   )}
                   ${this.renderInfoField(
                     "Country of Citizenship",
-                    student.country_citizenship
+                    applicant.country_citizenship
                   )}
                   ${this.renderInfoField(
                     "Dual Citizenship",
-                    student.dual_citizenship
+                    applicant.dual_citizenship
                   )}
                   ${this.renderInfoField(
                     "Canadian Citizen/Resident",
-                    appInfo && appInfo.canadian !== null
-                      ? appInfo.canadian
+                    applicationInfo && applicationInfo.canadian !== null
+                      ? applicationInfo.canadian
                         ? "Yes"
                         : "No"
                       : "Not determined"
                   )}
                   ${this.renderInfoField(
                     "Primary Spoken Language",
-                    student.primary_spoken_lang
+                    applicant.primary_spoken_lang
                   )}
                   ${this.renderInfoField(
                     "Other Spoken Language",
-                    student.other_spoken_lang
+                    applicant.other_spoken_lang
                   )}
-                  ${this.renderInfoField("Visa Type", student.visa_type)}
+                  ${this.renderInfoField("Visa Type", applicant.visa_type)}
                 </div>
               </div>
 
@@ -1115,21 +1136,21 @@ class ApplicantManager {
                   Academic & Background
                 </h4>
                 <div class="space-y-3">
-                  ${this.renderInfoField("Interest", student.interest)}
+                  ${this.renderInfoField("Interest", applicant.interest)}
                   ${this.renderInfoField(
                     "Academic History",
-                    student.academic_history
+                    applicant.academic_history
                   )}
                   ${this.renderInfoField(
                     "UBC Academic History",
-                    student.ubc_academic_history
+                    applicant.ubc_academic_history
                   )}
                 </div>
               </div>
 
               <!-- Aboriginal Information -->
               ${
-                this.hasAboriginalInfo(student)
+                this.hasAboriginalInfo(applicant)
                   ? `
               <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200 lg:col-span-2">
                 <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
@@ -1141,31 +1162,31 @@ class ApplicantManager {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   ${this.renderInfoField(
                     "Aboriginal",
-                    this.formatYesNo(student.aboriginal)
+                    this.formatYesNo(applicant.aboriginal)
                   )}
                   ${this.renderInfoField(
                     "First Nation",
-                    this.formatYesNo(student.first_nation)
+                    this.formatYesNo(applicant.first_nation)
                   )}
                   ${this.renderInfoField(
                     "Inuit",
-                    this.formatYesNo(student.inuit)
+                    this.formatYesNo(applicant.inuit)
                   )}
                   ${this.renderInfoField(
                     "Métis",
-                    this.formatYesNo(student.metis)
+                    this.formatYesNo(applicant.metis)
                   )}
                   ${this.renderInfoField(
                     "Aboriginal Not Specified",
-                    this.formatYesNo(student.aboriginal_not_specified)
+                    this.formatYesNo(applicant.aboriginal_not_specified)
                   )}
                   ${
-                    student.aboriginal_info
+                    applicant.aboriginal_info
                       ? `
                   <div class="md:col-span-2">
                     ${this.renderInfoField(
                       "Aboriginal Info",
-                      student.aboriginal_info
+                      applicant.aboriginal_info
                     )}
                   </div>
                   `
@@ -1186,17 +1207,17 @@ class ApplicantManager {
             <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8l-4 4-4-4m-6 8l4-4 4 4"></path>
             </svg>
-            <p class="text-lg font-medium text-gray-600">No student information available</p>
+            <p class="text-lg font-medium text-gray-600">No applicant information available</p>
           </div>
         `;
       }
     } catch (error) {
-      document.getElementById("studentInfoContainer").innerHTML = `
+      document.getElementById("applicantInfoContainer").innerHTML = `
         <div class="text-center py-8 text-red-500">
           <svg class="w-12 h-12 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
-          <p class="text-lg font-medium">Error loading student information</p>
+          <p class="text-lg font-medium">Error loading applicant information</p>
           <p class="text-sm text-gray-600">${error.message}</p>
         </div>
       `;
@@ -1205,7 +1226,7 @@ class ApplicantManager {
 
   async loadTestScores(userCode) {
     try {
-      const response = await fetch(`/api/student-test-scores/${userCode}`);
+      const response = await fetch(`/api/applicant-test-scores/${userCode}`);
       const result = await response.json();
 
       const container = document.getElementById("testScoresContainer");
@@ -1679,14 +1700,14 @@ class ApplicantManager {
     `;
   }
 
-  hasAboriginalInfo(student) {
+  hasAboriginalInfo(applicant) {
     return (
-      student.aboriginal === "Y" ||
-      student.first_nation === "Y" ||
-      student.inuit === "Y" ||
-      student.metis === "Y" ||
-      student.aboriginal_not_specified === "Y" ||
-      student.aboriginal_info
+      applicant.aboriginal === "Y" ||
+      applicant.first_nation === "Y" ||
+      applicant.inuit === "Y" ||
+      applicant.metis === "Y" ||
+      applicant.aboriginal_not_specified === "Y" ||
+      applicant.aboriginal_info
     );
   }
 
@@ -1698,7 +1719,7 @@ class ApplicantManager {
 
   async loadInstitutionInfo(userCode) {
     try {
-      const response = await fetch(`/api/student-institutions/${userCode}`);
+      const response = await fetch(`/api/applicant-institutions/${userCode}`);
       const result = await response.json();
 
       const container = document.getElementById("institutionInfoContainer");
@@ -1863,18 +1884,18 @@ class ApplicantManager {
 
   async loadAcademicSummary(userCode) {
     try {
-      const response = await fetch(`/api/student-app-info/${userCode}`);
+      const response = await fetch(`/api/applicant-application-info/${userCode}`);
       const result = await response.json();
 
-      if (result.success && result.app_info) {
-        const appInfo = result.app_info;
+      if (result.success && result.application_info) {
+        const applicationInfo = result.application_info;
 
         // Update academic summary displays
         document.getElementById("highestDegreeDisplay").textContent =
-          appInfo.highest_degree || "-";
+          applicationInfo.highest_degree || "-";
         document.getElementById("degreeAreaDisplay").textContent =
-          appInfo.degree_area || "-";
-        document.getElementById("gpaDisplay").textContent = appInfo.gpa || "-";
+          applicationInfo.degree_area || "-";
+        document.getElementById("gpaDisplay").textContent = applicationInfo.gpa || "-";
       }
     } catch (error) {
       console.error("Error loading academic summary:", error);
@@ -1885,13 +1906,13 @@ class ApplicantManager {
     }
   }
 
-  async loadAppStatus(userCode) {
+  async loadApplicationStatus(userCode) {
     try {
-      const response = await fetch(`/api/student-app-info/${userCode}`);
+      const response = await fetch(`/api/applicant-application-info/${userCode}`);
       const result = await response.json();
 
-      if (result.success && result.app_info) {
-        const currentStatus = result.app_info.sent || "Not Reviewed";
+      if (result.success && result.application_info) {
+        const currentStatus = result.application_info.sent || "Not Reviewed";
 
         // Update tab label
         document.getElementById("statusTabLabel").textContent = currentStatus;
@@ -1918,7 +1939,7 @@ class ApplicantManager {
         this.setupStatusPreview(currentStatus);
       }
     } catch (error) {
-      console.error("Error loading app status:", error);
+      console.error("Error loading applicant status:", error);
     }
   }
 
@@ -1995,7 +2016,7 @@ class ApplicantManager {
   `;
 
     try {
-      const response = await fetch(`/api/student-app-info/${userCode}/status`, {
+      const response = await fetch(`/api/applicant-application-info/${userCode}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -2013,8 +2034,8 @@ class ApplicantManager {
         // Update tab label
         document.getElementById("statusTabLabel").textContent = newStatus;
 
-        // Reload the entire status display
-        this.loadAppStatus(userCode);
+        // Reload the entire status display 
+        this.loadApplicationStatus(userCode);
       } else {
         this.showMessage(result.message, "error");
       }
@@ -2064,16 +2085,16 @@ class ApplicantManager {
 
   async loadPrerequisites(userCode) {
     try {
-      const response = await fetch(`/api/student-app-info/${userCode}`);
+      const response = await fetch(`/api/applicant-application-info/${userCode}`);
       const result = await response.json();
 
-      if (result.success && result.app_info) {
-        const appInfo = result.app_info;
+      if (result.success && result.application_info) {
+        const applicationInfo = result.application_info;
 
         // Populate the input fields
-        document.getElementById("csInput").value = appInfo.cs || "";
-        document.getElementById("statInput").value = appInfo.stat || "";
-        document.getElementById("mathInput").value = appInfo.math || "";
+        document.getElementById("csInput").value = applicationInfo.cs || "";
+        document.getElementById("statInput").value = applicationInfo.stat || "";
+        document.getElementById("mathInput").value = applicationInfo.math || "";
       }
 
       // Update prerequisites form for viewers
@@ -2106,10 +2127,10 @@ class ApplicantManager {
         mathInput.disabled = false;
 
         // Add event listeners for save and clear buttons
-        document.getElementById("savePrerequisitesBtn").onclick = () =>
-          this.savePrerequisites();
-        document.getElementById("clearPrerequisitesBtn").onclick = () =>
-          this.clearPrerequisites();
+        // document.getElementById("savePrerequisitesBtn").onclick = () =>
+        //   this.savePrerequisites();
+        // document.getElementById("clearPrerequisitesBtn").onclick = () =>
+        //   this.clearPrerequisites();
       } else {
         // Viewers can only see the values
         prerequisiteButtons.style.display = "none";
@@ -2135,7 +2156,7 @@ class ApplicantManager {
 
     try {
       const response = await fetch(
-        `/api/student-app-info/${userCode}/prerequisites`,
+        `/api/applicant-application-info/${userCode}/prerequisites`,
         {
           method: "PUT",
           headers: {
