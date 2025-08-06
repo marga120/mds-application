@@ -555,30 +555,30 @@ class ApplicantsManager {
 
       <!-- Tabs Navigation -->
       <div class="border-b border-gray-200 mt-4">
-        <nav class="flex space-x-8">
-          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap active" data-tab="applicant-info">
+        <nav class="flex space-x-4 overflow-x-auto scrollbar-hide">
+          <button class="tab-button py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap flex-shrink-0 active" data-tab="applicant-info">
             Applicant Info
           </button>
-          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="institution-info">
+          <button class="tab-button py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap flex-shrink-0" data-tab="institution-info">
             Institution Info
           </button>
-          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="test-scores">
+          <button class="tab-button py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap flex-shrink-0" data-tab="test-scores">
             Test Scores
           </button>
-          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="comments-ratings">
+          <button class="tab-button py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap flex-shrink-0" data-tab="comments-ratings">
             Comments & Ratings
           </button>
-          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="status-tab">
+          <button class="tab-button py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap flex-shrink-0" data-tab="status-tab">
             Status: <span id="statusTabLabel">Not Reviewed</span>
           </button>
         </nav>
       </div>
 
       <!-- Tab Content -->
-      <div class="mt-6">
+      <div class="mt-6 max-h-96 overflow-y-auto">
         <!-- Applicant Info Tab -->
         <div id="applicant-info" class="tab-content hidden">
-          <div id="applicantInfoContainer" class="space-y-6">
+          <div id="applicantInfoContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
               Loading applicant information...
@@ -588,7 +588,7 @@ class ApplicantsManager {
 
         <!-- Institution Info Tab -->
         <div id="institution-info" class="tab-content hidden">
-          <div id="institutionInfoContainer" class="space-y-6">
+          <div id="institutionInfoContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
               Loading institution information...
@@ -598,7 +598,7 @@ class ApplicantsManager {
 
         <!-- Test Scores Tab -->
         <div id="test-scores" class="tab-content hidden">
-          <div id="testScoresContainer" class="space-y-6">
+          <div id="testScoresContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
               Loading test scores...
@@ -608,7 +608,7 @@ class ApplicantsManager {
 
         <!-- Comments & Ratings Tab -->
         <div id="comments-ratings" class="tab-content">
-          <div class="max-h-96 overflow-y-auto pr-2">
+          <div class="pr-2 min-h-0">
 
           <!-- Prerequisite Courses Section -->
             <div class="mb-6">
@@ -816,8 +816,6 @@ class ApplicantsManager {
       });
     }
 
-   
-
     return modal;
   }
 
@@ -1007,7 +1005,9 @@ class ApplicantsManager {
           `/api/applicant-application-info/${userCode}`
         );
         const applicationInfoResult = await applicationInfoResponse.json();
-        const applicationInfo = applicationInfoResult.success ? applicationInfoResult.application_info : null;
+        const applicationInfo = applicationInfoResult.success
+          ? applicationInfoResult.application_info
+          : null;
 
         container.innerHTML = `
           <div class="max-h-96 overflow-y-auto pr-2">
@@ -1036,7 +1036,9 @@ class ApplicantsManager {
                   ${this.renderInfoField(
                     "Date of Birth",
                     applicant.date_birth
-                      ? new Date(applicant.date_birth).toLocaleDateString("en-CA")
+                      ? new Date(applicant.date_birth).toLocaleDateString(
+                          "en-CA"
+                        )
                       : null
                   )}
                   ${this.renderInfoField("Gender", applicant.gender)}
@@ -1884,7 +1886,9 @@ class ApplicantsManager {
 
   async loadAcademicSummary(userCode) {
     try {
-      const response = await fetch(`/api/applicant-application-info/${userCode}`);
+      const response = await fetch(
+        `/api/applicant-application-info/${userCode}`
+      );
       const result = await response.json();
 
       if (result.success && result.application_info) {
@@ -1895,7 +1899,8 @@ class ApplicantsManager {
           applicationInfo.highest_degree || "-";
         document.getElementById("degreeAreaDisplay").textContent =
           applicationInfo.degree_area || "-";
-        document.getElementById("gpaDisplay").textContent = applicationInfo.gpa || "-";
+        document.getElementById("gpaDisplay").textContent =
+          applicationInfo.gpa || "-";
       }
     } catch (error) {
       console.error("Error loading academic summary:", error);
@@ -1908,7 +1913,9 @@ class ApplicantsManager {
 
   async loadApplicationStatus(userCode) {
     try {
-      const response = await fetch(`/api/applicant-application-info/${userCode}`);
+      const response = await fetch(
+        `/api/applicant-application-info/${userCode}`
+      );
       const result = await response.json();
 
       if (result.success && result.application_info) {
@@ -2016,15 +2023,18 @@ class ApplicantsManager {
   `;
 
     try {
-      const response = await fetch(`/api/applicant-application-info/${userCode}/status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: newStatus,
-        }),
-      });
+      const response = await fetch(
+        `/api/applicant-application-info/${userCode}/status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: newStatus,
+          }),
+        }
+      );
 
       const result = await response.json();
 
@@ -2034,7 +2044,7 @@ class ApplicantsManager {
         // Update tab label
         document.getElementById("statusTabLabel").textContent = newStatus;
 
-        // Reload the entire status display 
+        // Reload the entire status display
         this.loadApplicationStatus(userCode);
       } else {
         this.showMessage(result.message, "error");
@@ -2085,7 +2095,9 @@ class ApplicantsManager {
 
   async loadPrerequisites(userCode) {
     try {
-      const response = await fetch(`/api/applicant-application-info/${userCode}`);
+      const response = await fetch(
+        `/api/applicant-application-info/${userCode}`
+      );
       const result = await response.json();
 
       if (result.success && result.application_info) {
