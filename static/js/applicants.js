@@ -2144,18 +2144,23 @@ class ApplicantsManager {
         csInput.disabled = false;
         statInput.disabled = false;
         mathInput.disabled = false;
-
-        // Add event listeners for save and clear buttons
-        // document.getElementById("savePrerequisitesBtn").onclick = () =>
-        //   this.savePrerequisites();
-        // document.getElementById("clearPrerequisitesBtn").onclick = () =>
-        //   this.clearPrerequisites();
       } else {
         // Viewers can only see the values
         prerequisiteButtons.style.display = "none";
         csInput.disabled = true;
         statInput.disabled = true;
         mathInput.disabled = true;
+
+        // Update placeholder text for empty fields
+        if (!csInput.value || csInput.value.trim() === "") {
+          csInput.placeholder = "Not Provided";
+        }
+        if (!statInput.value || statInput.value.trim() === "") {
+          statInput.placeholder = "Not Provided";
+        }
+        if (!mathInput.value || mathInput.value.trim() === "") {
+          mathInput.placeholder = "Not Provided";
+        }
       }
     } catch (error) {
       console.error("Error checking user permissions:", error);
