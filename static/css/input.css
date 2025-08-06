@@ -262,4 +262,11 @@
   .tab-button.active {
     @apply border-ubc-blue text-ubc-blue;
   }
+
+  /* For tab content responsiveness */
+  @media (max-width: 768px) {
+    .tab-content {
+      max-height: 70vh;
+    }
+  }
 }
