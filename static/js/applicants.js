@@ -562,13 +562,16 @@ class ApplicantsManager {
           <button class="tab-button py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap flex-shrink-0" data-tab="institution-info">
             Institution Info
           </button>
-          <button class="tab-button py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap flex-shrink-0" data-tab="test-scores">
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="test-scores">
             Test Scores
           </button>
-          <button class="tab-button py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap flex-shrink-0" data-tab="comments-ratings">
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="prerequisite-courses">
+            Prerequisite Courses
+          </button>
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="comments-ratings">
             Comments & Ratings
           </button>
-          <button class="tab-button py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap flex-shrink-0" data-tab="status-tab">
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="status-tab">
             Status: <span id="statusTabLabel">Not Reviewed</span>
           </button>
         </nav>
@@ -606,11 +609,9 @@ class ApplicantsManager {
           </div>
         </div>
 
-        <!-- Comments & Ratings Tab -->
-        <div id="comments-ratings" class="tab-content">
-          <div class="pr-2 min-h-0">
-
-          <!-- Prerequisite Courses Section -->
+        <!-- Prerequisite Courses Tab -->
+        <div id="prerequisite-courses" class="tab-content hidden">
+          <div class="max-h-96 overflow-y-auto pr-2">
             <div class="mb-6">
               <h4 class="text-lg font-semibold text-gray-900 mb-4">Prerequisite Courses</h4>
               <div id="prerequisitesContainer" class="bg-blue-50 p-6 rounded-lg border border-blue-200">
@@ -634,6 +635,12 @@ class ApplicantsManager {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Comments & Ratings Tab -->
+        <div id="comments-ratings" class="tab-content">
+          <div class="max-h-96 overflow-y-auto pr-2">
 
             <!-- Add/Edit Rating Section -->
             <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg mb-6">
