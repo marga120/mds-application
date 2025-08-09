@@ -2127,7 +2127,7 @@ class ApplicantsManager {
         document.getElementById("statusPreview").classList.add("hidden");
 
         // Update status change buttons visibility based on user role
-        this.updateStatusFormForViewer();
+        this.updateStatusFormPermissions();
 
         // Add change listener for preview
         this.setupStatusPreview(currentStatus);
@@ -2137,7 +2137,7 @@ class ApplicantsManager {
     }
   }
 
-  updateStatusFormForViewer() {
+  updateStatusFormPermissions() {
     const statusButtons = document.getElementById("statusUpdateButtons");
     const statusSelect = document.getElementById("statusSelect");
     const statusChangeSection = document.getElementById("statusChangeSection");
@@ -2146,11 +2146,8 @@ class ApplicantsManager {
     fetch("/api/auth/check-session")
       .then((response) => response.json())
       .then((result) => {
-        if (
-          result.authenticated &&
-          (result.user?.role === "Admin" || result.user?.role === "Faculty")
-        ) {
-          // Admin and Faculty can update status - show everything
+        if (result.authenticated && result.user?.role === "Admin") {
+          // Only Admin can update status - show everything
           if (statusChangeSection) {
             statusChangeSection.style.display = "block";
           }
@@ -2159,7 +2156,7 @@ class ApplicantsManager {
           }
           statusSelect.disabled = false;
 
-          // Set title for Admin/Faculty
+          // Set title for Admin
           const statusTitle = document.querySelector("#status-tab h4");
           if (statusTitle) {
             statusTitle.innerHTML = `
@@ -2170,7 +2167,7 @@ class ApplicantsManager {
           `;
           }
         } else {
-          // Viewers can see current status but not change it - hide the change section
+          // Faculty and Viewers can see current status but not change it - hide the change section
           if (statusChangeSection) {
             statusChangeSection.style.display = "none";
           }
@@ -2312,13 +2309,13 @@ class ApplicantsManager {
       }
 
       // Check user permissions and update form accordingly
-      await this.updatePrerequisitesFormForViewer();
+      await this.updatePrerequisitesFormPermissions();
     } catch (error) {
       console.error("Error loading prerequisites:", error);
     }
   }
 
-  async updatePrerequisitesFormForViewer() {
+  async updatePrerequisitesFormPermissions() {
     try {
       const response = await fetch("/api/auth/check-session");
       const result = await response.json();
@@ -2336,11 +2333,8 @@ class ApplicantsManager {
       const mathInput = document.getElementById("prerequisiteMath");
       const gpaInput = document.getElementById("overallGpa");
 
-      if (
-        result.authenticated &&
-        (result.user?.role === "Admin" || result.user?.role === "Faculty")
-      ) {
-        // Admin and Faculty can edit prerequisites
+      if (result.authenticated && result.user?.role === "Admin") {
+        // Only Admin can edit everything including GPA
         if (savePrerequisitesBtn)
           savePrerequisitesBtn.style.display = "inline-block";
         if (clearPrerequisitesBtn)
@@ -2350,6 +2344,17 @@ class ApplicantsManager {
         if (statInput) statInput.disabled = false;
         if (mathInput) mathInput.disabled = false;
         if (gpaInput) gpaInput.disabled = false;
+      } else if (result.authenticated && result.user?.role === "Faculty") {
+        // Faculty can edit prerequisites but not GPA
+        if (savePrerequisitesBtn)
+          savePrerequisitesBtn.style.display = "inline-block";
+        if (clearPrerequisitesBtn)
+          clearPrerequisitesBtn.style.display = "inline-block";
+        if (saveGpaBtn) saveGpaBtn.style.display = "none"; // Hide GPA save button for Faculty
+        if (csInput) csInput.disabled = false;
+        if (statInput) statInput.disabled = false;
+        if (mathInput) mathInput.disabled = false;
+        if (gpaInput) gpaInput.disabled = true; // Disable GPA editing for Faculty
       } else {
         // Viewers can only see the values - hide all buttons and disable inputs
         if (savePrerequisitesBtn) savePrerequisitesBtn.style.display = "none";
@@ -2562,11 +2567,26 @@ class ApplicantsManager {
     }
   }
 
-  clearPrerequisites() {
+  async clearPrerequisites() {
+    // Clear prerequisite courses for all roles
     document.getElementById("prerequisiteCs").value = "";
     document.getElementById("prerequisiteStat").value = "";
     document.getElementById("prerequisiteMath").value = "";
-    document.getElementById("overallGpa").value = "";
+
+    // Only clear GPA if user is Admin
+    try {
+      const response = await fetch("/api/auth/check-session");
+      const result = await response.json();
+
+      if (result.authenticated && result.user?.role === "Admin") {
+        // Admin can clear GPA
+        document.getElementById("overallGpa").value = "";
+      }
+      // Faculty and Viewers: don't clear GPA field
+    } catch (error) {
+      console.error("Error checking user permissions:", error);
+      // If error checking permissions, don't clear GPA to be safe
+    }
   }
 
   setupStatusPreview(currentStatus) {
