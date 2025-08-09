@@ -536,7 +536,7 @@ class ApplicantsManager {
       "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50";
 
     modal.innerHTML = `
-    <div class="relative top-5 mx-auto p-6 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white mb-10">
+    <div class="relative top-5 mx-auto p-6 border w-11/12 max-w-4xl max-h-[90vh] shadow-lg rounded-lg bg-white mb-10 flex flex-col">
      <!-- Modal Header -->
       <div class="flex items-center justify-between pb-4 border-b border-gray-200">
         <div>
@@ -578,9 +578,9 @@ class ApplicantsManager {
       </div>
 
       <!-- Tab Content -->
-      <div class="mt-6 max-h-96 overflow-y-auto">
+      <div class="mt-6 flex flex-col min-h-[20rem] max-h-[calc(100vh-20rem)]">
         <!-- Applicant Info Tab -->
-        <div id="applicant-info" class="tab-content hidden">
+        <div id="applicant-info" class="tab-content hidden flex-1 overflow-y-auto">
           <div id="applicantInfoContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
@@ -590,7 +590,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Institution Info Tab -->
-        <div id="institution-info" class="tab-content hidden">
+        <div id="institution-info" class="tab-content hidden flex-1 overflow-y-auto">
           <div id="institutionInfoContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
@@ -600,7 +600,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Test Scores Tab -->
-        <div id="test-scores" class="tab-content hidden">
+        <div id="test-scores" class="tab-content hidden flex-1 overflow-y-auto">
           <div id="testScoresContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
@@ -610,8 +610,8 @@ class ApplicantsManager {
         </div>
 
         <!-- Prerequisites Tab -->
-        <div id="prerequisite-courses" class="tab-content hidden">
-          <div class="max-h-96 overflow-y-auto pr-2">
+        <div id="prerequisite-courses" class="tab-content hidden flex-1 overflow-y-auto">
+          <div class="pr-2">
             <div class="mb-6">
               <!-- Feedback Message Area -->
               <div id="prerequisitesFeedback" class="hidden mb-4 p-3 rounded-lg flex items-center">
@@ -714,8 +714,8 @@ class ApplicantsManager {
         </div>
 
         <!-- Comments & Ratings Tab -->
-        <div id="comments-ratings" class="tab-content">
-          <div class="max-h-96 overflow-y-auto pr-2">
+        <div id="comments-ratings" class="tab-content flex-1 overflow-y-auto">
+          <div class="pr-2">
 
             <!-- Add/Edit Rating Section -->
             <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg mb-6">
@@ -751,8 +751,8 @@ class ApplicantsManager {
         </div>
 
         <!-- Status Tab -->
-        <div id="status-tab" class="tab-content hidden">
-          <div class="max-h-96 overflow-y-auto pr-2">
+        <div id="status-tab" class="tab-content hidden flex-1 overflow-y-auto">
+          <div class="pr-2">
             <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
               <h4 class="text-lg font-semibold text-ubc-blue mb-6 flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1108,7 +1108,7 @@ class ApplicantsManager {
           : null;
 
         container.innerHTML = `
-          <div class="max-h-96 overflow-y-auto pr-2">
+          <div class="pr-2">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <!-- Personal Information -->
               <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
@@ -1335,7 +1335,7 @@ class ApplicantsManager {
         const scores = result.test_scores;
 
         container.innerHTML = `
-          <div class="max-h-96 overflow-y-auto pr-2">
+          <div class="pr-2">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               <!-- English Language Tests -->
@@ -1830,7 +1830,7 @@ class ApplicantsManager {
         result.institutions.length > 0
       ) {
         container.innerHTML = `
-          <div class="max-h-96 overflow-y-auto pr-2">
+          <div class="pr-2">
             <h4 class="text-xl font-semibold text-ubc-blue mb-6 flex items-center">
               <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 3v18M13 3v18"></path>
