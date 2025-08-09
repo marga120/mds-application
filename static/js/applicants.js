@@ -795,7 +795,9 @@ class ApplicantsManager {
                       <div id="statusDropdownContainer">
                         <select id="statusSelect" class="input-ubc w-full text-base">
                           <option value="Not Reviewed">Not Reviewed</option>
+                          <option value="Reviewed">Reviewed</option>
                           <option value="Waitlist">Waitlist</option>
+                          <option value="Declined">Declined</option>
                           <option value="Offer">Offer</option>
                           <option value="CoGS">CoGS</option>
                           <option value="Offer Sent">Offer Sent</option>
@@ -2266,6 +2268,14 @@ class ApplicantsManager {
       case "Offer Sent":
         badge.classList.add("bg-purple-100", "text-purple-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-purple-400";
+        break;
+      case "Reviewed":
+        badge.classList.add("bg-indigo-100", "text-indigo-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-indigo-400";
+        break;
+      case "Declined":
+        badge.classList.add("bg-red-100", "text-red-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-red-400";
         break;
       default:
         badge.classList.add("bg-gray-100", "text-gray-800");

@@ -143,7 +143,15 @@ def update_applicant_status(user_code):
         return jsonify({"success": False, "message": "Status is required"}), 400
 
     # Validate status values
-    valid_statuses = ["Not Reviewed", "Waitlist", "Offer", "CoGS", "Offer Sent"]
+    valid_statuses = [
+        "Not Reviewed",
+        "Reviewed",
+        "Waitlist",
+        "Declined",
+        "Offer",
+        "CoGS",
+        "Offer Sent",
+    ]
     if status not in valid_statuses:
         return jsonify({"success": False, "message": "Invalid status value"}), 400
 
