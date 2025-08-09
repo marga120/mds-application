@@ -3,6 +3,7 @@ import pandas as pd
 import io
 from datetime import datetime, timezone
 from flask_login import current_user
+from utils.activity_logger import log_activity
 
 # Import our model functions
 from models.applicants import process_csv_data, get_all_applicant_status
@@ -155,7 +156,24 @@ def update_applicant_status(user_code):
     if status not in valid_statuses:
         return jsonify({"success": False, "message": "Invalid status value"}), 400
 
+    # Get old status first for logging
+    from models.applicants import get_applicant_application_info_by_code
+
+    old_info, _ = get_applicant_application_info_by_code(user_code)
+    old_status = old_info.get("sent", "Not Reviewed") if old_info else "Not Reviewed"
+
     success, message = update_applicant_application_status(user_code, status)
+
+    # Log the status change
+    if success:
+        log_activity(
+            action_type="status_change",
+            target_entity="applicant",
+            target_id=user_code,
+            old_value=old_status,
+            new_value=status,
+            additional_metadata={"user_code": user_code},
+        )
 
     if success:
         return jsonify({"success": True, "message": message})
