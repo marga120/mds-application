@@ -130,8 +130,8 @@ def get_applicant_application_info(user_code):
 
 @applicants_api.route("/applicant-application-info/<user_code>/status", methods=["PUT"])
 def update_applicant_status(user_code):
-    """Update applicant status in application_info (Admin/Faculty only)"""
-    if not current_user.is_authenticated or current_user.is_viewer:
+    """Update applicant status in application_info (Admin only)"""
+    if not current_user.is_authenticated or not current_user.is_admin:
         return jsonify({"success": False, "message": "Access denied"}), 403
 
     from models.applicants import update_applicant_application_status
