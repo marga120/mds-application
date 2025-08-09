@@ -13,8 +13,8 @@ applicants_api = Blueprint("applicants_api", __name__)
 
 @applicants_api.route("/upload", methods=["POST"])
 def upload_csv():
-    """Handle CSV file upload and processing (Admin/Faculty only)"""
-    if not current_user.is_authenticated or current_user.is_viewer:
+    """Handle CSV file upload and processing (Admin only)"""
+    if not current_user.is_authenticated or not current_user.is_admin:
         return jsonify({"success": False, "message": "Access denied"}), 403
 
     if "file" not in request.files:

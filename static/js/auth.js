@@ -31,7 +31,7 @@ class AuthManager {
     if (sessionsDropdownArea) {
       // Show Sessions dropdown for all users, but different content based on role
       const createSessionOption =
-        user.role === "Admin" || user.role === "Faculty"
+        user.role === "Admin"
           ? `<a href="/create-new-session" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
              Create New Session
            </a>
@@ -92,7 +92,7 @@ class AuthManager {
 
   updateUploadSection(user) {
     const uploadSection = document.getElementById("uploadSection");
-    if (uploadSection && user.role === "Viewer") {
+    if (uploadSection && (user.role === "Viewer" || user.role === "Faculty")) {
       uploadSection.style.display = "none";
     }
   }
