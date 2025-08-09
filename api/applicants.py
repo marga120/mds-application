@@ -155,9 +155,11 @@ def update_applicant_status(user_code):
         return jsonify({"success": False, "message": message}), 400
 
 
-@applicants_api.route("/applicant-application-info/<user_code>/prerequisites", methods=["PUT"])
+@applicants_api.route(
+    "/applicant-application-info/<user_code>/prerequisites", methods=["PUT"]
+)
 def update_applicant_prerequisites(user_code):
-    """Update applicant prerequisite courses (Admin/Faculty only)"""
+    """Update applicant prerequisites including courses and GPA (Admin/Faculty only)"""
     if not current_user.is_authenticated or current_user.is_viewer:
         return jsonify({"success": False, "message": "Access denied"}), 403
 
@@ -176,7 +178,19 @@ def update_applicant_prerequisites(user_code):
     stat = str(data.get("stat", "")).strip()[:1000]
     math = str(data.get("math", "")).strip()[:1000]
 
-    success, message = update_applicant_prerequisites(user_code, cs, stat, math)
+    # Handle GPA - validate it's a proper decimal format
+    gpa = data.get("gpa", "")
+    if gpa and gpa != "":
+        try:
+            # Validate GPA format (should be a decimal with up to 2 decimal places)
+            gpa_float = float(gpa)
+            gpa = f"{gpa_float:.2f}"  # Format to 2 decimal places
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "message": "Invalid GPA format"}), 400
+    else:
+        gpa = None
+
+    success, message = update_applicant_prerequisites(user_code, cs, stat, math, gpa)
 
     if success:
         return jsonify({"success": True, "message": message})

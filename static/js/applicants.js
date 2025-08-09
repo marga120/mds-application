@@ -566,7 +566,7 @@ class ApplicantsManager {
             Test Scores
           </button>
           <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="prerequisite-courses">
-            Prerequisite Courses
+            Prerequisites
           </button>
           <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="comments-ratings">
             Comments & Ratings
@@ -609,29 +609,105 @@ class ApplicantsManager {
           </div>
         </div>
 
-        <!-- Prerequisite Courses Tab -->
+        <!-- Prerequisites Tab -->
         <div id="prerequisite-courses" class="tab-content hidden">
           <div class="max-h-96 overflow-y-auto pr-2">
             <div class="mb-6">
-              <h4 class="text-lg font-semibold text-gray-900 mb-4">Prerequisite Courses</h4>
-              <div id="prerequisitesContainer" class="bg-blue-50 p-6 rounded-lg border border-blue-200">
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Computer Science:</label>
-                    <input type="text" id="csInput" class="input-ubc w-full" placeholder="Enter review of Computer Science prerequisite courses">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Statistics:</label>
-                    <input type="text" id="statInput" class="input-ubc w-full" placeholder="Enter review of Statistics prerequisite courses">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Math:</label>
-                    <input type="text" id="mathInput" class="input-ubc w-full" placeholder="Enter review of Math prerequisite courses">
-                  </div>
-                  <div id="prerequisiteButtons" class="flex gap-3 mt-4">
-                    <button id="savePrerequisitesBtn" class="btn-ubc">Save Prerequisites Review</button>
-                    <button id="clearPrerequisitesBtn" class="btn-ubc-outline">Clear</button>
-                  </div>
+              <!-- Feedback Message Area -->
+              <div id="prerequisitesFeedback" class="hidden mb-4 p-3 rounded-lg flex items-center">
+                <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+                <span id="prerequisitesFeedbackText" class="text-sm font-medium"></span>
+              </div>
+
+              <!-- Overall GPA Section -->
+              <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
+                </svg>
+                Overall GPA
+              </h4>
+              
+              <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-6">
+                <div class="flex items-center gap-3">
+                  <label class="text-sm font-medium text-gray-700">Overall GPA:</label>
+                  <input
+                    type="number"
+                    id="overallGpa"
+                    class="w-24 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue"
+                    placeholder="0.00"
+                    min="0"
+                    max="10.0"
+                    step="0.01"
+                  />
+                  <span class="text-sm text-gray-500">/ 10.0</span>
+                  <button
+                    id="saveGpaBtn"
+                    class="ml-auto px-3 py-1.5 bg-ubc-blue text-white text-sm rounded-md hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Save Overall GPA
+                  </button>
+                </div>
+              </div>
+
+              <!-- Prerequisite Courses Section -->
+              <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                </svg>
+                Prerequisite Courses
+              </h4>
+              
+              <div id="prerequisiteCoursesContainer" class="space-y-4">
+                <!-- Computer Science -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Computer Science:</label>
+                  <textarea
+                    id="prerequisiteCs"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
+                    rows="2"
+                    placeholder="Enter review of Computer Science prerequisite courses"
+                  ></textarea>
+                </div>
+
+                <!-- Statistics -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Statistics:</label>
+                  <textarea
+                    id="prerequisiteStat"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
+                    rows="2"
+                    placeholder="Enter review of Statistics prerequisite courses"
+                  ></textarea>
+                </div>
+
+                <!-- Math -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Math:</label>
+                  <textarea
+                    id="prerequisiteMath"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
+                    rows="2"
+                    placeholder="Enter review of Math prerequisite courses"
+                  ></textarea>
+                </div>
+
+                <!-- Save Button -->
+                <div class="flex gap-3 mt-6">
+                  <button
+                    id="savePrerequisitesBtn"
+                    class="px-4 py-2 bg-ubc-blue text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Save Prerequisite Courses
+                  </button>
+                  <button
+                    id="clearPrerequisitesBtn"
+                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium"
+                  >
+                    Clear
+                  </button>
                 </div>
               </div>
             </div>
@@ -806,12 +882,13 @@ class ApplicantsManager {
 
     const savePrereqBtn = modal.querySelector("#savePrerequisitesBtn");
     const clearPrereqBtn = modal.querySelector("#clearPrerequisitesBtn");
+    const saveGpaBtn = modal.querySelector("#saveGpaBtn");
 
     if (savePrereqBtn) {
       savePrereqBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        this.savePrerequisites();
+        this.savePrerequisiteCourses();
       });
     }
 
@@ -820,6 +897,14 @@ class ApplicantsManager {
         e.preventDefault();
         e.stopPropagation();
         this.clearPrerequisites();
+      });
+    }
+
+    if (saveGpaBtn) {
+      saveGpaBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.saveOverallGpa();
       });
     }
 
@@ -2197,16 +2282,20 @@ class ApplicantsManager {
       const result = await response.json();
 
       if (result.success && result.application_info) {
-        const applicationInfo = result.application_info;
+        const info = result.application_info;
+        document.getElementById("prerequisiteCs").value = info.cs || "";
+        document.getElementById("prerequisiteStat").value = info.stat || "";
+        document.getElementById("prerequisiteMath").value = info.math || "";
 
-        // Populate the input fields
-        document.getElementById("csInput").value = applicationInfo.cs || "";
-        document.getElementById("statInput").value = applicationInfo.stat || "";
-        document.getElementById("mathInput").value = applicationInfo.math || "";
+        // Load the overall GPA
+        const gpaInput = document.getElementById("overallGpa");
+        if (info.gpa) {
+          // Format to 2 decimal places
+          gpaInput.value = parseFloat(info.gpa).toFixed(2);
+        } else {
+          gpaInput.value = "";
+        }
       }
-
-      // Update prerequisites form for viewers
-      this.updatePrerequisitesFormForViewer();
     } catch (error) {
       console.error("Error loading prerequisites:", error);
     }
@@ -2256,42 +2345,177 @@ class ApplicantsManager {
     }
   }
 
-  async savePrerequisites() {
-    const userCode =
-      document.getElementById("applicantModal").dataset.currentUserCode;
-    const saveBtn = document.getElementById("savePrerequisitesBtn");
+  showPrerequisitesFeedback(message, isSuccess) {
+    const feedbackDiv = document.getElementById("prerequisitesFeedback");
+    const feedbackText = document.getElementById("prerequisitesFeedbackText");
 
+    if (feedbackDiv && feedbackText) {
+      feedbackText.textContent = message;
+
+      // Remove existing classes
+      feedbackDiv.classList.remove(
+        "hidden",
+        "bg-green-100",
+        "text-green-800",
+        "bg-red-100",
+        "text-red-800"
+      );
+
+      // Add appropriate classes based on success/error
+      if (isSuccess) {
+        feedbackDiv.classList.add("bg-green-100", "text-green-800");
+      } else {
+        feedbackDiv.classList.add("bg-red-100", "text-red-800");
+      }
+
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        feedbackDiv.classList.add("hidden");
+      }, 5000);
+    }
+  }
+
+  async saveOverallGpa() {
+    const modal = document.getElementById("applicantModal");
+    const userCode = modal.dataset.currentUserCode;
     if (!userCode) return;
 
+    // Get GPA value and validate
+    const gpaInput = document.getElementById("overallGpa");
+    let gpa = gpaInput.value.trim();
+
+    // Validate GPA
+    if (!gpa) {
+      this.showPrerequisitesFeedback("Please enter a GPA value", false);
+      return;
+    }
+
+    const gpaFloat = parseFloat(gpa);
+    if (isNaN(gpaFloat) || gpaFloat < 0 || gpaFloat > 10.0) {
+      this.showPrerequisitesFeedback(
+        "GPA must be between 0.00 and 10.00",
+        false
+      );
+      return;
+    }
+
+    // Format to 2 decimal places
+    gpa = gpaFloat.toFixed(2);
+    gpaInput.value = gpa; // Update the input to show formatted value
+
+    const saveBtn = document.getElementById("saveGpaBtn");
     const originalText = saveBtn.textContent;
     saveBtn.disabled = true;
     saveBtn.textContent = "Saving...";
 
     try {
+      // Get current prerequisite courses values to maintain them
       const response = await fetch(
+        `/api/applicant-application-info/${userCode}`
+      );
+      const result = await response.json();
+
+      const cs =
+        result.success && result.application_info
+          ? result.application_info.cs || ""
+          : "";
+      const stat =
+        result.success && result.application_info
+          ? result.application_info.stat || ""
+          : "";
+      const math =
+        result.success && result.application_info
+          ? result.application_info.math || ""
+          : "";
+
+      // Save GPA along with existing course values
+      const saveResponse = await fetch(
         `/api/applicant-application-info/${userCode}/prerequisites`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            cs: document.getElementById("csInput").value,
-            stat: document.getElementById("statInput").value,
-            math: document.getElementById("mathInput").value,
-          }),
+          body: JSON.stringify({ cs, stat, math, gpa }),
         }
       );
 
-      const result = await response.json();
+      const saveResult = await saveResponse.json();
 
-      if (result.success) {
-        this.showMessage(result.message, "success");
+      if (saveResult.success) {
+        this.showPrerequisitesFeedback("Overall GPA saved successfully", true);
       } else {
-        this.showMessage(result.message, "error");
+        this.showPrerequisitesFeedback(
+          saveResult.message || "Failed to save GPA",
+          false
+        );
       }
     } catch (error) {
-      this.showMessage(`Error saving prerequisites: ${error.message}`, "error");
+      console.error("Error saving GPA:", error);
+      this.showPrerequisitesFeedback("Error saving GPA", false);
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalText;
+    }
+  }
+
+  async savePrerequisiteCourses() {
+    const modal = document.getElementById("applicantModal");
+    const userCode = modal.dataset.currentUserCode;
+    if (!userCode) return;
+
+    const cs = document.getElementById("prerequisiteCs").value;
+    const stat = document.getElementById("prerequisiteStat").value;
+    const math = document.getElementById("prerequisiteMath").value;
+
+    const saveBtn = document.getElementById("savePrerequisitesBtn");
+    const originalText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+
+    try {
+      // Get current GPA value to maintain it
+      const response = await fetch(
+        `/api/applicant-application-info/${userCode}`
+      );
+      const result = await response.json();
+
+      const gpa =
+        result.success && result.application_info
+          ? result.application_info.gpa || null
+          : null;
+
+      // Save courses along with existing GPA
+      const saveResponse = await fetch(
+        `/api/applicant-application-info/${userCode}/prerequisites`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ cs, stat, math, gpa }),
+        }
+      );
+
+      const saveResult = await saveResponse.json();
+
+      if (saveResult.success) {
+        this.showPrerequisitesFeedback(
+          "Prerequisite courses saved successfully",
+          true
+        );
+      } else {
+        this.showPrerequisitesFeedback(
+          saveResult.message || "Failed to save prerequisite courses",
+          false
+        );
+      }
+    } catch (error) {
+      console.error("Error saving prerequisite courses:", error);
+      this.showPrerequisitesFeedback(
+        "Error saving prerequisite courses",
+        false
+      );
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
@@ -2299,9 +2523,10 @@ class ApplicantsManager {
   }
 
   clearPrerequisites() {
-    document.getElementById("csInput").value = "";
-    document.getElementById("statInput").value = "";
-    document.getElementById("mathInput").value = "";
+    document.getElementById("prerequisiteCs").value = "";
+    document.getElementById("prerequisiteStat").value = "";
+    document.getElementById("prerequisiteMath").value = "";
+    document.getElementById("overallGpa").value = "";
   }
 
   setupStatusPreview(currentStatus) {
