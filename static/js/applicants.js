@@ -934,6 +934,11 @@ class ApplicantsManager {
         content.classList.add("hidden");
       }
     });
+
+    // If showing prerequisites tab, update permissions
+    if (tabName === "prerequisite-courses") {
+      this.updatePrerequisitesFormForViewer();
+    }
   }
 
   async loadRatings(userCode) {
@@ -2305,6 +2310,9 @@ class ApplicantsManager {
           gpaInput.value = "";
         }
       }
+
+      // Check user permissions and update form accordingly
+      await this.updatePrerequisitesFormForViewer();
     } catch (error) {
       console.error("Error loading prerequisites:", error);
     }
@@ -2315,38 +2323,61 @@ class ApplicantsManager {
       const response = await fetch("/api/auth/check-session");
       const result = await response.json();
 
-      const prerequisiteButtons = document.getElementById(
-        "prerequisiteButtons"
+      // Get all the elements we need to control
+      const savePrerequisitesBtn = document.getElementById(
+        "savePrerequisitesBtn"
       );
-      const csInput = document.getElementById("csInput");
-      const statInput = document.getElementById("statInput");
-      const mathInput = document.getElementById("mathInput");
+      const clearPrerequisitesBtn = document.getElementById(
+        "clearPrerequisitesBtn"
+      );
+      const saveGpaBtn = document.getElementById("saveGpaBtn");
+      const csInput = document.getElementById("prerequisiteCs");
+      const statInput = document.getElementById("prerequisiteStat");
+      const mathInput = document.getElementById("prerequisiteMath");
+      const gpaInput = document.getElementById("overallGpa");
 
       if (
         result.authenticated &&
         (result.user?.role === "Admin" || result.user?.role === "Faculty")
       ) {
         // Admin and Faculty can edit prerequisites
-        prerequisiteButtons.style.display = "flex";
-        csInput.disabled = false;
-        statInput.disabled = false;
-        mathInput.disabled = false;
+        if (savePrerequisitesBtn)
+          savePrerequisitesBtn.style.display = "inline-block";
+        if (clearPrerequisitesBtn)
+          clearPrerequisitesBtn.style.display = "inline-block";
+        if (saveGpaBtn) saveGpaBtn.style.display = "inline-block";
+        if (csInput) csInput.disabled = false;
+        if (statInput) statInput.disabled = false;
+        if (mathInput) mathInput.disabled = false;
+        if (gpaInput) gpaInput.disabled = false;
       } else {
-        // Viewers can only see the values
-        prerequisiteButtons.style.display = "none";
-        csInput.disabled = true;
-        statInput.disabled = true;
-        mathInput.disabled = true;
-
-        // Update placeholder text for empty fields
-        if (!csInput.value || csInput.value.trim() === "") {
-          csInput.placeholder = "Not Provided";
+        // Viewers can only see the values - hide all buttons and disable inputs
+        if (savePrerequisitesBtn) savePrerequisitesBtn.style.display = "none";
+        if (clearPrerequisitesBtn) clearPrerequisitesBtn.style.display = "none";
+        if (saveGpaBtn) saveGpaBtn.style.display = "none";
+        if (csInput) {
+          csInput.disabled = true;
+          if (!csInput.value || csInput.value.trim() === "") {
+            csInput.placeholder = "Not Provided";
+          }
         }
-        if (!statInput.value || statInput.value.trim() === "") {
-          statInput.placeholder = "Not Provided";
+        if (statInput) {
+          statInput.disabled = true;
+          if (!statInput.value || statInput.value.trim() === "") {
+            statInput.placeholder = "Not Provided";
+          }
         }
-        if (!mathInput.value || mathInput.value.trim() === "") {
-          mathInput.placeholder = "Not Provided";
+        if (mathInput) {
+          mathInput.disabled = true;
+          if (!mathInput.value || mathInput.value.trim() === "") {
+            mathInput.placeholder = "Not Provided";
+          }
+        }
+        if (gpaInput) {
+          gpaInput.disabled = true;
+          if (!gpaInput.value || gpaInput.value.trim() === "") {
+            gpaInput.placeholder = "N/A";
+          }
         }
       }
     } catch (error) {
