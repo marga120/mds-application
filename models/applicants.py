@@ -826,8 +826,8 @@ def update_applicant_application_status(user_code, status):
         return False, f"Database error: {str(e)}"
 
 
-def update_applicant_prerequisites(user_code, cs, stat, math):
-    """Update applicant prerequisite courses in application_info table"""
+def update_applicant_prerequisites(user_code, cs, stat, math, gpa=None):
+    """Update applicant prerequisites (courses and GPA) in application_info table"""
     conn = get_db_connection()
     if not conn:
         return False, "Database connection failed"
@@ -847,20 +847,20 @@ def update_applicant_prerequisites(user_code, cs, stat, math):
         cursor.execute(
             """
             UPDATE application_info 
-            SET cs = %s, stat = %s, math = %s
+            SET cs = %s, stat = %s, math = %s, gpa = %s
             WHERE user_code = %s
         """,
-            (cs, stat, math, user_code),
+            (cs, stat, math, gpa, user_code),
         )
 
         if cursor.rowcount == 0:
             # If no rows updated, create new record
             cursor.execute(
                 """
-                INSERT INTO application_info (user_code, cs, stat, math) 
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO application_info (user_code, cs, stat, math, gpa) 
+                VALUES (%s, %s, %s, %s, %s)
             """,
-                (user_code, cs, stat, math),
+                (user_code, cs, stat, math, gpa),
             )
 
         conn.commit()
