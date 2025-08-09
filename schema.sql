@@ -114,6 +114,8 @@ CREATE TABLE IF NOT EXISTS application_info (
     full_name VARCHAR(100),
     canadian BOOLEAN,
     english BOOLEAN,
+    english_status VARCHAR(50),
+    english_description VARCHAR(100),
     cs TEXT,
     stat TEXT,
     math TEXT,
