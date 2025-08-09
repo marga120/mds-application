@@ -1891,23 +1891,112 @@ class ApplicantsManager {
     }
   }
 
+  calculateHighestDegreeFromInstitutions(institutions) {
+    if (!institutions || institutions.length === 0) {
+      return { highest_degree: null, degree_area: null, gpa: null };
+    }
+
+    const degreeHierarchy = {
+      phd: 4,
+      doctorate: 4,
+      doctoral: 4,
+      "ph.d": 4,
+      "ph.d.": 4,
+      master: 3,
+      "master's": 3,
+      masters: 3,
+      msc: 3,
+      ma: 3,
+      mba: 3,
+      med: 3,
+      bachelor: 2,
+      "bachelor's": 2,
+      bachelors: 2,
+      bsc: 2,
+      ba: 2,
+      beng: 2,
+      associate: 1,
+      diploma: 1,
+      certificate: 1,
+    };
+
+    let highestDegreeLevel = 0;
+    let selectedInstitution = null;
+
+    for (const institution of institutions) {
+      if (!institution.credential_receive) continue;
+
+      const credential = institution.credential_receive.toLowerCase().trim();
+
+      // Find matching degree level
+      let currentDegreeLevel = 0;
+      for (const [degreeKey, level] of Object.entries(degreeHierarchy)) {
+        if (credential.includes(degreeKey)) {
+          currentDegreeLevel = Math.max(currentDegreeLevel, level);
+        }
+      }
+
+      // If this is a higher degree, or same degree with later date
+      if (currentDegreeLevel > highestDegreeLevel) {
+        highestDegreeLevel = currentDegreeLevel;
+        selectedInstitution = institution;
+      } else if (
+        currentDegreeLevel === highestDegreeLevel &&
+        selectedInstitution
+      ) {
+        // Same degree level - choose the one with latest date_confer
+        const currentDate = institution.date_confer
+          ? new Date(institution.date_confer)
+          : null;
+        const selectedDate = selectedInstitution.date_confer
+          ? new Date(selectedInstitution.date_confer)
+          : null;
+
+        if (currentDate && selectedDate) {
+          if (currentDate > selectedDate) {
+            selectedInstitution = institution;
+          }
+        } else if (currentDate && !selectedDate) {
+          selectedInstitution = institution;
+        }
+      }
+    }
+
+    if (selectedInstitution) {
+      return {
+        highest_degree: selectedInstitution.credential_receive,
+        degree_area: selectedInstitution.program_study,
+        gpa: selectedInstitution.gpa,
+      };
+    }
+
+    return { highest_degree: null, degree_area: null, gpa: null };
+  }
+
   async loadAcademicSummary(userCode) {
     try {
-      const response = await fetch(
-        `/api/applicant-application-info/${userCode}`
-      );
+      // Fetch institution data to calculate highest degree locally
+      const response = await fetch(`/api/applicant-institutions/${userCode}`);
       const result = await response.json();
 
-      if (result.success && result.application_info) {
-        const applicationInfo = result.application_info;
+      if (result.success && result.institutions) {
+        // Calculate highest degree from institutions data
+        const academicSummary = this.calculateHighestDegreeFromInstitutions(
+          result.institutions
+        );
 
         // Update academic summary displays
         document.getElementById("highestDegreeDisplay").textContent =
-          applicationInfo.highest_degree || "-";
+          academicSummary.highest_degree || "-";
         document.getElementById("degreeAreaDisplay").textContent =
-          applicationInfo.degree_area || "-";
+          academicSummary.degree_area || "-";
         document.getElementById("gpaDisplay").textContent =
-          applicationInfo.gpa || "-";
+          academicSummary.gpa || "-";
+      } else {
+        // Set default values if no institutions found
+        document.getElementById("highestDegreeDisplay").textContent = "-";
+        document.getElementById("degreeAreaDisplay").textContent = "-";
+        document.getElementById("gpaDisplay").textContent = "-";
       }
     } catch (error) {
       console.error("Error loading academic summary:", error);
