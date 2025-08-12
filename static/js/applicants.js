@@ -31,7 +31,25 @@ class ApplicantsManager {
     });
   }
 
-  // Debug version of loadSessionName method
+  getTimeAgo(date) {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    const minutes = Math.floor(diffInSeconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds} second${diffInSeconds !== 1 ? "s" : ""} ago`;
+    } else if (minutes < 60) {
+      return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
+    } else if (hours < 24) {
+      return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+    } else {
+      return `${days} day${days !== 1 ? "s" : ""} ago`;
+    }
+  }
+
   async loadSessionName() {
     try {
       const response = await fetch("/api/sessions");
@@ -46,14 +64,13 @@ class ApplicantsManager {
         this.updateSectionTitle();
       }
     } catch (error) {
-      console.error("💥 Failed to load session name:", error);
+      console.error("Failed to load session name:", error);
       // Fallback to default
       this.sessionName = "Default Session";
       this.updateSectionTitle();
     }
   }
 
-  // Debug version of updateSectionTitle method
   updateSectionTitle() {
     const titleElement = document.getElementById("applicantsSectionTitle");
 
@@ -527,6 +544,8 @@ class ApplicantsManager {
     this.loadApplicationStatus(userCode);
 
     this.loadPrerequisites(userCode);
+
+    this.loadStatusHistory(userCode);
   }
 
   createApplicantModal() {
@@ -828,6 +847,23 @@ class ApplicantsManager {
                         Update Status
                       </button>
                       <button id="cancelStatusBtn" class="btn-ubc-outline">Cancel</button>
+                    </div>
+
+                    <div class="border-t border-blue-200 pt-6 mt-6">
+                      <h5 class="text-md font-semibold text-gray-800 mb-4 flex items-center">
+                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      Status History
+                      </h5>
+                
+                      <div id="statusHistoryContainer" class="space-y-3">
+                        <div class="text-center py-4 text-gray-500">
+                          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+                            Loading status history...
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2230,6 +2266,9 @@ class ApplicantsManager {
 
         // Reload the entire status display
         this.loadApplicationStatus(userCode);
+
+        // Reload status history immediately
+        await this.loadStatusHistory(userCode);
       } else {
         this.showMessage(result.message, "error");
       }
@@ -2239,6 +2278,78 @@ class ApplicantsManager {
       updateBtn.disabled = false;
       updateBtn.innerHTML = originalHTML;
     }
+  }
+
+  async loadStatusHistory(userCode) {
+    const container = document.getElementById("statusHistoryContainer");
+
+    try {
+      // Fetch status change logs for this specific applicant
+      const response = await fetch(
+        `/api/logs?action_type=status_change&target_id=${userCode}&limit=20`
+      );
+      const result = await response.json();
+
+      if (result.success) {
+        if (result.logs.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-4 text-gray-500">
+              <p class="text-sm">No status changes recorded yet</p>
+            </div>
+          `;
+          return;
+        }
+
+        const historyHtml = result.logs
+          .map((log) => this.createStatusHistoryItem(log))
+          .join("");
+        container.innerHTML = historyHtml;
+      } else {
+        container.innerHTML = `
+          <div class="text-center py-4 text-red-500">
+            <p class="text-sm">Error loading status history</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      console.error("Error loading status history:", error);
+      container.innerHTML = `
+        <div class="text-center py-4 text-red-500">
+          <p class="text-sm">Failed to load status history</p>
+        </div>
+      `;
+    }
+  }
+
+  createStatusHistoryItem(log) {
+    const timestamp = new Date(log.created_at);
+    const timeString = timestamp.toLocaleString();
+    const timeAgo = this.getTimeAgo(timestamp);
+
+    return `
+      <div class="bg-white rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <p class="text-sm text-gray-900">
+              <span class="font-medium">${log.user_name}</span> 
+              changed status from 
+              <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-medium">${
+                log.old_value || "Unknown"
+              }</span>
+              to 
+              <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-medium">${
+                log.new_value || "Unknown"
+              }</span>
+            </p>
+            <div class="mt-2 flex items-center gap-4 text-xs text-gray-500">
+              <span>${timeString}</span>
+              <span>•</span>
+              <span>${timeAgo}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   updateStatusBadge(status) {

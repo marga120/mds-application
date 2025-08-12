@@ -267,6 +267,18 @@ CREATE TABLE IF NOT EXISTS gmat(
     writing VARCHAR(2)
 );
 
+CREATE TABLE IF NOT EXISTS activity_log (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES "user"(id),
+    action_type VARCHAR(50) NOT NULL,
+    target_entity VARCHAR(50),
+    target_id VARCHAR(50),
+    old_value TEXT,
+    new_value TEXT,
+    additional_metadata JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Add foreign key constraint with CASCADE DELETE (check if exists first)
 DO $$ 
 BEGIN
