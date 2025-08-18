@@ -1,9 +1,9 @@
 class ApplicantsManager {
   constructor() {
     this.allApplicants = [];
-    this.sessionName = ""; // Add property to store session name
+    this.sessionName = "";
     this.initializeEventListeners();
-    this.loadSessionName(); // Load session name first
+    this.loadSessionName();
     this.loadApplicants();
     this.initializeActionButtons();
   }
@@ -652,21 +652,18 @@ class ApplicantsManager {
               <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-6">
                 <div class="flex items-center gap-3">
                   <label class="text-sm font-medium text-gray-700">Overall GPA:</label>
-                  <input
-                    type="number"
-                    id="overallGpa"
-                    class="w-24 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue"
-                    placeholder="0.00"
-                    min="0"
-                    max="10.0"
-                    step="0.01"
-                  />
-                  <button
-                    id="saveGpaBtn"
-                    class="ml-auto px-3 py-1.5 bg-ubc-blue text-white text-sm rounded-md hover:bg-blue-700 transition-colors font-medium"
-                  >
-                    Save Overall GPA
-                  </button>
+                    <input
+                      type="text"
+                      id="overallGpa"
+                      class="w-128 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue"
+                      placeholder="Enter GPA"
+                    />
+                    <button
+                      id="saveGpaBtn"
+                      class="ml-auto px-3 py-1.5 bg-ubc-blue text-white text-sm rounded-md hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      Save Overall GPA
+                    </button>
                 </div>
               </div>
 
@@ -2412,8 +2409,8 @@ class ApplicantsManager {
         // Load the overall GPA
         const gpaInput = document.getElementById("overallGpa");
         if (info.gpa) {
-          // Format to 2 decimal places
-          gpaInput.value = parseFloat(info.gpa).toFixed(2);
+          // Load as string value
+          gpaInput.value = info.gpa;
         } else {
           gpaInput.value = "";
         }
@@ -2540,24 +2537,11 @@ class ApplicantsManager {
     const gpaInput = document.getElementById("overallGpa");
     let gpa = gpaInput.value.trim();
 
-    // Validate GPA
+    // Validate GPA - only check if it's not empty
     if (!gpa) {
       this.showPrerequisitesFeedback("Please enter a GPA value", false);
       return;
     }
-
-    const gpaFloat = parseFloat(gpa);
-    if (isNaN(gpaFloat) || gpaFloat < 0 || gpaFloat > 10.0) {
-      this.showPrerequisitesFeedback(
-        "GPA must be between 0.00 and 10.00",
-        false
-      );
-      return;
-    }
-
-    // Format to 2 decimal places
-    gpa = gpaFloat.toFixed(2);
-    gpaInput.value = gpa; // Update the input to show formatted value
 
     const saveBtn = document.getElementById("saveGpaBtn");
     const originalText = saveBtn.textContent;

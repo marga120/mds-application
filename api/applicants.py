@@ -204,15 +204,11 @@ def update_applicant_prerequisites(user_code):
     stat = str(data.get("stat", "")).strip()[:1000]
     math = str(data.get("math", "")).strip()[:1000]
 
-    # Handle GPA - validate it's a proper decimal format
+    # Handle GPA - accept as string input
     gpa = data.get("gpa", "")
     if gpa and gpa != "":
-        try:
-            # Validate GPA format (should be a decimal with up to 2 decimal places)
-            gpa_float = float(gpa)
-            gpa = f"{gpa_float:.2f}"  # Format to 2 decimal places
-        except (ValueError, TypeError):
-            return jsonify({"success": False, "message": "Invalid GPA format"}), 400
+        # Accept any string input, just limit length for database storage
+        gpa = str(gpa).strip()[:50]  # Limit to 50 characters
     else:
         gpa = None
 

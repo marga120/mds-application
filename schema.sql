@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS application_info (
     cs TEXT,
     stat TEXT,
     math TEXT,
-    gpa VARCHAR(10),
+    gpa VARCHAR(50),
     highest_degree VARCHAR(50),
     degree_area VARCHAR(50),
     mds_v BOOLEAN,
