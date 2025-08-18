@@ -267,6 +267,16 @@ CREATE TABLE IF NOT EXISTS gmat(
     writing VARCHAR(2)
 );
 
+CREATE TABLE IF NOT EXISTS duolingo (
+    user_code VARCHAR(10) REFERENCES applicant_info(user_code),
+    score INTEGER,
+    description TEXT,
+    date_written DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_code)
+);
+
 CREATE TABLE IF NOT EXISTS activity_log (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES "user"(id),
@@ -528,6 +538,7 @@ CREATE INDEX IF NOT EXISTS idx_program_info_user_code ON program_info(user_code)
 CREATE INDEX IF NOT EXISTS idx_institution_info_user_code ON institution_info(user_code);
 CREATE INDEX IF NOT EXISTS idx_toefl_user_code ON toefl(user_code);
 CREATE INDEX IF NOT EXISTS idx_ielts_user_code ON ielts(user_code);
+CREATE INDEX IF NOT EXISTS idx_duolingo_user_code ON duolingo(user_code);
 
 -- Insert default roles
 INSERT INTO role_user (name) VALUES ('Admin'), ('Faculty'), ('Viewer') 

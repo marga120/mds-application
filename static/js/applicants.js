@@ -1401,6 +1401,7 @@ class ApplicantsManager {
                   ${this.renderCAELScore(scores.cael)}
                   ${this.renderCELPIPScore(scores.celpip)}
                   ${this.renderAltELPPScore(scores.alt_elpp)}
+                  ${this.renderDuolingoScore(scores.duolingo)}
                 </div>
               </div>
 
@@ -1421,6 +1422,11 @@ class ApplicantsManager {
             </div>
           </div>
         `;
+
+        // Update Duolingo permissions after rendering
+        setTimeout(() => {
+          this.updateDuolingoPermissions();
+        }, 100);
       } else {
         container.innerHTML = `
           <div class="text-center py-12 text-gray-500">
@@ -1629,6 +1635,221 @@ class ApplicantsManager {
         </div>
       </div>
     `;
+  }
+
+  renderDuolingoScore(score) {
+    const hasScore = score && (score.score || score.description);
+
+    return `
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+        <h5 class="font-semibold text-blue-900 mb-3 flex items-center justify-between">
+          Duolingo
+          ${
+            hasScore
+              ? ""
+              : '<span class="text-xs text-blue-600 italic">No score entered</span>'
+          }
+        </h5>
+        <div class="space-y-3">
+          ${
+            hasScore
+              ? `
+            <div class="space-y-2">
+              ${
+                score.score
+                  ? this.renderScoreField("Score", score.score, true)
+                  : ""
+              }
+              ${
+                score.date_written
+                  ? this.renderScoreField(
+                      "Date Written",
+                      this.formatDate(score.date_written)
+                    )
+                  : ""
+              }
+              ${
+                score.description
+                  ? `
+                <div class="bg-white rounded p-2 border border-blue-200">
+                  <span class="text-xs font-medium text-gray-700 block mb-1">Description:</span>
+                  <span class="text-sm text-gray-700">${score.description}</span>
+                </div>
+              `
+                  : ""
+              }
+            </div>
+          `
+              : ""
+          }
+          
+          <!-- Input Section (will be hidden/disabled based on permissions) -->
+          <div id="duolingoInputSection" class="bg-white rounded-lg p-3 border border-blue-200">
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Score (0-160):</label>
+                <input
+                  type="number"
+                  id="duolingoScoreInput"
+                  class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Enter Duolingo score"
+                  min="0"
+                  max="160"
+                  value="${hasScore && score.score ? score.score : ""}"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Description:</label>
+                <textarea
+                  id="duolingoDescriptionInput"
+                  class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                  rows="2"
+                  placeholder="Enter description or notes"
+                >${
+                  hasScore && score.description ? score.description : ""
+                }</textarea>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Date Written:</label>
+                <input
+                  type="date"
+                  id="duolingoDateInput"
+                  class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value="${
+                    hasScore && score.date_written ? score.date_written : ""
+                  }"
+                />
+              </div>
+              <button
+                id="saveDuolingoBtn"
+                class="w-full px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors font-medium"
+                onclick="window.applicantsManager.saveDuolingoScore()"
+              >
+                Save Duolingo Score
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  async updateDuolingoPermissions() {
+    try {
+      const response = await fetch("/api/auth/check-session");
+      const result = await response.json();
+
+      const inputSection = document.getElementById("duolingoInputSection");
+      const scoreInput = document.getElementById("duolingoScoreInput");
+      const descriptionInput = document.getElementById(
+        "duolingoDescriptionInput"
+      );
+      const dateInput = document.getElementById("duolingoDateInput");
+      const saveBtn = document.getElementById("saveDuolingoBtn");
+
+      if (result.authenticated && result.user?.role === "Admin") {
+        // Admin can edit everything
+        if (inputSection) inputSection.style.display = "block";
+        if (scoreInput) scoreInput.disabled = false;
+        if (descriptionInput) descriptionInput.disabled = false;
+        if (dateInput) dateInput.disabled = false;
+        if (saveBtn) saveBtn.style.display = "block";
+      } else {
+        // Faculty and Viewers can only view
+        if (inputSection) inputSection.style.display = "none";
+        if (scoreInput) scoreInput.disabled = true;
+        if (descriptionInput) descriptionInput.disabled = true;
+        if (dateInput) dateInput.disabled = true;
+        if (saveBtn) saveBtn.style.display = "none";
+      }
+    } catch (error) {
+      console.error("Error checking user permissions:", error);
+      // Hide inputs on error to be safe
+      const inputSection = document.getElementById("duolingoInputSection");
+      if (inputSection) inputSection.style.display = "none";
+    }
+  }
+
+  async saveDuolingoScore() {
+    const modal = document.getElementById("applicantModal");
+    const userCode = modal.dataset.currentUserCode;
+
+    if (!userCode) {
+      this.showMessage("No user selected", "error");
+      return;
+    }
+
+    const scoreInput = document.getElementById("duolingoScoreInput");
+    const descriptionInput = document.getElementById(
+      "duolingoDescriptionInput"
+    );
+    const dateInput = document.getElementById("duolingoDateInput");
+    const saveBtn = document.getElementById("saveDuolingoBtn");
+
+    const score = scoreInput.value.trim();
+    const description = descriptionInput.value.trim();
+    const dateWritten = dateInput.value.trim();
+
+    // Validate score if provided
+    if (score) {
+      const scoreNum = parseInt(score);
+      if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > 160) {
+        this.showMessage("Duolingo score must be between 0 and 160", "error");
+        return;
+      }
+    }
+
+    // Validate date if provided
+    if (dateWritten) {
+      const selectedDate = new Date(dateWritten);
+      const today = new Date();
+      today.setHours(23, 59, 59, 999); // Set to end of today
+
+      if (selectedDate > today) {
+        this.showMessage("Date cannot be in the future", "error");
+        return;
+      }
+    }
+
+    // Save button loading state
+    const originalText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+
+    try {
+      const response = await fetch(`/api/duolingo-score/${userCode}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          score: score || null,
+          description: description || null,
+          date_written: dateWritten || null,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        this.showMessage("Duolingo score saved successfully", "success");
+        // Reload test scores to show updated data
+        this.loadTestScores(userCode);
+      } else {
+        this.showMessage(
+          result.message || "Failed to save Duolingo score",
+          "error"
+        );
+      }
+    } catch (error) {
+      this.showMessage(
+        `Error saving Duolingo score: ${error.message}`,
+        "error"
+      );
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalText;
+    }
   }
 
   renderGREScore(score) {
