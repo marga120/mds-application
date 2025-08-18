@@ -1642,100 +1642,139 @@ class ApplicantsManager {
     const hasScore =
       score && (score.score || score.description || score.date_written);
 
-    return `
-      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+    // current values & validity for initial render
+    const scoreValue = score && score.score != null ? String(score.score) : "";
+    const dateValue =
+      score && score.date_written
+        ? this.formatDateForInput(score.date_written)
+        : "";
 
-        <h5 class="font-semibold text-blue-900 mb-3 flex items-center justify-between">
-          Duolingo
-          ${
-            hasScore
-              ? ""
-              : '<span class="text-xs text-blue-600 italic">No information entered</span>'
-          }
-        </h5>
-        <div class="space-y-3">
-          ${
-            hasScore
-              ? `
-            <div class="space-y-2">
-              ${
-                score.score
-                  ? this.renderScoreField("Score", score.score, true)
-                  : ""
-              }
-              ${
-                score.date_written
-                  ? this.renderScoreField(
-                      "Date Written",
-                      this.formatDate(score.date_written)
-                    )
-                  : ""
-              }
-              ${
-                score.description
-                  ? `
-                <div class="bg-white rounded p-2 border border-blue-200">
-                  <span class="text-xs font-medium text-gray-700 block mb-1">Description:</span>
-                  <span class="text-sm text-gray-700">${score.description}</span>
-                </div>
-              `
-                  : ""
-              }
+    const scoreInvalid = scoreValue
+      ? !this.isValidDuolingoScore(scoreValue)
+      : false;
+    const dateInvalid = dateValue ? this.isFutureYMD(dateValue) : false;
+
+    return `
+    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+
+      <h5 class="font-semibold text-blue-900 mb-3 flex items-center justify-between">
+        Duolingo
+        ${
+          hasScore
+            ? ""
+            : '<span class="text-xs text-blue-600 italic">No information entered</span>'
+        }
+      </h5>
+      <div class="space-y-3">
+        ${
+          hasScore
+            ? `
+          <div class="space-y-2">
+            ${
+              score.score
+                ? this.renderScoreField("Score", score.score, true)
+                : ""
+            }
+            ${
+              score.date_written
+                ? this.renderScoreField(
+                    "Date Written",
+                    this.formatDate(score.date_written)
+                  )
+                : ""
+            }
+            ${
+              score.description
+                ? `
+              <div class="bg-white rounded p-2 border border-blue-200">
+                <span class="text-xs font-medium text-gray-700 block mb-1">Description:</span>
+                <span class="text-sm text-gray-700">${score.description}</span>
+              </div>
+            `
+                : ""
+            }
+          </div>
+        `
+            : ""
+        }
+
+        <!-- Input Section (will be hidden/disabled based on permissions) -->
+        <div id="duolingoInputSection" class="bg-white rounded-lg p-3 border border-blue-200">
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Score (0-160):</label>
+              <input
+                type="number"
+                id="duolingoScoreInput"
+                class="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500
+                       ${
+                         scoreInvalid
+                           ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
+                           : "border-gray-300"
+                       }"
+                placeholder="Enter Duolingo score"
+                min="0"
+                max="160"
+                value="${hasScore && score.score != null ? score.score : ""}"
+                oninput="window.applicantsManager.updateDuolingoValidity()"
+              />
+              <p id="duo-score-error" class="mt-1 text-xs text-red-600 ${
+                scoreInvalid ? "" : "hidden"
+              }">
+                Score must be between 0 and 160.
+              </p>
             </div>
-          `
-              : ""
-          }
-          
-          <!-- Input Section (will be hidden/disabled based on permissions) -->
-          <div id="duolingoInputSection" class="bg-white rounded-lg p-3 border border-blue-200">
-            <div class="space-y-3">
-              <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">Score (0-160):</label>
-                <input
-                  type="number"
-                  id="duolingoScoreInput"
-                  class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  placeholder="Enter Duolingo score"
-                  min="0"
-                  max="160"
-                  value="${hasScore && score.score ? score.score : ""}"
-                />
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">Description:</label>
-                <textarea
-                  id="duolingoDescriptionInput"
-                  class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
-                  rows="2"
-                  placeholder="Enter description or notes"
-                >${
-                  hasScore && score.description ? score.description : ""
-                }</textarea>
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">Date Written:</label>
-                <input
-                  type="date"
-                  id="duolingoDateInput"
-                  class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  value="${
-                    hasScore && score.date_written
-                      ? this.formatDateForInput(score.date_written)
-                      : ""
-                  }"
-                />
-              </div>
-              <button
-                id="saveDuolingoBtn"
-                class="w-full px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors font-medium"
-                onclick="window.applicantsManager.saveDuolingoScore()"
-              >
-                Save Duolingo Score
-              </button>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Description:</label>
+              <textarea
+                id="duolingoDescriptionInput"
+                class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                rows="2"
+                placeholder="Enter description or notes"
+              >${
+                hasScore && score.description ? score.description : ""
+              }</textarea>
             </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Date Written:</label>
+              <input
+                type="date"
+                id="duolingoDateInput"
+                class="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500
+                       ${
+                         dateInvalid
+                           ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
+                           : "border-gray-300"
+                       }"
+                value="${
+                  hasScore && score.date_written
+                    ? this.formatDateForInput(score.date_written)
+                    : ""
+                }"
+                oninput="window.applicantsManager.updateDuolingoValidity()"
+              />
+              <p id="duo-date-error" class="mt-1 text-xs text-red-600 ${
+                dateInvalid ? "" : "hidden"
+              }">
+                Date cannot be in the future.
+              </p>
+            </div>
+
+            <button
+              id="saveDuolingoBtn"
+              class="w-full px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors font-medium
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              ${scoreInvalid || dateInvalid ? "disabled" : ""}
+              onclick="window.applicantsManager.saveDuolingoScore()"
+            >
+              Save Duolingo Score
+            </button>
           </div>
         </div>
       </div>
+    </div>
     `;
   }
 
@@ -2084,6 +2123,62 @@ class ApplicantsManager {
 
     // Fallback: don't crash the UI
     return "";
+  }
+
+  isValidDuolingoScore(value) {
+    if (value === null || value === undefined || value === "") return true; // empty is allowed
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 && number <= 160;
+  }
+
+  isFutureYMD(ymd) {
+    if (!ymd) return false;
+    // ymd is "yyyy-MM-dd"
+    const today = new Date();
+    const todayYMD = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+    )
+      .toISOString()
+      .slice(0, 10);
+    return ymd > todayYMD;
+  }
+
+  updateDuolingoValidity() {
+    const scoreEl = document.getElementById("duolingoScoreInput");
+    const dateEl = document.getElementById("duolingoDateInput");
+    const btn = document.getElementById("saveDuolingoBtn");
+
+    if (!scoreEl || !dateEl || !btn) return;
+
+    const scoreValue = scoreEl.value.trim();
+    const dateValue = dateEl.value.trim();
+
+    const scoreInvalid =
+      scoreValue !== "" && !this.isValidDuolingoScore(scoreValue);
+    const dateInvalid = dateValue !== "" && this.isFutureYMD(dateValue);
+
+    // Score styles + message
+    scoreEl.classList.toggle("border-red-500", scoreInvalid);
+    scoreEl.classList.toggle("ring-1", scoreInvalid);
+    scoreEl.classList.toggle("ring-red-500", scoreInvalid);
+    scoreEl.classList.toggle("focus:ring-red-500", scoreInvalid);
+    scoreEl.classList.toggle("border-gray-300", !scoreInvalid);
+
+    const scoreMsg = document.getElementById("duo-score-error");
+    if (scoreMsg) scoreMsg.classList.toggle("hidden", !scoreInvalid);
+
+    // Date styles + message
+    dateEl.classList.toggle("border-red-500", dateInvalid);
+    dateEl.classList.toggle("ring-1", dateInvalid);
+    dateEl.classList.toggle("ring-red-500", dateInvalid);
+    dateEl.classList.toggle("focus:ring-red-500", dateInvalid);
+    dateEl.classList.toggle("border-gray-300", !dateInvalid);
+
+    const dateMsg = document.getElementById("duo-date-error");
+    if (dateMsg) dateMsg.classList.toggle("hidden", !dateInvalid);
+
+    // Button enable/disable
+    btn.disabled = scoreInvalid || dateInvalid;
   }
 
   renderInfoField(label, value, type = "text") {
