@@ -1883,6 +1883,9 @@ class ApplicantsManager {
           const attendedUBC =
             academicHistoryCode === "Y" || academicHistoryCode === "U";
 
+          // Parse UBC academic history
+          const ubcRecords = this.parseUbcAcademicHistory(ubcAcademicHistory);
+
           ubcSection = `
             <!-- UBC Educational Background Section -->
             <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6 border border-blue-200">
@@ -1895,28 +1898,34 @@ class ApplicantsManager {
               ${
                 attendedUBC
                   ? `
-                <div class="bg-white rounded-lg p-4 border border-green-200">
-                  <div class="flex items-center mb-3">
-                    <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                    <span class="text-sm font-medium text-green-800">Previous UBC Student</span>
+                  <div class="mb-4">
+                    <div class="flex items-center mb-4">
+                      <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                      <span class="text-sm font-medium text-blue-800">Previous UBC Student</span>
+                      ${
+                        ubcRecords.length > 0
+                          ? `
+                        <span class="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                          ${ubcRecords.length} record${
+                              ubcRecords.length !== 1 ? "s" : ""
+                            }
+                        </span>
+                      `
+                          : ""
+                      }
+                    </div>
+                    <div class="space-y-3">
+                      ${this.renderUbcAcademicHistoryRecords(ubcRecords)}
+                    </div>
                   </div>
-                  <div class="text-sm text-gray-700 leading-relaxed">
-                    ${
-                      ubcAcademicHistory && ubcAcademicHistory.trim() !== ""
-                        ? `<p class="whitespace-pre-line">${ubcAcademicHistory}</p>`
-                        : `<p class="text-gray-500 italic">UBC academic history details not available</p>`
-                    }
-                  </div>
-                </div>
               `
-                  : 
-              `
+                  : `
                 <div class="bg-white rounded-lg p-4 border border-gray-200">
                   <div class="flex items-center mb-2">
                     <div class="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
                     <span class="text-sm font-medium text-gray-600">No Previous UBC Attendance</span>
                   </div>
-                  <p class="text-sm text-gray-500">This applicant has not previously attended UBC</p>
+                  <p class="text-sm text-gray-500">This applicant has not previously attended UBC.</p>
                 </div>
               `
               }
@@ -2070,6 +2079,9 @@ class ApplicantsManager {
           const applicant = applicantResult.applicant;
           const academicHistoryCode = applicant.academic_history_code;
           const ubcAcademicHistory = applicant.ubc_academic_history;
+
+          // Parse UBC academic history
+          const ubcRecords = this.parseUbcAcademicHistory(ubcAcademicHistory);
 
           // Check if they attended UBC (Y or U codes)
           const attendedUBC =
@@ -2865,5 +2877,245 @@ class ApplicantsManager {
 
     // Make sure the update button starts disabled
     updateBtn.disabled = true;
+  }
+
+  parseUbcAcademicHistory(ubcHistoryString) {
+    if (!ubcHistoryString || ubcHistoryString.trim() === "") {
+      return [];
+    }
+
+    try {
+      // Split by '} {' to separate records, then clean up
+      const recordStrings = ubcHistoryString
+        .split("} {")
+        .map((record, index, array) => {
+          // Clean up the record string
+          let cleaned = record.trim();
+
+          // Add missing braces
+          if (index === 0 && !cleaned.startsWith("{")) {
+            cleaned = "{" + cleaned;
+          }
+          if (index === array.length - 1 && !cleaned.endsWith("}")) {
+            cleaned = cleaned + "}";
+          }
+          if (index > 0 && index < array.length - 1) {
+            if (!cleaned.startsWith("{")) cleaned = "{" + cleaned;
+            if (!cleaned.endsWith("}")) cleaned = cleaned + "}";
+          }
+
+          return cleaned;
+        });
+
+      const records = [];
+
+      recordStrings.forEach((recordString) => {
+        if (!recordString.trim()) return;
+
+        // Remove outer braces and split by semicolons
+        const content = recordString.replace(/^{|}$/g, "").trim();
+        const parts = content.split(";");
+
+        const record = {};
+
+        parts.forEach((part) => {
+          const trimmedPart = part.trim();
+          if (!trimmedPart) return;
+
+          const colonIndex = trimmedPart.indexOf(":");
+          if (colonIndex === -1) return;
+
+          const key = trimmedPart.substring(0, colonIndex).trim();
+          const value = trimmedPart.substring(colonIndex + 1).trim();
+
+          // Clean up key names and store values
+          switch (key) {
+            case "eVision Record #":
+              record.recordNumber = parseInt(value) || 0;
+              break;
+            case "Degree Conferred?":
+              record.degreeConferred = value;
+              break;
+            case "Start Date":
+              record.startDate = value;
+              break;
+            case "End Date or Expected End Date":
+              record.endDate = value;
+              break;
+            case "Expected Conferred Date":
+              record.expectedConferredDate = value;
+              break;
+            case "Expected Credential":
+              record.expectedCredential = value;
+              break;
+            case "Category":
+              record.category = value;
+              break;
+            case "Program of Study":
+              record.programOfStudy = value;
+              break;
+            case "Required to Withdraw?":
+              record.requiredToWithdraw = value;
+              break;
+            case "Honours":
+              record.honours = value;
+              break;
+            case "SPEC1":
+              record.specialization = value;
+              break;
+            default:
+              // Handle any other fields
+              record[key.toLowerCase().replace(/[^a-z0-9]/g, "")] = value;
+          }
+        });
+
+        if (Object.keys(record).length > 0) {
+          records.push(record);
+        }
+      });
+
+      // Sort by record number
+      return records.sort(
+        (a, b) => (a.recordNumber || 0) - (b.recordNumber || 0)
+      );
+    } catch (error) {
+      console.error("Error parsing UBC academic history:", error);
+      return [];
+    }
+  }
+
+  renderUbcAcademicHistoryRecords(records) {
+    if (!records || records.length === 0) {
+      return `<p class="text-gray-500 italic">No UBC academic history records available</p>`;
+    }
+
+    return records
+      .map(
+        (record) => `
+      <div class="bg-white rounded-lg p-4 border border-gray-200 mb-3">
+        <div class="mb-3">
+          <h6 class="text-sm font-semibold text-ubc-blue">
+            eVision Record #${record.recordNumber || "Unknown"}
+          </h6>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          ${
+            record.degreeConferred
+              ? `
+            <div>
+              <span class="font-medium text-gray-700">Degree Conferred:</span>
+              <span class="text-gray-600 ml-1">${record.degreeConferred}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.startDate
+              ? `
+            <div>
+              <span class="font-medium text-gray-700">Start Date:</span>
+              <span class="text-gray-600 ml-1">${record.startDate}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.endDate
+              ? `
+            <div>
+              <span class="font-medium text-gray-700">End Date:</span>
+              <span class="text-gray-600 ml-1">${record.endDate}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.expectedCredential && record.expectedCredential.trim()
+              ? `
+            <div class="md:col-span-2">
+              <span class="font-medium text-gray-700">Expected Credential:</span>
+              <span class="text-gray-600 ml-1">${record.expectedCredential}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.category && record.category.trim()
+              ? `
+            <div>
+              <span class="font-medium text-gray-700">Category:</span>
+              <span class="text-gray-600 ml-1">${record.category}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.programOfStudy && record.programOfStudy.trim()
+              ? `
+            <div>
+              <span class="font-medium text-gray-700">Program of Study:</span>
+              <span class="text-gray-600 ml-1">${record.programOfStudy}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.specialization && record.specialization.trim()
+              ? `
+            <div class="md:col-span-2">
+              <span class="font-medium text-gray-700">Specialization:</span>
+              <span class="text-gray-600 ml-1">${record.specialization}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.expectedConferredDate && record.expectedConferredDate.trim()
+              ? `
+            <div>
+              <span class="font-medium text-gray-700">Expected Graduation:</span>
+              <span class="text-gray-600 ml-1">${record.expectedConferredDate}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.requiredToWithdraw
+              ? `
+            <div>
+              <span class="font-medium text-gray-700">Required to Withdraw:</span>
+              <span class="text-gray-600 ml-1">${record.requiredToWithdraw}</span>
+            </div>
+          `
+              : ""
+          }
+        </div>
+        
+        ${
+          record.honours &&
+          record.honours.trim() &&
+          record.honours !==
+            "Please see Workday for Awards or Honours awarded to this applicant."
+            ? `
+          <div class="mt-3 pt-3 border-t border-gray-100">
+            <span class="font-medium text-gray-700 block mb-1">Honours:</span>
+            <span class="text-gray-600 text-sm">${record.honours}</span>
+          </div>
+        `
+            : ""
+        }
+      </div>
+    `
+      )
+      .join("");
   }
 }
