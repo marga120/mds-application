@@ -35,25 +35,22 @@
               <select id="actionFilter" class="input-ubc w-full">
                 <option value="">All Actions</option>
                 <option value="login">Login</option>
-                <option value="login_failed">Login Failed</option>
-                <option value="logout">Logout</option>
                 <option value="status_change">Status Change</option>
-                <option value="rating_add">Rating Added</option>
-                <option value="rating_update">Rating Updated</option>
-                <option value="csv_upload">CSV Upload</option>
               </select>
             </div>
             <div class="flex-1 min-w-64">
               <label
-                for="userFilter"
+                for="userSearch"
                 class="block text-sm font-medium text-gray-700 mb-2"
               >
-                Filter by User
+                Search User
               </label>
-              <select id="userFilter" class="input-ubc w-full">
-                <option value="">All Users</option>
-                <!-- Will be populated by JavaScript -->
-              </select>
+              <input
+                type="text"
+                id="userSearch"
+                class="input-ubc w-full"
+                placeholder="Search by first name or last name..."
+              />
             </div>
             <div class="flex gap-2">
               <button id="applyFilters" class="btn-ubc">Apply Filters</button>
@@ -86,9 +83,22 @@
             </div>
           </div>
 
-          <!-- Load More Button -->
-          <div id="loadMoreContainer" class="text-center mt-6 hidden">
-            <button id="loadMoreBtn" class="btn-ubc-outline">Load More</button>
+          <!-- Pagination Controls -->
+          <div
+            id="paginationContainer"
+            class="flex justify-between items-center mt-6 pt-4 border-t border-gray-200"
+          >
+            <div class="text-sm text-gray-600">
+              <span id="pageInfo">Page 1 of 1</span>
+            </div>
+            <div class="flex gap-2">
+              <button id="prevPageBtn" class="btn-ubc-outline text-sm" disabled>
+                Previous
+              </button>
+              <button id="nextPageBtn" class="btn-ubc-outline text-sm" disabled>
+                Next
+              </button>
+            </div>
           </div>
         </section>
       </main>
