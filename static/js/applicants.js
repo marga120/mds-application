@@ -1867,6 +1867,63 @@ class ApplicantsManager {
         result.institutions &&
         result.institutions.length > 0
       ) {
+        // First, get applicant info to check UBC attendance
+        const applicantResponse = await fetch(
+          `/api/applicant-info/${userCode}`
+        );
+        const applicantResult = await applicantResponse.json();
+
+        let ubcSection = "";
+        if (applicantResult.success && applicantResult.applicant) {
+          const applicant = applicantResult.applicant;
+          const academicHistoryCode = applicant.academic_history_code;
+          const ubcAcademicHistory = applicant.ubc_academic_history;
+
+          // Check if they attended UBC (Y or U codes)
+          const attendedUBC =
+            academicHistoryCode === "Y" || academicHistoryCode === "U";
+
+          ubcSection = `
+            <!-- UBC Educational Background Section -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6 border border-blue-200">
+              <h5 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 3v18M13 3v18"></path>
+                </svg>
+                UBC Educational Background
+              </h5>
+              ${
+                attendedUBC
+                  ? `
+                <div class="bg-white rounded-lg p-4 border border-green-200">
+                  <div class="flex items-center mb-3">
+                    <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                    <span class="text-sm font-medium text-green-800">Previous UBC Student</span>
+                  </div>
+                  <div class="text-sm text-gray-700 leading-relaxed">
+                    ${
+                      ubcAcademicHistory && ubcAcademicHistory.trim() !== ""
+                        ? `<p class="whitespace-pre-line">${ubcAcademicHistory}</p>`
+                        : `<p class="text-gray-500 italic">UBC academic history details not available</p>`
+                    }
+                  </div>
+                </div>
+              `
+                  : 
+              `
+                <div class="bg-white rounded-lg p-4 border border-gray-200">
+                  <div class="flex items-center mb-2">
+                    <div class="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
+                    <span class="text-sm font-medium text-gray-600">No Previous UBC Attendance</span>
+                  </div>
+                  <p class="text-sm text-gray-500">This applicant has not previously attended UBC</p>
+                </div>
+              `
+              }
+            </div>
+          `;
+        }
+
         container.innerHTML = `
           <div class="pr-2">
             <h4 class="text-xl font-semibold text-ubc-blue mb-6 flex items-center">
@@ -1875,6 +1932,8 @@ class ApplicantsManager {
               </svg>
               Educational Background
             </h4>
+
+            ${ubcSection}
 
              <!-- Academic Summary Section -->
             <div class="bg-gradient-to-r from-ubc-blue to-blue-600 text-white rounded-lg p-6 mb-6">
@@ -2000,13 +2059,82 @@ class ApplicantsManager {
         `;
         this.loadAcademicSummary(userCode);
       } else {
+        // Even if no institution info, still show UBC section
+        const applicantResponse = await fetch(
+          `/api/applicant-info/${userCode}`
+        );
+        const applicantResult = await applicantResponse.json();
+
+        let ubcSection = "";
+        if (applicantResult.success && applicantResult.applicant) {
+          const applicant = applicantResult.applicant;
+          const academicHistoryCode = applicant.academic_history_code;
+          const ubcAcademicHistory = applicant.ubc_academic_history;
+
+          // Check if they attended UBC (Y or U codes)
+          const attendedUBC =
+            academicHistoryCode === "Y" || academicHistoryCode === "U";
+
+          ubcSection = `
+            <div class="mb-6">
+              <h4 class="text-xl font-semibold text-ubc-blue mb-4 flex items-center">
+                <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 3v18M13 3v18"></path>
+                </svg>
+                Educational Background
+              </h4>
+              
+              <!-- UBC Educational Background Section -->
+              <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6 border border-blue-200">
+                <h5 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 3v18M13 3v18"></path>
+                  </svg>
+                  UBC Educational Background
+                </h5>
+                ${
+                  attendedUBC
+                    ? `
+                  <div class="bg-white rounded-lg p-4 border border-green-200">
+                    <div class="flex items-center mb-3">
+                      <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                      <span class="text-sm font-medium text-green-800">Previous UBC Student</span>
+                    </div>
+                    <div class="text-sm text-gray-700 leading-relaxed">
+                      ${
+                        ubcAcademicHistory && ubcAcademicHistory.trim() !== ""
+                          ? `<p class="whitespace-pre-line">${ubcAcademicHistory}</p>`
+                          : `<p class="text-gray-500 italic">UBC academic history details not available</p>`
+                      }
+                    </div>
+                  </div>
+                `
+                    : `
+                  <div class="bg-white rounded-lg p-4 border border-gray-200">
+                    <div class="flex items-center mb-2">
+                      <div class="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
+                      <span class="text-sm font-medium text-gray-600">No Previous UBC Attendance</span>
+                    </div>
+                    <p class="text-sm text-gray-500">This applicant has not previously attended UBC.</p>
+                  </div>
+                `
+                }
+              </div>
+            </div>
+          `;
+        }
+
         container.innerHTML = `
-          <div class="text-center py-12 text-gray-500">
-            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 3v18M13 3v18"></path>
-            </svg>
-            <h3 class="text-lg font-medium text-gray-400 mb-2">No Institution Information</h3>
-            <p class="text-gray-400">No educational background information is available for this applicant.</p>
+          <div class="pr-2">
+            ${ubcSection}
+            
+            <div class="text-center py-12 text-gray-500">
+              <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 3v18M13 3v18"></path>
+              </svg>
+              <h3 class="text-lg font-medium text-gray-400 mb-2">No Institution Information</h3>
+              <p class="text-gray-400">No external educational background information is available for this applicant.</p>
+            </div>
           </div>
         `;
       }
