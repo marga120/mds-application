@@ -170,7 +170,16 @@ def process_csv_data(df):
             # Get current timestamp
             current_time = datetime.now()
 
-            # Insert into applicant_info table (now with session_id)
+            # Get UBC Academic History data from CSV
+            ubc_academic_history = row.get("{ UBC Academic History List - eVision Record #; Start Date; End Date; Category; Program of Study; Degree Conferred?; Date Conferred; Credential Received; Withdrawal Reasons; Honours }", "")
+            
+            # Clean up the UBC academic history data - handle NaN/null values
+            if pd.isna(ubc_academic_history) or str(ubc_academic_history).strip() == "nan":
+                ubc_academic_history = ""
+            else:
+                ubc_academic_history = str(ubc_academic_history).strip()
+
+            # Insert into applicant_info table (now with session_id and ubc_academic_history)
             applicant_info_query = """
             INSERT INTO applicant_info (
                 user_code, session_id, title, family_name, given_name, middle_name, preferred_name,
@@ -181,32 +190,64 @@ def process_csv_data(df):
                 country_code, country, address_line1, address_line2, city,
                 province_state_region, postal_code, primary_telephone, secondary_telephone,
                 email, aboriginal, first_nation, inuit, metis, aboriginal_not_specified,
-                aboriginal_info, academic_history_code, academic_history, interest_code, interest,
+                aboriginal_info, academic_history_code, academic_history, ubc_academic_history, interest_code, interest,
                 created_at, updated_at
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s)
             ON CONFLICT (user_code) DO UPDATE SET
                 session_id = EXCLUDED.session_id,
+                title = EXCLUDED.title,
                 family_name = EXCLUDED.family_name,
                 given_name = EXCLUDED.given_name,
+                middle_name = EXCLUDED.middle_name,
+                preferred_name = EXCLUDED.preferred_name,
+                former_family_name = EXCLUDED.former_family_name,
+                gender_code = EXCLUDED.gender_code,
+                gender = EXCLUDED.gender,
+                date_birth = EXCLUDED.date_birth,
+                age = EXCLUDED.age,
+                country_birth_code = EXCLUDED.country_birth_code,
+                country_citizenship_code = EXCLUDED.country_citizenship_code,
+                country_citizenship = EXCLUDED.country_citizenship,
+                dual_citizenship_code = EXCLUDED.dual_citizenship_code,
+                dual_citizenship = EXCLUDED.dual_citizenship,
+                primary_spoken_lang_code = EXCLUDED.primary_spoken_lang_code,
+                primary_spoken_lang = EXCLUDED.primary_spoken_lang,
+                other_spoken_lang_code = EXCLUDED.other_spoken_lang_code,
+                other_spoken_lang = EXCLUDED.other_spoken_lang,
+                visa_type_code = EXCLUDED.visa_type_code,
+                visa_type = EXCLUDED.visa_type,
+                country_code = EXCLUDED.country_code,
+                country = EXCLUDED.country,
+                address_line1 = EXCLUDED.address_line1,
+                address_line2 = EXCLUDED.address_line2,
+                city = EXCLUDED.city,
+                province_state_region = EXCLUDED.province_state_region,
+                postal_code = EXCLUDED.postal_code,
+                primary_telephone = EXCLUDED.primary_telephone,
+                secondary_telephone = EXCLUDED.secondary_telephone,
                 email = EXCLUDED.email,
-                updated_at = CASE 
-                    WHEN applicant_info.session_id IS DISTINCT FROM EXCLUDED.session_id
-                      OR applicant_info.family_name IS DISTINCT FROM EXCLUDED.family_name 
-                      OR applicant_info.given_name IS DISTINCT FROM EXCLUDED.given_name 
-                      OR applicant_info.email IS DISTINCT FROM EXCLUDED.email 
-                    THEN EXCLUDED.updated_at 
-                    ELSE applicant_info.updated_at 
-                END
+                aboriginal = EXCLUDED.aboriginal,
+                first_nation = EXCLUDED.first_nation,
+                inuit = EXCLUDED.inuit,
+                metis = EXCLUDED.metis,
+                aboriginal_not_specified = EXCLUDED.aboriginal_not_specified,
+                aboriginal_info = EXCLUDED.aboriginal_info,
+                academic_history_code = EXCLUDED.academic_history_code,
+                academic_history = EXCLUDED.academic_history,
+                ubc_academic_history = EXCLUDED.ubc_academic_history,
+                interest_code = EXCLUDED.interest_code,
+                interest = EXCLUDED.interest,
+                updated_at = EXCLUDED.updated_at
             """
 
             cursor.execute(
                 applicant_info_query,
                 (
-                    user_code,
-                    session_id,  # Add session_id here
+                    user_code,  # user_code
+                    session_id,  # session_id
                     row.get("Title"),
                     row.get("Family Name"),
                     row.get("Given Name"),
@@ -215,8 +256,8 @@ def process_csv_data(df):
                     row.get("Former Family Name"),
                     row.get("Gender CODE"),
                     row.get("Gender"),
-                    date_birth,
-                    age,
+                    date_birth,  # parsed date_birth
+                    age,  # calculated age
                     row.get("Country of Birth CODE"),
                     row.get("Country of Current Citizenship CODE"),
                     row.get("Country of Current Citizenship"),
@@ -242,12 +283,11 @@ def process_csv_data(df):
                     row.get("Aboriginal Type First Nations"),  # first_nation
                     row.get("Aboriginal Type Inuit"),  # inuit
                     row.get("Aboriginal Type Métis"),  # metis
-                    row.get(
-                        "Aboriginal Type Not Specified"
-                    ),  # aboriginal_not_specified
+                    row.get("Aboriginal Type Not Specified"),  # aboriginal_not_specified
                     row.get("Aboriginal Info"),
                     row.get("Academic History Source CODE"),
-                    row.get("IAcademic History Source Value"),
+                    row.get("Academic History Source Value"),  # Fixed typo: removed "I"
+                    ubc_academic_history,  # Add the UBC Academic History data
                     row.get("Source of Interest in UBC CODE"),
                     row.get("Source of Interest in UBC"),
                     current_time,  # created_at
