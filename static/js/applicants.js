@@ -1638,16 +1638,19 @@ class ApplicantsManager {
   }
 
   renderDuolingoScore(score) {
-    const hasScore = score && (score.score || score.description);
+    // Count date_written too so the input pre-fills even when only a date exists
+    const hasScore =
+      score && (score.score || score.description || score.date_written);
 
     return `
       <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+
         <h5 class="font-semibold text-blue-900 mb-3 flex items-center justify-between">
           Duolingo
           ${
             hasScore
               ? ""
-              : '<span class="text-xs text-blue-600 italic">No score entered</span>'
+              : '<span class="text-xs text-blue-600 italic">No information entered</span>'
           }
         </h5>
         <div class="space-y-3">
@@ -1716,7 +1719,9 @@ class ApplicantsManager {
                   id="duolingoDateInput"
                   class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                   value="${
-                    hasScore && score.date_written ? score.date_written : ""
+                    hasScore && score.date_written
+                      ? this.formatDateForInput(score.date_written)
+                      : ""
                   }"
                 />
               </div>
@@ -1801,7 +1806,23 @@ class ApplicantsManager {
 
     // Validate date if provided
     if (dateWritten) {
-      const selectedDate = new Date(dateWritten);
+      // Parse date as local date to avoid timezone issues
+      const dateParts = dateWritten.split("-");
+      if (dateParts.length !== 3) {
+        this.showMessage("Please enter a valid date", "error");
+        return;
+      }
+
+      const year = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+      const day = parseInt(dateParts[2]);
+      const selectedDate = new Date(year, month, day);
+
+      if (isNaN(selectedDate.getTime())) {
+        this.showMessage("Please enter a valid date", "error");
+        return;
+      }
+
       const today = new Date();
       today.setHours(23, 59, 59, 999); // Set to end of today
 
@@ -1999,18 +2020,72 @@ class ApplicantsManager {
     `;
   }
 
+  // Format "display" dates without timezone drift
   formatDate(dateString) {
     if (!dateString) return null;
     try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
+      // 1) yyyy-MM-dd (treat as a date-only in UTC)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) {
+        const [y, m, d] = dateString.trim().split("-").map(Number);
+        const utc = new Date(Date.UTC(y, m - 1, d));
+        return utc.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        });
+      }
+
+      // 2) RFC/GMT strings — format using UTC components
+      if (dateString.includes("GMT") || dateString.includes("UTC")) {
+        const dt = new Date(dateString);
+        if (!isNaN(dt.getTime())) {
+          return dt.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            timeZone: "UTC",
+          });
+        }
+      }
+
+      // 3) Fallback: best effort
+      const dt = new Date(dateString);
+      return isNaN(dt.getTime())
+        ? dateString
+        : dt.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          });
     } catch {
       return dateString;
     }
   }
+
+  // Format specifically for <input type="date"> → "yyyy-MM-dd" (UTC-safe)
+  formatDateForInput(dateString) {
+    if (!dateString) return "";
+
+    const s = String(dateString).trim();
+
+    // Already correct for <input type="date">
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+    // Parse any RFC/ISO/GMT string, then take the UTC y-m-d so midnight UTC
+    // doesn't shift a day in local time.
+    const dt = new Date(s);
+    if (!isNaN(dt.getTime())) {
+      const y = dt.getUTCFullYear();
+      const m = String(dt.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(dt.getUTCDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    // Fallback: don't crash the UI
+    return "";
+  }
+
 
   renderInfoField(label, value, type = "text") {
     if (
