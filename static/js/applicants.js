@@ -975,7 +975,7 @@ class ApplicantsManager {
 
     // If showing prerequisites tab, update permissions
     if (tabName === "prerequisite-courses") {
-      this.updatePrerequisitesFormForViewer();
+      this.updatePrerequisitesFormPermissions();
     }
   }
 
@@ -1401,6 +1401,7 @@ class ApplicantsManager {
                   ${this.renderCAELScore(scores.cael)}
                   ${this.renderCELPIPScore(scores.celpip)}
                   ${this.renderAltELPPScore(scores.alt_elpp)}
+                  ${this.renderDuolingoScore(scores.duolingo)}
                 </div>
               </div>
 
@@ -1421,6 +1422,11 @@ class ApplicantsManager {
             </div>
           </div>
         `;
+
+        // Update Duolingo permissions after rendering
+        setTimeout(() => {
+          this.updateDuolingoPermissions();
+        }, 100);
       } else {
         container.innerHTML = `
           <div class="text-center py-12 text-gray-500">
@@ -1631,6 +1637,281 @@ class ApplicantsManager {
     `;
   }
 
+  renderDuolingoScore(score) {
+    // Count date_written too so the input pre-fills even when only a date exists
+    const hasScore =
+      score && (score.score || score.description || score.date_written);
+
+    // current values & validity for initial render
+    const scoreValue = score && score.score != null ? String(score.score) : "";
+    const dateValue =
+      score && score.date_written
+        ? this.formatDateForInput(score.date_written)
+        : "";
+
+    const scoreInvalid = scoreValue
+      ? !this.isValidDuolingoScore(scoreValue)
+      : false;
+    const dateInvalid = dateValue ? this.isFutureYMD(dateValue) : false;
+
+    return `
+    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+
+      <h5 class="font-semibold text-blue-900 mb-3 flex items-center justify-between">
+        Duolingo
+        ${
+          hasScore
+            ? ""
+            : '<span class="text-xs text-blue-600 italic">No information entered</span>'
+        }
+      </h5>
+      <div class="space-y-3">
+        ${
+          hasScore
+            ? `
+          <div class="space-y-2">
+            ${
+              score.score
+                ? this.renderScoreField("Score", score.score, true)
+                : ""
+            }
+            ${
+              score.date_written
+                ? this.renderScoreField(
+                    "Date Written",
+                    this.formatDate(score.date_written)
+                  )
+                : ""
+            }
+            ${
+              score.description
+                ? `
+              <div class="bg-white rounded p-2 border border-blue-200">
+                <span class="text-xs font-medium text-gray-700 block mb-1">Description:</span>
+                <span class="text-sm text-gray-700">${score.description}</span>
+              </div>
+            `
+                : ""
+            }
+          </div>
+        `
+            : ""
+        }
+
+        <!-- Input Section (will be hidden/disabled based on permissions) -->
+        <div id="duolingoInputSection" class="bg-white rounded-lg p-3 border border-blue-200">
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Score (0-160):</label>
+              <input
+                type="number"
+                id="duolingoScoreInput"
+                class="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500
+                       ${
+                         scoreInvalid
+                           ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
+                           : "border-gray-300"
+                       }"
+                placeholder="Enter Duolingo score"
+                min="0"
+                max="160"
+                value="${hasScore && score.score != null ? score.score : ""}"
+                oninput="window.applicantsManager.updateDuolingoValidity()"
+              />
+              <p id="duo-score-error" class="mt-1 text-xs text-red-600 ${
+                scoreInvalid ? "" : "hidden"
+              }">
+                Score must be between 0 and 160.
+              </p>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Description:</label>
+              <textarea
+                id="duolingoDescriptionInput"
+                class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                rows="2"
+                placeholder="Enter description or notes"
+              >${
+                hasScore && score.description ? score.description : ""
+              }</textarea>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Date Written:</label>
+              <input
+                type="date"
+                id="duolingoDateInput"
+                class="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500
+                       ${
+                         dateInvalid
+                           ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
+                           : "border-gray-300"
+                       }"
+                value="${
+                  hasScore && score.date_written
+                    ? this.formatDateForInput(score.date_written)
+                    : ""
+                }"
+                oninput="window.applicantsManager.updateDuolingoValidity()"
+              />
+              <p id="duo-date-error" class="mt-1 text-xs text-red-600 ${
+                dateInvalid ? "" : "hidden"
+              }">
+                Date cannot be in the future.
+              </p>
+            </div>
+
+            <button
+              id="saveDuolingoBtn"
+              class="w-full px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors font-medium
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              ${scoreInvalid || dateInvalid ? "disabled" : ""}
+              onclick="window.applicantsManager.saveDuolingoScore()"
+            >
+              Save Duolingo Score
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    `;
+  }
+
+  async updateDuolingoPermissions() {
+    try {
+      const response = await fetch("/api/auth/check-session");
+      const result = await response.json();
+
+      const inputSection = document.getElementById("duolingoInputSection");
+      const scoreInput = document.getElementById("duolingoScoreInput");
+      const descriptionInput = document.getElementById(
+        "duolingoDescriptionInput"
+      );
+      const dateInput = document.getElementById("duolingoDateInput");
+      const saveBtn = document.getElementById("saveDuolingoBtn");
+
+      if (result.authenticated && result.user?.role === "Admin") {
+        // Admin can edit everything
+        if (inputSection) inputSection.style.display = "block";
+        if (scoreInput) scoreInput.disabled = false;
+        if (descriptionInput) descriptionInput.disabled = false;
+        if (dateInput) dateInput.disabled = false;
+        if (saveBtn) saveBtn.style.display = "block";
+      } else {
+        // Faculty and Viewers can only view
+        if (inputSection) inputSection.style.display = "none";
+        if (scoreInput) scoreInput.disabled = true;
+        if (descriptionInput) descriptionInput.disabled = true;
+        if (dateInput) dateInput.disabled = true;
+        if (saveBtn) saveBtn.style.display = "none";
+      }
+    } catch (error) {
+      console.error("Error checking user permissions:", error);
+      // Hide inputs on error to be safe
+      const inputSection = document.getElementById("duolingoInputSection");
+      if (inputSection) inputSection.style.display = "none";
+    }
+  }
+
+  async saveDuolingoScore() {
+    const modal = document.getElementById("applicantModal");
+    const userCode = modal.dataset.currentUserCode;
+
+    if (!userCode) {
+      this.showMessage("No user selected", "error");
+      return;
+    }
+
+    const scoreInput = document.getElementById("duolingoScoreInput");
+    const descriptionInput = document.getElementById(
+      "duolingoDescriptionInput"
+    );
+    const dateInput = document.getElementById("duolingoDateInput");
+    const saveBtn = document.getElementById("saveDuolingoBtn");
+
+    const score = scoreInput.value.trim();
+    const description = descriptionInput.value.trim();
+    const dateWritten = dateInput.value.trim();
+
+    // Validate score if provided
+    if (score) {
+      const scoreNum = parseInt(score);
+      if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > 160) {
+        this.showMessage("Duolingo score must be between 0 and 160", "error");
+        return;
+      }
+    }
+
+    // Validate date if provided
+    if (dateWritten) {
+      // Parse date as local date to avoid timezone issues
+      const dateParts = dateWritten.split("-");
+      if (dateParts.length !== 3) {
+        this.showMessage("Please enter a valid date", "error");
+        return;
+      }
+
+      const year = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+      const day = parseInt(dateParts[2]);
+      const selectedDate = new Date(year, month, day);
+
+      if (isNaN(selectedDate.getTime())) {
+        this.showMessage("Please enter a valid date", "error");
+        return;
+      }
+
+      const today = new Date();
+      today.setHours(23, 59, 59, 999); // Set to end of today
+
+      if (selectedDate > today) {
+        this.showMessage("Date cannot be in the future", "error");
+        return;
+      }
+    }
+
+    // Save button loading state
+    const originalText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+
+    try {
+      const response = await fetch(`/api/duolingo-score/${userCode}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          score: score || null,
+          description: description || null,
+          date_written: dateWritten || null,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        this.showMessage("Duolingo score saved successfully", "success");
+        // Reload test scores to show updated data
+        this.loadTestScores(userCode);
+      } else {
+        this.showMessage(
+          result.message || "Failed to save Duolingo score",
+          "error"
+        );
+      }
+    } catch (error) {
+      this.showMessage(
+        `Error saving Duolingo score: ${error.message}`,
+        "error"
+      );
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalText;
+    }
+  }
+
   renderGREScore(score) {
     if (!score) {
       return this.renderEmptyTestCard("GRE");
@@ -1778,17 +2059,126 @@ class ApplicantsManager {
     `;
   }
 
+  // Format "display" dates without timezone drift
   formatDate(dateString) {
     if (!dateString) return null;
     try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
+      // 1) yyyy-MM-dd (treat as a date-only in UTC)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) {
+        const [y, m, d] = dateString.trim().split("-").map(Number);
+        const utc = new Date(Date.UTC(y, m - 1, d));
+        return utc.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        });
+      }
+
+      // 2) RFC/GMT strings — format using UTC components
+      if (dateString.includes("GMT") || dateString.includes("UTC")) {
+        const dt = new Date(dateString);
+        if (!isNaN(dt.getTime())) {
+          return dt.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            timeZone: "UTC",
+          });
+        }
+      }
+
+      // 3) Fallback: best effort
+      const dt = new Date(dateString);
+      return isNaN(dt.getTime())
+        ? dateString
+        : dt.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          });
     } catch {
       return dateString;
     }
+  }
+
+  // Format specifically for <input type="date"> → "yyyy-MM-dd" (UTC-safe)
+  formatDateForInput(dateString) {
+    if (!dateString) return "";
+
+    const s = String(dateString).trim();
+
+    // Already correct for <input type="date">
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+    // Parse any RFC/ISO/GMT string, then take the UTC y-m-d so midnight UTC
+    // doesn't shift a day in local time.
+    const dt = new Date(s);
+    if (!isNaN(dt.getTime())) {
+      const y = dt.getUTCFullYear();
+      const m = String(dt.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(dt.getUTCDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    // Fallback: don't crash the UI
+    return "";
+  }
+
+  isValidDuolingoScore(value) {
+    if (value === null || value === undefined || value === "") return true; // empty is allowed
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 && number <= 160;
+  }
+
+  isFutureYMD(ymd) {
+    if (!ymd) return false;
+    // ymd is "yyyy-MM-dd"
+    const today = new Date();
+    const todayYMD = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+    )
+      .toISOString()
+      .slice(0, 10);
+    return ymd > todayYMD;
+  }
+
+  updateDuolingoValidity() {
+    const scoreEl = document.getElementById("duolingoScoreInput");
+    const dateEl = document.getElementById("duolingoDateInput");
+    const btn = document.getElementById("saveDuolingoBtn");
+
+    if (!scoreEl || !dateEl || !btn) return;
+
+    const scoreValue = scoreEl.value.trim();
+    const dateValue = dateEl.value.trim();
+
+    const scoreInvalid =
+      scoreValue !== "" && !this.isValidDuolingoScore(scoreValue);
+    const dateInvalid = dateValue !== "" && this.isFutureYMD(dateValue);
+
+    // Score styles + message
+    scoreEl.classList.toggle("border-red-500", scoreInvalid);
+    scoreEl.classList.toggle("ring-1", scoreInvalid);
+    scoreEl.classList.toggle("ring-red-500", scoreInvalid);
+    scoreEl.classList.toggle("focus:ring-red-500", scoreInvalid);
+    scoreEl.classList.toggle("border-gray-300", !scoreInvalid);
+
+    const scoreMsg = document.getElementById("duo-score-error");
+    if (scoreMsg) scoreMsg.classList.toggle("hidden", !scoreInvalid);
+
+    // Date styles + message
+    dateEl.classList.toggle("border-red-500", dateInvalid);
+    dateEl.classList.toggle("ring-1", dateInvalid);
+    dateEl.classList.toggle("ring-red-500", dateInvalid);
+    dateEl.classList.toggle("focus:ring-red-500", dateInvalid);
+    dateEl.classList.toggle("border-gray-300", !dateInvalid);
+
+    const dateMsg = document.getElementById("duo-date-error");
+    if (dateMsg) dateMsg.classList.toggle("hidden", !dateInvalid);
+
+    // Button enable/disable
+    btn.disabled = scoreInvalid || dateInvalid;
   }
 
   renderInfoField(label, value, type = "text") {
@@ -2427,7 +2817,31 @@ class ApplicantsManager {
     const countElement = document.getElementById("statusHistoryCount");
 
     try {
-      // Fetch status change logs for this specific applicant - limit to 5
+      // Only Admins can view logs; check role first to avoid 403s and console noise
+      const auth = await fetch("/api/auth/check-session")
+        .then((r) => r.json())
+        .catch(() => ({}));
+      const isAdmin = !!(
+        auth &&
+        auth.authenticated &&
+        auth.user &&
+        auth.user.role === "Admin"
+      );
+
+      if (!isAdmin) {
+        // For Viewer/Faculty, don't call the logs API; show a quiet placeholder instead
+        if (container) {
+          container.innerHTML = `
+            <div class="text-center py-4 text-gray-500">
+              <p class="text-sm">Status history is available to admins.</p>
+            </div>
+          `;
+        }
+        if (countElement) countElement.textContent = "";
+        return;
+      }
+
+      // Admins: fetch status change logs for this specific applicant - limit to 5
       const response = await fetch(
         `/api/logs?action_type=status_change&target_id=${userCode}&limit=5`
       );

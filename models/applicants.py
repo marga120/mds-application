@@ -553,6 +553,14 @@ def get_applicant_test_scores_by_code(user_code):
 
         cursor.execute(
             """
+            SELECT * FROM duolingo WHERE user_code = %s
+        """,
+            (user_code,),
+        )
+        test_scores["duolingo"] = cursor.fetchone()
+
+        cursor.execute(
+            """
             SELECT * FROM alt_elpp WHERE user_code = %s
         """,
             (user_code,),
