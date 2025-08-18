@@ -2086,7 +2086,6 @@ class ApplicantsManager {
     return "";
   }
 
-
   renderInfoField(label, value, type = "text") {
     if (
       !value ||
@@ -2723,7 +2722,31 @@ class ApplicantsManager {
     const countElement = document.getElementById("statusHistoryCount");
 
     try {
-      // Fetch status change logs for this specific applicant - limit to 5
+      // Only Admins can view logs; check role first to avoid 403s and console noise
+      const auth = await fetch("/api/auth/check-session")
+        .then((r) => r.json())
+        .catch(() => ({}));
+      const isAdmin = !!(
+        auth &&
+        auth.authenticated &&
+        auth.user &&
+        auth.user.role === "Admin"
+      );
+
+      if (!isAdmin) {
+        // For Viewer/Faculty, don't call the logs API; show a quiet placeholder instead
+        if (container) {
+          container.innerHTML = `
+            <div class="text-center py-4 text-gray-500">
+              <p class="text-sm">Status history is available to admins.</p>
+            </div>
+          `;
+        }
+        if (countElement) countElement.textContent = "";
+        return;
+      }
+
+      // Admins: fetch status change logs for this specific applicant - limit to 5
       const response = await fetch(
         `/api/logs?action_type=status_change&target_id=${userCode}&limit=5`
       );
