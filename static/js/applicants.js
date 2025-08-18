@@ -975,7 +975,7 @@ class ApplicantsManager {
 
     // If showing prerequisites tab, update permissions
     if (tabName === "prerequisite-courses") {
-      this.updatePrerequisitesFormForViewer();
+      this.updatePrerequisitesFormPermissions();
     }
   }
 
