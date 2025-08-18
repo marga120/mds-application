@@ -847,12 +847,17 @@ class ApplicantsManager {
                     </div>
 
                     <div class="border-t border-blue-200 pt-6 mt-6">
-                      <h5 class="text-md font-semibold text-gray-800 mb-4 flex items-center">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                      Status History
-                      </h5>
+                      <div class="flex items-center justify-between mb-4">
+                        <h5 class="text-md font-semibold text-gray-800 flex items-center">
+                          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                          </svg>
+                          Status History
+                        </h5>
+                        <span id="statusHistoryCount" class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          Showing recent 5 changes
+                        </span>
+                      </div>
                 
                       <div id="statusHistoryContainer" class="space-y-3">
                         <div class="text-center py-4 text-gray-500">
@@ -2279,11 +2284,12 @@ class ApplicantsManager {
 
   async loadStatusHistory(userCode) {
     const container = document.getElementById("statusHistoryContainer");
+    const countElement = document.getElementById("statusHistoryCount");
 
     try {
-      // Fetch status change logs for this specific applicant
+      // Fetch status change logs for this specific applicant - limit to 5
       const response = await fetch(
-        `/api/logs?action_type=status_change&target_id=${userCode}&limit=20`
+        `/api/logs?action_type=status_change&target_id=${userCode}&limit=5`
       );
       const result = await response.json();
 
@@ -2294,8 +2300,15 @@ class ApplicantsManager {
               <p class="text-sm">No status changes recorded yet</p>
             </div>
           `;
+          countElement.textContent = "No changes yet";
           return;
         }
+
+        // Update the counter based on actual results
+        const displayCount = Math.min(result.logs.length, 5);
+        countElement.textContent = `Showing recent ${displayCount} change${
+          displayCount !== 1 ? "s" : ""
+        }`;
 
         const historyHtml = result.logs
           .map((log) => this.createStatusHistoryItem(log))
@@ -2307,6 +2320,7 @@ class ApplicantsManager {
             <p class="text-sm">Error loading status history</p>
           </div>
         `;
+        countElement.textContent = "Error loading";
       }
     } catch (error) {
       console.error("Error loading status history:", error);
@@ -2315,6 +2329,7 @@ class ApplicantsManager {
           <p class="text-sm">Failed to load status history</p>
         </div>
       `;
+      countElement.textContent = "Error loading";
     }
   }
 

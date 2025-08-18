@@ -2,8 +2,10 @@ class LogsManager {
   constructor() {
     this.logs = [];
     this.allUsers = new Map(); // Cache all users here
-    this.offset = 0;
-    this.limit = 50;
+    this.currentPage = 1;
+    this.limit = 10; // Show logs per page
+    this.maxLogs = 50; // Maximum logs total (also might need to change in logs.py)
+    this.totalPages = 1;
     this.currentFilters = {};
 
     this.initializeEventListeners();
@@ -23,8 +25,19 @@ class LogsManager {
       this.refreshLogs();
     });
 
-    document.getElementById("loadMoreBtn").addEventListener("click", () => {
-      this.loadMoreLogs();
+    document.getElementById("prevPageBtn").addEventListener("click", () => {
+      this.goToPreviousPage();
+    });
+
+    document.getElementById("nextPageBtn").addEventListener("click", () => {
+      this.goToNextPage();
+    });
+
+    // Add search on Enter key
+    document.getElementById("userSearch").addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        this.applyFilters();
+      }
     });
   }
 
@@ -52,25 +65,18 @@ class LogsManager {
             });
           }
         });
-
-        // Populate the user filter dropdown once with all users
-        this.populateUserFilter();
       }
     } catch (error) {
       console.error("Error loading users:", error);
     }
   }
 
-  async loadLogs(reset = true) {
-    if (reset) {
-      this.offset = 0;
-      this.logs = [];
-    }
-
+  async loadLogs() {
     try {
+      const offset = (this.currentPage - 1) * this.limit;
       const params = new URLSearchParams({
-        limit: this.limit,
-        offset: this.offset,
+        limit: this.maxLogs, // Get all logs first
+        offset: 0,
         ...this.currentFilters,
       });
 
@@ -78,29 +84,49 @@ class LogsManager {
       const result = await response.json();
 
       if (result.success) {
-        if (reset) {
-          this.logs = result.logs;
-        } else {
-          this.logs.push(...result.logs);
-        }
+        // Calculate pagination based on all logs
+        const allLogs = result.logs;
+        this.totalPages = Math.ceil(allLogs.length / this.limit);
+
+        // Get logs for current page
+        const startIndex = (this.currentPage - 1) * this.limit;
+        const endIndex = startIndex + this.limit;
+        this.logs = allLogs.slice(startIndex, endIndex);
 
         this.renderLogs();
         this.updateLogsCount();
-        // Don't repopulate user filter here anymore
-
-        // Show/hide load more button
-        const loadMoreContainer = document.getElementById("loadMoreContainer");
-        if (result.logs.length === this.limit) {
-          loadMoreContainer.classList.remove("hidden");
-        } else {
-          loadMoreContainer.classList.add("hidden");
-        }
+        this.updatePaginationControls();
       } else {
         this.showError(result.message);
       }
     } catch (error) {
       console.error("Error loading logs:", error);
       this.showError("Failed to load activity logs");
+    }
+  }
+
+  updatePaginationControls() {
+    const prevBtn = document.getElementById("prevPageBtn");
+    const nextBtn = document.getElementById("nextPageBtn");
+    const pageInfo = document.getElementById("pageInfo");
+
+    prevBtn.disabled = this.currentPage <= 1;
+    nextBtn.disabled = this.currentPage >= this.totalPages;
+
+    pageInfo.textContent = `Page ${this.currentPage} of ${this.totalPages}`;
+  }
+
+  goToPreviousPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.loadLogs();
+    }
+  }
+
+  goToNextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.loadLogs();
     }
   }
 
@@ -175,36 +201,20 @@ class LogsManager {
                   Additional Details
                 </summary>
                 <pre class="text-xs text-gray-600 mt-1 bg-gray-100 p-2 rounded overflow-auto">
-${JSON.stringify(log.additional_metadata, null, 2)}
+                  ${JSON.stringify(log.additional_metadata, null, 2)}
                 </pre>
               </details>
-            `
+              `
                 : ""
             }
           </div>
           
           <div class="text-right text-xs text-gray-500">
             <div>${timestamp}</div>
-            <div class="mt-1">ID: ${log.id}</div>
           </div>
         </div>
       </div>
     `;
-  }
-
-  populateUserFilter() {
-    const userFilter = document.getElementById("userFilter");
-
-    // Clear existing options except "All Users"
-    userFilter.innerHTML = '<option value="">All Users</option>';
-
-    // Use cached users instead of current logs
-    Array.from(this.allUsers.values()).forEach((user) => {
-      const option = document.createElement("option");
-      option.value = user.id;
-      option.textContent = `${user.name} (${user.email})`;
-      userFilter.appendChild(option);
-    });
   }
 
   formatActionType(actionType) {
@@ -220,20 +230,22 @@ ${JSON.stringify(log.additional_metadata, null, 2)}
 
   applyFilters() {
     const actionFilter = document.getElementById("actionFilter").value;
-    const userFilter = document.getElementById("userFilter").value;
+    const userSearch = document.getElementById("userSearch").value.trim();
 
     this.currentFilters = {};
     if (actionFilter) this.currentFilters.action_type = actionFilter;
-    if (userFilter) this.currentFilters.user_id = userFilter;
+    if (userSearch) this.currentFilters.user_search = userSearch;
 
-    this.loadLogs(true);
+    this.currentPage = 1; // Reset to first page when applying filters
+    this.loadLogs();
   }
 
   clearFilters() {
     document.getElementById("actionFilter").value = "";
-    document.getElementById("userFilter").value = "";
+    document.getElementById("userSearch").value = "";
     this.currentFilters = {};
-    this.loadLogs(true);
+    this.currentPage = 1;
+    this.loadLogs();
   }
 
   refreshLogs() {

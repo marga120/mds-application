@@ -13,16 +13,18 @@ def get_logs():
         return jsonify({"success": False, "message": "Access denied"}), 403
 
     # Get query parameters
-    limit = min(int(request.args.get("limit", 100)), 500)  # Max 500 records
+    limit = min(
+        int(request.args.get("limit", 50)), 50
+    )  # Max 50 records (also might need to update in logs.js)
     offset = int(request.args.get("offset", 0))
     action_filter = request.args.get("action_type")
-    user_filter = request.args.get("user_id")
+    user_search = request.args.get("user_search")
 
     logs, error = get_activity_logs(
         limit=limit,
         offset=offset,
         filter_action_type=action_filter,
-        filter_user_id=user_filter,
+        filter_user_search=user_search,
     )
 
     if error:
