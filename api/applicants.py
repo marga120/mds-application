@@ -3,6 +3,7 @@ import pandas as pd
 import io
 from datetime import datetime, timezone
 from flask_login import current_user
+from utils.activity_logger import log_activity
 
 # Import our model functions
 from models.applicants import process_csv_data, get_all_applicant_status
@@ -155,7 +156,24 @@ def update_applicant_status(user_code):
     if status not in valid_statuses:
         return jsonify({"success": False, "message": "Invalid status value"}), 400
 
+    # Get old status first for logging
+    from models.applicants import get_applicant_application_info_by_code
+
+    old_info, _ = get_applicant_application_info_by_code(user_code)
+    old_status = old_info.get("sent", "Not Reviewed") if old_info else "Not Reviewed"
+
     success, message = update_applicant_application_status(user_code, status)
+
+    # Log the status change
+    if success:
+        log_activity(
+            action_type="status_change",
+            target_entity="applicant",
+            target_id=user_code,
+            old_value=old_status,
+            new_value=status,
+            additional_metadata={"user_code": user_code},
+        )
 
     if success:
         return jsonify({"success": True, "message": message})
@@ -186,15 +204,11 @@ def update_applicant_prerequisites(user_code):
     stat = str(data.get("stat", "")).strip()[:1000]
     math = str(data.get("math", "")).strip()[:1000]
 
-    # Handle GPA - validate it's a proper decimal format
+    # Handle GPA - accept as string input
     gpa = data.get("gpa", "")
     if gpa and gpa != "":
-        try:
-            # Validate GPA format (should be a decimal with up to 2 decimal places)
-            gpa_float = float(gpa)
-            gpa = f"{gpa_float:.2f}"  # Format to 2 decimal places
-        except (ValueError, TypeError):
-            return jsonify({"success": False, "message": "Invalid GPA format"}), 400
+        # Accept any string input, just limit length for database storage
+        gpa = str(gpa).strip()[:50]  # Limit to 50 characters
     else:
         gpa = None
 

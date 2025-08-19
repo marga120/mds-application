@@ -1,9 +1,9 @@
 class ApplicantsManager {
   constructor() {
     this.allApplicants = [];
-    this.sessionName = ""; // Add property to store session name
+    this.sessionName = "";
     this.initializeEventListeners();
-    this.loadSessionName(); // Load session name first
+    this.loadSessionName();
     this.loadApplicants();
     this.initializeActionButtons();
   }
@@ -31,7 +31,25 @@ class ApplicantsManager {
     });
   }
 
-  // Debug version of loadSessionName method
+  getTimeAgo(date) {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    const minutes = Math.floor(diffInSeconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds} second${diffInSeconds !== 1 ? "s" : ""} ago`;
+    } else if (minutes < 60) {
+      return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
+    } else if (hours < 24) {
+      return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+    } else {
+      return `${days} day${days !== 1 ? "s" : ""} ago`;
+    }
+  }
+
   async loadSessionName() {
     try {
       const response = await fetch("/api/sessions");
@@ -46,14 +64,13 @@ class ApplicantsManager {
         this.updateSectionTitle();
       }
     } catch (error) {
-      console.error("💥 Failed to load session name:", error);
+      console.error("Failed to load session name:", error);
       // Fallback to default
       this.sessionName = "Default Session";
       this.updateSectionTitle();
     }
   }
 
-  // Debug version of updateSectionTitle method
   updateSectionTitle() {
     const titleElement = document.getElementById("applicantsSectionTitle");
 
@@ -527,6 +544,8 @@ class ApplicantsManager {
     this.loadApplicationStatus(userCode);
 
     this.loadPrerequisites(userCode);
+
+    this.loadStatusHistory(userCode);
   }
 
   createApplicantModal() {
@@ -633,21 +652,18 @@ class ApplicantsManager {
               <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-6">
                 <div class="flex items-center gap-3">
                   <label class="text-sm font-medium text-gray-700">Overall GPA:</label>
-                  <input
-                    type="number"
-                    id="overallGpa"
-                    class="w-24 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue"
-                    placeholder="0.00"
-                    min="0"
-                    max="10.0"
-                    step="0.01"
-                  />
-                  <button
-                    id="saveGpaBtn"
-                    class="ml-auto px-3 py-1.5 bg-ubc-blue text-white text-sm rounded-md hover:bg-blue-700 transition-colors font-medium"
-                  >
-                    Save Overall GPA
-                  </button>
+                    <input
+                      type="text"
+                      id="overallGpa"
+                      class="w-128 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue"
+                      placeholder="Enter GPA"
+                    />
+                    <button
+                      id="saveGpaBtn"
+                      class="ml-auto px-3 py-1.5 bg-ubc-blue text-white text-sm rounded-md hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      Save Overall GPA
+                    </button>
                 </div>
               </div>
 
@@ -829,6 +845,28 @@ class ApplicantsManager {
                       </button>
                       <button id="cancelStatusBtn" class="btn-ubc-outline">Cancel</button>
                     </div>
+
+                    <div class="border-t border-blue-200 pt-6 mt-6">
+                      <div class="flex items-center justify-between mb-4">
+                        <h5 class="text-md font-semibold text-gray-800 flex items-center">
+                          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                          </svg>
+                          Status History
+                        </h5>
+                        <span id="statusHistoryCount" class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          Showing recent 5 changes
+                        </span>
+                      </div>
+                
+                      <div id="statusHistoryContainer" class="space-y-3">
+                        <div class="text-center py-4 text-gray-500">
+                          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+                            Loading status history...
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -940,7 +978,7 @@ class ApplicantsManager {
 
     // If showing prerequisites tab, update permissions
     if (tabName === "prerequisite-courses") {
-      this.updatePrerequisitesFormForViewer();
+      this.updatePrerequisitesFormPermissions();
     }
   }
 
@@ -1487,6 +1525,7 @@ class ApplicantsManager {
                   ${this.renderCAELScore(scores.cael)}
                   ${this.renderCELPIPScore(scores.celpip)}
                   ${this.renderAltELPPScore(scores.alt_elpp)}
+                  ${this.renderDuolingoScore(scores.duolingo)}
                 </div>
               </div>
 
@@ -1507,6 +1546,11 @@ class ApplicantsManager {
             </div>
           </div>
         `;
+
+        // Update Duolingo permissions after rendering
+        setTimeout(() => {
+          this.updateDuolingoPermissions();
+        }, 100);
         //Set current English status in dropdown and setup handlers
       if (applicationInfo?.english_status) {
         document.getElementById("englishStatusSelect").value = applicationInfo.english_status;
@@ -1729,6 +1773,281 @@ class ApplicantsManager {
     `;
   }
 
+  renderDuolingoScore(score) {
+    // Count date_written too so the input pre-fills even when only a date exists
+    const hasScore =
+      score && (score.score || score.description || score.date_written);
+
+    // current values & validity for initial render
+    const scoreValue = score && score.score != null ? String(score.score) : "";
+    const dateValue =
+      score && score.date_written
+        ? this.formatDateForInput(score.date_written)
+        : "";
+
+    const scoreInvalid = scoreValue
+      ? !this.isValidDuolingoScore(scoreValue)
+      : false;
+    const dateInvalid = dateValue ? this.isFutureYMD(dateValue) : false;
+
+    return `
+    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+
+      <h5 class="font-semibold text-blue-900 mb-3 flex items-center justify-between">
+        Duolingo
+        ${
+          hasScore
+            ? ""
+            : '<span class="text-xs text-blue-600 italic">No information entered</span>'
+        }
+      </h5>
+      <div class="space-y-3">
+        ${
+          hasScore
+            ? `
+          <div class="space-y-2">
+            ${
+              score.score
+                ? this.renderScoreField("Score", score.score, true)
+                : ""
+            }
+            ${
+              score.date_written
+                ? this.renderScoreField(
+                    "Date Written",
+                    this.formatDate(score.date_written)
+                  )
+                : ""
+            }
+            ${
+              score.description
+                ? `
+              <div class="bg-white rounded p-2 border border-blue-200">
+                <span class="text-xs font-medium text-gray-700 block mb-1">Description:</span>
+                <span class="text-sm text-gray-700">${score.description}</span>
+              </div>
+            `
+                : ""
+            }
+          </div>
+        `
+            : ""
+        }
+
+        <!-- Input Section (will be hidden/disabled based on permissions) -->
+        <div id="duolingoInputSection" class="bg-white rounded-lg p-3 border border-blue-200">
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Score (0-160):</label>
+              <input
+                type="number"
+                id="duolingoScoreInput"
+                class="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500
+                       ${
+                         scoreInvalid
+                           ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
+                           : "border-gray-300"
+                       }"
+                placeholder="Enter Duolingo score"
+                min="0"
+                max="160"
+                value="${hasScore && score.score != null ? score.score : ""}"
+                oninput="window.applicantsManager.updateDuolingoValidity()"
+              />
+              <p id="duo-score-error" class="mt-1 text-xs text-red-600 ${
+                scoreInvalid ? "" : "hidden"
+              }">
+                Score must be between 0 and 160.
+              </p>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Description:</label>
+              <textarea
+                id="duolingoDescriptionInput"
+                class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                rows="2"
+                placeholder="Enter description or notes"
+              >${
+                hasScore && score.description ? score.description : ""
+              }</textarea>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Date Written:</label>
+              <input
+                type="date"
+                id="duolingoDateInput"
+                class="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500
+                       ${
+                         dateInvalid
+                           ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
+                           : "border-gray-300"
+                       }"
+                value="${
+                  hasScore && score.date_written
+                    ? this.formatDateForInput(score.date_written)
+                    : ""
+                }"
+                oninput="window.applicantsManager.updateDuolingoValidity()"
+              />
+              <p id="duo-date-error" class="mt-1 text-xs text-red-600 ${
+                dateInvalid ? "" : "hidden"
+              }">
+                Date cannot be in the future.
+              </p>
+            </div>
+
+            <button
+              id="saveDuolingoBtn"
+              class="w-full px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors font-medium
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              ${scoreInvalid || dateInvalid ? "disabled" : ""}
+              onclick="window.applicantsManager.saveDuolingoScore()"
+            >
+              Save Duolingo Score
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    `;
+  }
+
+  async updateDuolingoPermissions() {
+    try {
+      const response = await fetch("/api/auth/check-session");
+      const result = await response.json();
+
+      const inputSection = document.getElementById("duolingoInputSection");
+      const scoreInput = document.getElementById("duolingoScoreInput");
+      const descriptionInput = document.getElementById(
+        "duolingoDescriptionInput"
+      );
+      const dateInput = document.getElementById("duolingoDateInput");
+      const saveBtn = document.getElementById("saveDuolingoBtn");
+
+      if (result.authenticated && result.user?.role === "Admin") {
+        // Admin can edit everything
+        if (inputSection) inputSection.style.display = "block";
+        if (scoreInput) scoreInput.disabled = false;
+        if (descriptionInput) descriptionInput.disabled = false;
+        if (dateInput) dateInput.disabled = false;
+        if (saveBtn) saveBtn.style.display = "block";
+      } else {
+        // Faculty and Viewers can only view
+        if (inputSection) inputSection.style.display = "none";
+        if (scoreInput) scoreInput.disabled = true;
+        if (descriptionInput) descriptionInput.disabled = true;
+        if (dateInput) dateInput.disabled = true;
+        if (saveBtn) saveBtn.style.display = "none";
+      }
+    } catch (error) {
+      console.error("Error checking user permissions:", error);
+      // Hide inputs on error to be safe
+      const inputSection = document.getElementById("duolingoInputSection");
+      if (inputSection) inputSection.style.display = "none";
+    }
+  }
+
+  async saveDuolingoScore() {
+    const modal = document.getElementById("applicantModal");
+    const userCode = modal.dataset.currentUserCode;
+
+    if (!userCode) {
+      this.showMessage("No user selected", "error");
+      return;
+    }
+
+    const scoreInput = document.getElementById("duolingoScoreInput");
+    const descriptionInput = document.getElementById(
+      "duolingoDescriptionInput"
+    );
+    const dateInput = document.getElementById("duolingoDateInput");
+    const saveBtn = document.getElementById("saveDuolingoBtn");
+
+    const score = scoreInput.value.trim();
+    const description = descriptionInput.value.trim();
+    const dateWritten = dateInput.value.trim();
+
+    // Validate score if provided
+    if (score) {
+      const scoreNum = parseInt(score);
+      if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > 160) {
+        this.showMessage("Duolingo score must be between 0 and 160", "error");
+        return;
+      }
+    }
+
+    // Validate date if provided
+    if (dateWritten) {
+      // Parse date as local date to avoid timezone issues
+      const dateParts = dateWritten.split("-");
+      if (dateParts.length !== 3) {
+        this.showMessage("Please enter a valid date", "error");
+        return;
+      }
+
+      const year = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+      const day = parseInt(dateParts[2]);
+      const selectedDate = new Date(year, month, day);
+
+      if (isNaN(selectedDate.getTime())) {
+        this.showMessage("Please enter a valid date", "error");
+        return;
+      }
+
+      const today = new Date();
+      today.setHours(23, 59, 59, 999); // Set to end of today
+
+      if (selectedDate > today) {
+        this.showMessage("Date cannot be in the future", "error");
+        return;
+      }
+    }
+
+    // Save button loading state
+    const originalText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+
+    try {
+      const response = await fetch(`/api/duolingo-score/${userCode}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          score: score || null,
+          description: description || null,
+          date_written: dateWritten || null,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        this.showMessage("Duolingo score saved successfully", "success");
+        // Reload test scores to show updated data
+        this.loadTestScores(userCode);
+      } else {
+        this.showMessage(
+          result.message || "Failed to save Duolingo score",
+          "error"
+        );
+      }
+    } catch (error) {
+      this.showMessage(
+        `Error saving Duolingo score: ${error.message}`,
+        "error"
+      );
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalText;
+    }
+  }
+
   renderGREScore(score) {
     if (!score) {
       return this.renderEmptyTestCard("GRE");
@@ -1876,17 +2195,126 @@ class ApplicantsManager {
     `;
   }
 
+  // Format "display" dates without timezone drift
   formatDate(dateString) {
     if (!dateString) return null;
     try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
+      // 1) yyyy-MM-dd (treat as a date-only in UTC)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) {
+        const [y, m, d] = dateString.trim().split("-").map(Number);
+        const utc = new Date(Date.UTC(y, m - 1, d));
+        return utc.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        });
+      }
+
+      // 2) RFC/GMT strings — format using UTC components
+      if (dateString.includes("GMT") || dateString.includes("UTC")) {
+        const dt = new Date(dateString);
+        if (!isNaN(dt.getTime())) {
+          return dt.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            timeZone: "UTC",
+          });
+        }
+      }
+
+      // 3) Fallback: best effort
+      const dt = new Date(dateString);
+      return isNaN(dt.getTime())
+        ? dateString
+        : dt.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          });
     } catch {
       return dateString;
     }
+  }
+
+  // Format specifically for <input type="date"> → "yyyy-MM-dd" (UTC-safe)
+  formatDateForInput(dateString) {
+    if (!dateString) return "";
+
+    const s = String(dateString).trim();
+
+    // Already correct for <input type="date">
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+    // Parse any RFC/ISO/GMT string, then take the UTC y-m-d so midnight UTC
+    // doesn't shift a day in local time.
+    const dt = new Date(s);
+    if (!isNaN(dt.getTime())) {
+      const y = dt.getUTCFullYear();
+      const m = String(dt.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(dt.getUTCDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    // Fallback: don't crash the UI
+    return "";
+  }
+
+  isValidDuolingoScore(value) {
+    if (value === null || value === undefined || value === "") return true; // empty is allowed
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 && number <= 160;
+  }
+
+  isFutureYMD(ymd) {
+    if (!ymd) return false;
+    // ymd is "yyyy-MM-dd"
+    const today = new Date();
+    const todayYMD = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+    )
+      .toISOString()
+      .slice(0, 10);
+    return ymd > todayYMD;
+  }
+
+  updateDuolingoValidity() {
+    const scoreEl = document.getElementById("duolingoScoreInput");
+    const dateEl = document.getElementById("duolingoDateInput");
+    const btn = document.getElementById("saveDuolingoBtn");
+
+    if (!scoreEl || !dateEl || !btn) return;
+
+    const scoreValue = scoreEl.value.trim();
+    const dateValue = dateEl.value.trim();
+
+    const scoreInvalid =
+      scoreValue !== "" && !this.isValidDuolingoScore(scoreValue);
+    const dateInvalid = dateValue !== "" && this.isFutureYMD(dateValue);
+
+    // Score styles + message
+    scoreEl.classList.toggle("border-red-500", scoreInvalid);
+    scoreEl.classList.toggle("ring-1", scoreInvalid);
+    scoreEl.classList.toggle("ring-red-500", scoreInvalid);
+    scoreEl.classList.toggle("focus:ring-red-500", scoreInvalid);
+    scoreEl.classList.toggle("border-gray-300", !scoreInvalid);
+
+    const scoreMsg = document.getElementById("duo-score-error");
+    if (scoreMsg) scoreMsg.classList.toggle("hidden", !scoreInvalid);
+
+    // Date styles + message
+    dateEl.classList.toggle("border-red-500", dateInvalid);
+    dateEl.classList.toggle("ring-1", dateInvalid);
+    dateEl.classList.toggle("ring-red-500", dateInvalid);
+    dateEl.classList.toggle("focus:ring-red-500", dateInvalid);
+    dateEl.classList.toggle("border-gray-300", !dateInvalid);
+
+    const dateMsg = document.getElementById("duo-date-error");
+    if (dateMsg) dateMsg.classList.toggle("hidden", !dateInvalid);
+
+    // Button enable/disable
+    btn.disabled = scoreInvalid || dateInvalid;
   }
 
   renderInfoField(label, value, type = "text") {
@@ -1965,6 +2393,72 @@ class ApplicantsManager {
         result.institutions &&
         result.institutions.length > 0
       ) {
+        // First, get applicant info to check UBC attendance
+        const applicantResponse = await fetch(
+          `/api/applicant-info/${userCode}`
+        );
+        const applicantResult = await applicantResponse.json();
+
+        let ubcSection = "";
+        if (applicantResult.success && applicantResult.applicant) {
+          const applicant = applicantResult.applicant;
+          const academicHistoryCode = applicant.academic_history_code;
+          const ubcAcademicHistory = applicant.ubc_academic_history;
+
+          // Check if they attended UBC (Y or U codes)
+          const attendedUBC =
+            academicHistoryCode === "Y" || academicHistoryCode === "U";
+
+          // Parse UBC academic history
+          const ubcRecords = this.parseUbcAcademicHistory(ubcAcademicHistory);
+
+          ubcSection = `
+            <!-- UBC Educational Background Section -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6 border border-blue-200">
+              <h5 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 3v18M13 3v18"></path>
+                </svg>
+                UBC Educational Background
+              </h5>
+              ${
+                attendedUBC
+                  ? `
+                  <div class="mb-4">
+                    <div class="flex items-center mb-4">
+                      <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                      <span class="text-sm font-medium text-blue-800">Previous UBC Student</span>
+                      ${
+                        ubcRecords.length > 0
+                          ? `
+                        <span class="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                          ${ubcRecords.length} record${
+                              ubcRecords.length !== 1 ? "s" : ""
+                            }
+                        </span>
+                      `
+                          : ""
+                      }
+                    </div>
+                    <div class="space-y-3">
+                      ${this.renderUbcAcademicHistoryRecords(ubcRecords)}
+                    </div>
+                  </div>
+              `
+                  : `
+                <div class="bg-white rounded-lg p-4 border border-gray-200">
+                  <div class="flex items-center mb-2">
+                    <div class="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
+                    <span class="text-sm font-medium text-gray-600">No Previous UBC Attendance</span>
+                  </div>
+                  <p class="text-sm text-gray-500">This applicant has not previously attended UBC.</p>
+                </div>
+              `
+              }
+            </div>
+          `;
+        }
+
         container.innerHTML = `
           <div class="pr-2">
             <h4 class="text-xl font-semibold text-ubc-blue mb-6 flex items-center">
@@ -1973,6 +2467,8 @@ class ApplicantsManager {
               </svg>
               Educational Background
             </h4>
+
+            ${ubcSection}
 
              <!-- Academic Summary Section -->
             <div class="bg-gradient-to-r from-ubc-blue to-blue-600 text-white rounded-lg p-6 mb-6">
@@ -2098,13 +2594,85 @@ class ApplicantsManager {
         `;
         this.loadAcademicSummary(userCode);
       } else {
+        // Even if no institution info, still show UBC section
+        const applicantResponse = await fetch(
+          `/api/applicant-info/${userCode}`
+        );
+        const applicantResult = await applicantResponse.json();
+
+        let ubcSection = "";
+        if (applicantResult.success && applicantResult.applicant) {
+          const applicant = applicantResult.applicant;
+          const academicHistoryCode = applicant.academic_history_code;
+          const ubcAcademicHistory = applicant.ubc_academic_history;
+
+          // Parse UBC academic history
+          const ubcRecords = this.parseUbcAcademicHistory(ubcAcademicHistory);
+
+          // Check if they attended UBC (Y or U codes)
+          const attendedUBC =
+            academicHistoryCode === "Y" || academicHistoryCode === "U";
+
+          ubcSection = `
+            <div class="mb-6">
+              <h4 class="text-xl font-semibold text-ubc-blue mb-4 flex items-center">
+                <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 3v18M13 3v18"></path>
+                </svg>
+                Educational Background
+              </h4>
+              
+              <!-- UBC Educational Background Section -->
+              <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6 border border-blue-200">
+                <h5 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 3v18M13 3v18"></path>
+                  </svg>
+                  UBC Educational Background
+                </h5>
+                ${
+                  attendedUBC
+                    ? `
+                  <div class="bg-white rounded-lg p-4 border border-green-200">
+                    <div class="flex items-center mb-3">
+                      <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                      <span class="text-sm font-medium text-green-800">Previous UBC Student</span>
+                    </div>
+                    <div class="text-sm text-gray-700 leading-relaxed">
+                      ${
+                        ubcAcademicHistory && ubcAcademicHistory.trim() !== ""
+                          ? `<p class="whitespace-pre-line">${ubcAcademicHistory}</p>`
+                          : `<p class="text-gray-500 italic">UBC academic history details not available</p>`
+                      }
+                    </div>
+                  </div>
+                `
+                    : `
+                  <div class="bg-white rounded-lg p-4 border border-gray-200">
+                    <div class="flex items-center mb-2">
+                      <div class="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
+                      <span class="text-sm font-medium text-gray-600">No Previous UBC Attendance</span>
+                    </div>
+                    <p class="text-sm text-gray-500">This applicant has not previously attended UBC.</p>
+                  </div>
+                `
+                }
+              </div>
+            </div>
+          `;
+        }
+
         container.innerHTML = `
-          <div class="text-center py-12 text-gray-500">
-            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 3v18M13 3v18"></path>
-            </svg>
-            <h3 class="text-lg font-medium text-gray-400 mb-2">No Institution Information</h3>
-            <p class="text-gray-400">No educational background information is available for this applicant.</p>
+          <div class="pr-2">
+            ${ubcSection}
+            
+            <div class="text-center py-12 text-gray-500">
+              <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 3v18M13 3v18"></path>
+              </svg>
+              <h3 class="text-lg font-medium text-gray-400 mb-2">No Institution Information</h3>
+              <p class="text-gray-400">No external educational background information is available for this applicant.</p>
+            </div>
           </div>
         `;
       }
@@ -2366,6 +2934,9 @@ class ApplicantsManager {
 
         // Reload the entire status display
         this.loadApplicationStatus(userCode);
+
+        // Reload status history immediately
+        await this.loadStatusHistory(userCode);
       } else {
         this.showMessage(result.message, "error");
       }
@@ -2375,6 +2946,112 @@ class ApplicantsManager {
       updateBtn.disabled = false;
       updateBtn.innerHTML = originalHTML;
     }
+  }
+
+  async loadStatusHistory(userCode) {
+    const container = document.getElementById("statusHistoryContainer");
+    const countElement = document.getElementById("statusHistoryCount");
+
+    try {
+      // Only Admins can view logs; check role first to avoid 403s and console noise
+      const auth = await fetch("/api/auth/check-session")
+        .then((r) => r.json())
+        .catch(() => ({}));
+      const isAdmin = !!(
+        auth &&
+        auth.authenticated &&
+        auth.user &&
+        auth.user.role === "Admin"
+      );
+
+      if (!isAdmin) {
+        // For Viewer/Faculty, don't call the logs API; show a quiet placeholder instead
+        if (container) {
+          container.innerHTML = `
+            <div class="text-center py-4 text-gray-500">
+              <p class="text-sm">Status history is available to admins.</p>
+            </div>
+          `;
+        }
+        if (countElement) countElement.textContent = "";
+        return;
+      }
+
+      // Admins: fetch status change logs for this specific applicant - limit to 5
+      const response = await fetch(
+        `/api/logs?action_type=status_change&target_id=${userCode}&limit=5`
+      );
+      const result = await response.json();
+
+      if (result.success) {
+        if (result.logs.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-4 text-gray-500">
+              <p class="text-sm">No status changes recorded yet</p>
+            </div>
+          `;
+          countElement.textContent = "No changes yet";
+          return;
+        }
+
+        // Update the counter based on actual results
+        const displayCount = Math.min(result.logs.length, 5);
+        countElement.textContent = `Showing recent ${displayCount} change${
+          displayCount !== 1 ? "s" : ""
+        }`;
+
+        const historyHtml = result.logs
+          .map((log) => this.createStatusHistoryItem(log))
+          .join("");
+        container.innerHTML = historyHtml;
+      } else {
+        container.innerHTML = `
+          <div class="text-center py-4 text-red-500">
+            <p class="text-sm">Error loading status history</p>
+          </div>
+        `;
+        countElement.textContent = "Error loading";
+      }
+    } catch (error) {
+      console.error("Error loading status history:", error);
+      container.innerHTML = `
+        <div class="text-center py-4 text-red-500">
+          <p class="text-sm">Failed to load status history</p>
+        </div>
+      `;
+      countElement.textContent = "Error loading";
+    }
+  }
+
+  createStatusHistoryItem(log) {
+    const timestamp = new Date(log.created_at);
+    const timeString = timestamp.toLocaleString();
+    const timeAgo = this.getTimeAgo(timestamp);
+
+    return `
+      <div class="bg-white rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <p class="text-sm text-gray-900">
+              <span class="font-medium">${log.user_name}</span> 
+              changed status from 
+              <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-medium">${
+                log.old_value || "Unknown"
+              }</span>
+              to 
+              <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-medium">${
+                log.new_value || "Unknown"
+              }</span>
+            </p>
+            <div class="mt-2 flex items-center gap-4 text-xs text-gray-500">
+              <span>${timeString}</span>
+              <span>•</span>
+              <span>${timeAgo}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   updateStatusBadge(status) {
@@ -2437,8 +3114,8 @@ class ApplicantsManager {
         // Load the overall GPA
         const gpaInput = document.getElementById("overallGpa");
         if (info.gpa) {
-          // Format to 2 decimal places
-          gpaInput.value = parseFloat(info.gpa).toFixed(2);
+          // Load as string value
+          gpaInput.value = info.gpa;
         } else {
           gpaInput.value = "";
         }
@@ -2565,24 +3242,11 @@ class ApplicantsManager {
     const gpaInput = document.getElementById("overallGpa");
     let gpa = gpaInput.value.trim();
 
-    // Validate GPA
+    // Validate GPA - only check if it's not empty
     if (!gpa) {
       this.showPrerequisitesFeedback("Please enter a GPA value", false);
       return;
     }
-
-    const gpaFloat = parseFloat(gpa);
-    if (isNaN(gpaFloat) || gpaFloat < 0 || gpaFloat > 10.0) {
-      this.showPrerequisitesFeedback(
-        "GPA must be between 0.00 and 10.00",
-        false
-      );
-      return;
-    }
-
-    // Format to 2 decimal places
-    gpa = gpaFloat.toFixed(2);
-    gpaInput.value = gpa; // Update the input to show formatted value
 
     const saveBtn = document.getElementById("saveGpaBtn");
     const originalText = saveBtn.textContent;
@@ -2763,6 +3427,246 @@ class ApplicantsManager {
 
     // Make sure the update button starts disabled
     updateBtn.disabled = true;
+  }
+
+  parseUbcAcademicHistory(ubcHistoryString) {
+    if (!ubcHistoryString || ubcHistoryString.trim() === "") {
+      return [];
+    }
+
+    try {
+      // Split by '} {' to separate records, then clean up
+      const recordStrings = ubcHistoryString
+        .split("} {")
+        .map((record, index, array) => {
+          // Clean up the record string
+          let cleaned = record.trim();
+
+          // Add missing braces
+          if (index === 0 && !cleaned.startsWith("{")) {
+            cleaned = "{" + cleaned;
+          }
+          if (index === array.length - 1 && !cleaned.endsWith("}")) {
+            cleaned = cleaned + "}";
+          }
+          if (index > 0 && index < array.length - 1) {
+            if (!cleaned.startsWith("{")) cleaned = "{" + cleaned;
+            if (!cleaned.endsWith("}")) cleaned = cleaned + "}";
+          }
+
+          return cleaned;
+        });
+
+      const records = [];
+
+      recordStrings.forEach((recordString) => {
+        if (!recordString.trim()) return;
+
+        // Remove outer braces and split by semicolons
+        const content = recordString.replace(/^{|}$/g, "").trim();
+        const parts = content.split(";");
+
+        const record = {};
+
+        parts.forEach((part) => {
+          const trimmedPart = part.trim();
+          if (!trimmedPart) return;
+
+          const colonIndex = trimmedPart.indexOf(":");
+          if (colonIndex === -1) return;
+
+          const key = trimmedPart.substring(0, colonIndex).trim();
+          const value = trimmedPart.substring(colonIndex + 1).trim();
+
+          // Clean up key names and store values
+          switch (key) {
+            case "eVision Record #":
+              record.recordNumber = parseInt(value) || 0;
+              break;
+            case "Degree Conferred?":
+              record.degreeConferred = value;
+              break;
+            case "Start Date":
+              record.startDate = value;
+              break;
+            case "End Date or Expected End Date":
+              record.endDate = value;
+              break;
+            case "Expected Conferred Date":
+              record.expectedConferredDate = value;
+              break;
+            case "Expected Credential":
+              record.expectedCredential = value;
+              break;
+            case "Category":
+              record.category = value;
+              break;
+            case "Program of Study":
+              record.programOfStudy = value;
+              break;
+            case "Required to Withdraw?":
+              record.requiredToWithdraw = value;
+              break;
+            case "Honours":
+              record.honours = value;
+              break;
+            case "SPEC1":
+              record.specialization = value;
+              break;
+            default:
+              // Handle any other fields
+              record[key.toLowerCase().replace(/[^a-z0-9]/g, "")] = value;
+          }
+        });
+
+        if (Object.keys(record).length > 0) {
+          records.push(record);
+        }
+      });
+
+      // Sort by record number
+      return records.sort(
+        (a, b) => (a.recordNumber || 0) - (b.recordNumber || 0)
+      );
+    } catch (error) {
+      console.error("Error parsing UBC academic history:", error);
+      return [];
+    }
+  }
+
+  renderUbcAcademicHistoryRecords(records) {
+    if (!records || records.length === 0) {
+      return `<p class="text-gray-500 italic">No UBC academic history records available</p>`;
+    }
+
+    return records
+      .map(
+        (record) => `
+      <div class="bg-white rounded-lg p-4 border border-gray-200 mb-3">
+        <div class="mb-3">
+          <h6 class="text-sm font-semibold text-ubc-blue">
+            eVision Record #${record.recordNumber || "Unknown"}
+          </h6>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          ${
+            record.degreeConferred
+              ? `
+            <div>
+              <span class="font-medium text-gray-700">Degree Conferred:</span>
+              <span class="text-gray-600 ml-1">${record.degreeConferred}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.startDate
+              ? `
+            <div>
+              <span class="font-medium text-gray-700">Start Date:</span>
+              <span class="text-gray-600 ml-1">${record.startDate}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.endDate
+              ? `
+            <div>
+              <span class="font-medium text-gray-700">End Date:</span>
+              <span class="text-gray-600 ml-1">${record.endDate}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.expectedCredential && record.expectedCredential.trim()
+              ? `
+            <div class="md:col-span-2">
+              <span class="font-medium text-gray-700">Expected Credential:</span>
+              <span class="text-gray-600 ml-1">${record.expectedCredential}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.category && record.category.trim()
+              ? `
+            <div>
+              <span class="font-medium text-gray-700">Category:</span>
+              <span class="text-gray-600 ml-1">${record.category}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.programOfStudy && record.programOfStudy.trim()
+              ? `
+            <div>
+              <span class="font-medium text-gray-700">Program of Study:</span>
+              <span class="text-gray-600 ml-1">${record.programOfStudy}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.specialization && record.specialization.trim()
+              ? `
+            <div class="md:col-span-2">
+              <span class="font-medium text-gray-700">Specialization:</span>
+              <span class="text-gray-600 ml-1">${record.specialization}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.expectedConferredDate && record.expectedConferredDate.trim()
+              ? `
+            <div>
+              <span class="font-medium text-gray-700">Expected Graduation:</span>
+              <span class="text-gray-600 ml-1">${record.expectedConferredDate}</span>
+            </div>
+          `
+              : ""
+          }
+          
+          ${
+            record.requiredToWithdraw
+              ? `
+            <div>
+              <span class="font-medium text-gray-700">Required to Withdraw:</span>
+              <span class="text-gray-600 ml-1">${record.requiredToWithdraw}</span>
+            </div>
+          `
+              : ""
+          }
+        </div>
+        
+        ${
+          record.honours &&
+          record.honours.trim() &&
+          record.honours !==
+            "Please see Workday for Awards or Honours awarded to this applicant."
+            ? `
+          <div class="mt-3 pt-3 border-t border-gray-100">
+            <span class="font-medium text-gray-700 block mb-1">Honours:</span>
+            <span class="text-gray-600 text-sm">${record.honours}</span>
+          </div>
+        `
+            : ""
+        }
+      </div>
+    `
+      )
+      .join("");
   }
 
 

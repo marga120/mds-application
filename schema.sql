@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS application_info (
     cs TEXT,
     stat TEXT,
     math TEXT,
-    gpa VARCHAR(10),
+    gpa VARCHAR(50),
     highest_degree VARCHAR(50),
     degree_area VARCHAR(50),
     mds_v BOOLEAN,
@@ -266,6 +266,28 @@ CREATE TABLE IF NOT EXISTS gmat(
     quantitative VARCHAR(2),
     verbal VARCHAR(2),
     writing VARCHAR(2)
+);
+
+CREATE TABLE IF NOT EXISTS duolingo (
+    user_code VARCHAR(10) REFERENCES applicant_info(user_code),
+    score INTEGER,
+    description TEXT,
+    date_written DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_code)
+);
+
+CREATE TABLE IF NOT EXISTS activity_log (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES "user"(id),
+    action_type VARCHAR(50) NOT NULL,
+    target_entity VARCHAR(50),
+    target_id VARCHAR(50),
+    old_value TEXT,
+    new_value TEXT,
+    additional_metadata JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Add foreign key constraint with CASCADE DELETE (check if exists first)
@@ -517,6 +539,7 @@ CREATE INDEX IF NOT EXISTS idx_program_info_user_code ON program_info(user_code)
 CREATE INDEX IF NOT EXISTS idx_institution_info_user_code ON institution_info(user_code);
 CREATE INDEX IF NOT EXISTS idx_toefl_user_code ON toefl(user_code);
 CREATE INDEX IF NOT EXISTS idx_ielts_user_code ON ielts(user_code);
+CREATE INDEX IF NOT EXISTS idx_duolingo_user_code ON duolingo(user_code);
 
 -- Insert default roles
 INSERT INTO role_user (name) VALUES ('Admin'), ('Faculty'), ('Viewer') 

@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, session, redirect, url_for
 from flask_login import login_user, logout_user, login_required, current_user
 from models.users import authenticate_user, get_user_by_email, create_user
 from datetime import datetime
+from utils.activity_logger import log_activity
 
 auth_api = Blueprint("auth_api", __name__)
 
@@ -30,6 +31,10 @@ def login():
             # Log the user in with Flask-Login
             login_user(user, remember=remember)
 
+            log_activity(
+                action_type="login", additional_metadata={"remember": remember}
+            )
+
             return jsonify(
                 {
                     "success": True,
@@ -44,6 +49,10 @@ def login():
                 }
             )
         else:
+            # Log failed login attempt
+            log_activity(
+                action_type="login_failed", additional_metadata={"email": email}
+            )
             return (
                 jsonify({"success": False, "message": "Invalid email or password"}),
                 401,
