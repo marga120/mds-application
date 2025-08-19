@@ -116,6 +116,7 @@ CREATE TABLE IF NOT EXISTS application_info (
     english BOOLEAN,
     english_status VARCHAR(50),
     english_description VARCHAR(100),
+    english_comment VARCHAR(255),
     cs TEXT,
     stat TEXT,
     math TEXT,
