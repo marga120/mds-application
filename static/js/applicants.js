@@ -911,9 +911,6 @@ class ApplicantsManager {
       this.loadAppStatus(modal.dataset.currentUserCode);
     });
 
-
-    
-
     // Close modal when clicking outside
     modal.addEventListener("click", (e) => {
       if (e.target === modal) {
@@ -1375,9 +1372,13 @@ class ApplicantsManager {
       if (result.success && result.test_scores) {
         const scores = result.test_scores;
 
-        const englishStatusResponse = await fetch(`/api/applicant-application-info/${userCode}`);
+        const englishStatusResponse = await fetch(
+          `/api/applicant-application-info/${userCode}`
+        );
         const englishStatusResult = await englishStatusResponse.json();
-        const applicationInfo = englishStatusResult.success ? englishStatusResult.application_info : null;
+        const applicationInfo = englishStatusResult.success
+          ? englishStatusResult.application_info
+          : null;
 
         container.innerHTML = `
           <div class="pr-2">
@@ -1397,12 +1398,16 @@ class ApplicantsManager {
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-sm font-medium text-gray-600 mb-1">Current English Status</p>
-                    <p class="text-lg font-bold text-gray-900" id="currentEnglishStatusDisplay">${applicationInfo?.english_status || 'Not Set'}</p>
+                    <p class="text-lg font-bold text-gray-900" id="currentEnglishStatusDisplay">${
+                      applicationInfo?.english_status || "Not Set"
+                    }</p>
                   </div>
                   <div class="flex items-center">
                     <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium" id="currentEnglishStatusBadge">
                       <div class="w-2 h-2 rounded-full mr-2" id="currentEnglishStatusDot"></div>
-                      <span id="currentEnglishStatusText">${applicationInfo?.english_status || 'Not Set'}</span>
+                      <span id="currentEnglishStatusText">${
+                        applicationInfo?.english_status || "Not Set"
+                      }</span>
                     </span>
                   </div>
                 </div>
@@ -1410,14 +1415,18 @@ class ApplicantsManager {
             </div>
 
             <!-- English Description Display -->
-            ${applicationInfo?.english_description ? `
+            ${
+              applicationInfo?.english_description
+                ? `
             <div class="mb-6">
               <div class="bg-white rounded-lg p-4 border border-blue-200 shadow-sm">
                 <h5 class="text-sm font-semibold text-ubc-blue mb-2">English Status Description</h5>
                 <p class="text-sm text-gray-900" id="englishDescriptionDisplay">${applicationInfo.english_description}</p>
               </div>
             </div>
-            ` : ''}
+            `
+                : ""
+            }
 
             <!-- English Comment Section -->
             <div class="mb-6">
@@ -1428,7 +1437,7 @@ class ApplicantsManager {
                   rows="3"
                   class="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none text-sm"
                   placeholder="Add comments about English proficiency status..."
-                >${applicationInfo?.english_comment || ''}</textarea>
+                >${applicationInfo?.english_comment || ""}</textarea>
                 <div class="mt-3 flex gap-2">
                   <button
                     id="saveEnglishCommentBtn"
@@ -1476,9 +1485,13 @@ class ApplicantsManager {
                       </svg>
                       <span class="text-sm text-yellow-800">
                         <span class="font-medium">Preview:</span> 
-                        <span id="currentEnglishStatusPreview">${applicationInfo?.english_status || 'Not Set'}</span> 
+                        <span id="currentEnglishStatusPreview">${
+                          applicationInfo?.english_status || "Not Set"
+                        }</span> 
                         <span class="mx-2">→</span> 
-                        <span class="font-semibold" id="newEnglishStatusPreview">${applicationInfo?.english_status || 'Not Set'}</span>
+                        <span class="font-semibold" id="newEnglishStatusPreview">${
+                          applicationInfo?.english_status || "Not Set"
+                        }</span>
                       </span>
                     </div>
                   </div>
@@ -1552,17 +1565,18 @@ class ApplicantsManager {
           this.updateDuolingoPermissions();
         }, 100);
         //Set current English status in dropdown and setup handlers
-      if (applicationInfo?.english_status) {
-        document.getElementById("englishStatusSelect").value = applicationInfo.english_status;
-        this.updateEnglishStatusBadge(applicationInfo.english_status);
-      }
+        if (applicationInfo?.english_status) {
+          document.getElementById("englishStatusSelect").value =
+            applicationInfo.english_status;
+          this.updateEnglishStatusBadge(applicationInfo.english_status);
+        }
 
-      //Setup English status preview and event handlers
-      this.setupEnglishStatusPreview(applicationInfo?.english_status || 'Not Set');
-      this.updateEnglishStatusFormPermissions();
-      this.setupEnglishCommentHandlers();
-
-    
+        //Setup English status preview and event handlers
+        this.setupEnglishStatusPreview(
+          applicationInfo?.english_status || "Not Set"
+        );
+        this.updateEnglishStatusFormPermissions();
+        this.setupEnglishCommentHandlers();
       } else {
         container.innerHTML = `
           <div class="text-center py-12 text-gray-500">
@@ -3669,7 +3683,6 @@ class ApplicantsManager {
       .join("");
   }
 
-
   //updateEnglishStatusBadge method
   updateEnglishStatusBadge(status) {
     const badge = document.getElementById("currentEnglishStatusBadge");
@@ -3679,8 +3692,9 @@ class ApplicantsManager {
     if (!badge || !dot || !text) return;
 
     // Remove existing classes
-    badge.className = "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium";
-    
+    badge.className =
+      "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium";
+
     // Update text
     text.textContent = status;
 
@@ -3708,16 +3722,27 @@ class ApplicantsManager {
   setupEnglishStatusPreview(currentStatus) {
     const statusSelect = document.getElementById("englishStatusSelect");
     const statusPreview = document.getElementById("englishStatusPreview");
-    const currentStatusPreview = document.getElementById("currentEnglishStatusPreview");
+    const currentStatusPreview = document.getElementById(
+      "currentEnglishStatusPreview"
+    );
     const newStatusPreview = document.getElementById("newEnglishStatusPreview");
     const updateBtn = document.getElementById("updateEnglishStatusBtn");
 
-    if (!statusSelect || !statusPreview || !currentStatusPreview || !newStatusPreview || !updateBtn) {
+    if (
+      !statusSelect ||
+      !statusPreview ||
+      !currentStatusPreview ||
+      !newStatusPreview ||
+      !updateBtn
+    ) {
       return;
     }
 
     // Clear any existing event listeners
-    statusSelect.removeEventListener("change", statusSelect._englishStatusChangeHandler);
+    statusSelect.removeEventListener(
+      "change",
+      statusSelect._englishStatusChangeHandler
+    );
 
     // Create new handler and store reference
     const changeHandler = () => {
@@ -3753,9 +3778,14 @@ class ApplicantsManager {
       const updateBtn = document.getElementById("updateEnglishStatusBtn");
       const cancelBtn = document.getElementById("cancelEnglishStatusBtn");
       const statusSelect = document.getElementById("englishStatusSelect");
-      const englishStatusChangeSection = document.getElementById("englishStatusChangeSection");
+      const englishStatusChangeSection = document.getElementById(
+        "englishStatusChangeSection"
+      );
 
-      if (result.authenticated && (result.user?.role === "Admin" || result.user?.role === "Faculty")) {
+      if (
+        result.authenticated &&
+        (result.user?.role === "Admin" || result.user?.role === "Faculty")
+      ) {
         // Admin and Faculty can update English status
         if (englishStatusChangeSection) {
           englishStatusChangeSection.style.display = "block";
@@ -3770,7 +3800,10 @@ class ApplicantsManager {
         }
       }
     } catch (error) {
-      console.error("Error checking user permissions for English status:", error);
+      console.error(
+        "Error checking user permissions for English status:",
+        error
+      );
     }
   }
 
@@ -3801,7 +3834,8 @@ class ApplicantsManager {
 
     if (cancelEnglishBtn) {
       cancelEnglishBtn.addEventListener("click", () => {
-        const userCode = document.getElementById("applicantModal").dataset.currentUserCode;
+        const userCode =
+          document.getElementById("applicantModal").dataset.currentUserCode;
         this.loadTestScores(userCode); // Reload to reset form
       });
     }
@@ -3821,25 +3855,34 @@ class ApplicantsManager {
     saveBtn.textContent = "Saving...";
 
     try {
-      const response = await fetch(`/api/applicant-application-info/${userCode}/english-comment`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          english_comment: comment,
-        }),
-      });
+      const response = await fetch(
+        `/api/applicant-application-info/${userCode}/english-comment`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            english_comment: comment,
+          }),
+        }
+      );
 
       const result = await response.json();
 
       if (result.success) {
         this.showMessage("English comment saved successfully", "success");
       } else {
-        this.showMessage(result.message || "Failed to save English comment", "error");
+        this.showMessage(
+          result.message || "Failed to save English comment",
+          "error"
+        );
       }
     } catch (error) {
-      this.showMessage(`Error saving English comment: ${error.message}`, "error");
+      this.showMessage(
+        `Error saving English comment: ${error.message}`,
+        "error"
+      );
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
@@ -3865,40 +3908,50 @@ class ApplicantsManager {
     `;
 
     try {
-      const response = await fetch(`/api/applicant-application-info/${userCode}/english-status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          english_status: newStatus,
-        }),
-      });
+      const response = await fetch(
+        `/api/applicant-application-info/${userCode}/english-status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            english_status: newStatus,
+          }),
+        }
+      );
 
       const result = await response.json();
 
       if (result.success) {
         this.showMessage("English status updated successfully", "success");
-        
+
         // Update the current status displays
-        document.getElementById("currentEnglishStatusDisplay").textContent = newStatus;
-        document.getElementById("currentEnglishStatusText").textContent = newStatus;
-        
+        document.getElementById("currentEnglishStatusDisplay").textContent =
+          newStatus;
+        document.getElementById("currentEnglishStatusText").textContent =
+          newStatus;
+
         // Update badge styling
         this.updateEnglishStatusBadge(newStatus);
-        
+
         // Hide preview and disable update button
         document.getElementById("englishStatusPreview").classList.add("hidden");
         updateBtn.disabled = true;
-        
+
         // Reset the preview functionality with new current status
         this.setupEnglishStatusPreview(newStatus);
-        
       } else {
-        this.showMessage(result.message || "Failed to update English status", "error");
+        this.showMessage(
+          result.message || "Failed to update English status",
+          "error"
+        );
       }
     } catch (error) {
-      this.showMessage(`Error updating English status: ${error.message}`, "error");
+      this.showMessage(
+        `Error updating English status: ${error.message}`,
+        "error"
+      );
     } finally {
       updateBtn.disabled = false;
       updateBtn.innerHTML = originalHTML;
