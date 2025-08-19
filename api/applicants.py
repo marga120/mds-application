@@ -218,3 +218,56 @@ def update_applicant_prerequisites(user_code):
         return jsonify({"success": True, "message": message})
     else:
         return jsonify({"success": False, "message": message}), 400
+
+@applicants_api.route("/applicant-application-info/<user_code>/english-comment", methods=["PUT"])
+def update_english_comment(user_code):
+    """Update English comment for applicant (Admin/Faculty only)"""
+    if not current_user.is_authenticated or current_user.is_viewer:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    from models.applicants import update_english_comment
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "Invalid request data"}), 400
+
+    # Validate user_code format
+    if not user_code or not user_code.strip():
+        return jsonify({"success": False, "message": "Invalid user code"}), 400
+
+    # Sanitize comment input and limit length
+    english_comment = str(data.get("english_comment", "")).strip()[:2000]  # Limit to 2000 chars
+
+    success, message = update_english_comment(user_code, english_comment)
+
+    if success:
+        return jsonify({"success": True, "message": message})
+    else:
+        return jsonify({"success": False, "message": message}), 400
+
+
+@applicants_api.route("/applicant-application-info/<user_code>/english-status", methods=["PUT"])
+def update_english_status(user_code):
+    """Update English status for applicant (Admin/Faculty only)"""
+    if not current_user.is_authenticated or current_user.is_viewer:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    from models.applicants import update_english_status
+
+    data = request.get_json()
+    english_status = data.get("english_status")
+
+    if not english_status:
+        return jsonify({"success": False, "message": "English status is required"}), 400
+
+    # Validate status values
+    valid_statuses = ["Not Met", "Not Required", "Passed"]
+    if english_status not in valid_statuses:
+        return jsonify({"success": False, "message": "Invalid English status value"}), 400
+
+    success, message = update_english_status(user_code, english_status)
+
+    if success:
+        return jsonify({"success": True, "message": message})
+    else:
+        return jsonify({"success": False, "message": message}), 400

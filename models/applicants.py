@@ -103,9 +103,362 @@ def create_or_get_sessions(cursor, program_code, program, session_abbrev):
         return None, f"Database error creating session: {e}"
 
 
+def compute_english_status(user_code: str, not_required_rule=None):
+    """
+    Compute english_status/english_description/english for a single applicant,
+    using the first test that meets the minimum requirements in this order:
+    TOEFL -> IELTS -> MELAB -> PTE -> CAEL.
+
+    english = TRUE iff english_status in ('Passed','Not Required').
+    """
+
+    # Thresholds
+    TOEFL_LR_MIN = 22  # listening & reading
+    TOEFL_WS_MIN = 21  # writing & speaking
+    TOEFL_TOTAL_MIN = 90
+
+    IELTS_EACH_MIN = 6.0
+    IELTS_TOTAL_MIN = 6.5
+
+    MELAB_TOTAL_MIN = 64
+    PTE_TOTAL_MIN = 65
+
+    CAEL_EACH_MIN = 60
+
+    status = None
+    desc = None
+    failed_tests = []
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+
+            # Optional “Not Required” rule hook
+            if callable(not_required_rule):
+                nr_ok, nr_reason = not_required_rule(cur, user_code)
+                if nr_ok:
+                    status = "Not Required"
+                    desc = nr_reason or "Exempt from English requirement"
+                    cur.execute(
+                        """
+                        UPDATE application_info
+                           SET english_status = %s,
+                               english_description = %s,
+                               english = TRUE
+                         WHERE user_code = %s
+                        """,
+                        (status, desc, user_code),
+                    )
+                    conn.commit()
+                    return
+
+            # 1) TOEFL (regular -> MyBest only if regular fails)
+            cur.execute(
+                """
+                SELECT toefl_number, listening, structure_written, reading, speaking,
+                       total_score, mybest_listening, mybest_writing,
+                       mybest_reading, mybest_speaking, mybest_total
+                  FROM toefl
+                 WHERE user_code = %s
+                 ORDER BY toefl_number
+                """,
+                (user_code,),
+            )
+            for row in cur.fetchall():
+                L = (
+                    int(row["listening"])
+                    if row["listening"] not in (None, "")
+                    else None
+                )
+                W = (
+                    int(row["structure_written"])
+                    if row["structure_written"] not in (None, "")
+                    else None
+                )
+                R = int(row["reading"]) if row["reading"] not in (None, "") else None
+                S = int(row["speaking"]) if row["speaking"] not in (None, "") else None
+                T = (
+                    int(row["total_score"])
+                    if row["total_score"] not in (None, "")
+                    else None
+                )
+
+                mL = (
+                    int(row["mybest_listening"])
+                    if row["mybest_listening"] not in (None, "")
+                    else None
+                )
+                mW = (
+                    int(row["mybest_writing"])
+                    if row["mybest_writing"] not in (None, "")
+                    else None
+                )
+                mR = (
+                    int(row["mybest_reading"])
+                    if row["mybest_reading"] not in (None, "")
+                    else None
+                )
+                mS = (
+                    int(row["mybest_speaking"])
+                    if row["mybest_speaking"] not in (None, "")
+                    else None
+                )
+                mT = (
+                    int(row["mybest_total"])
+                    if row["mybest_total"] not in (None, "")
+                    else None
+                )
+
+                num = row["toefl_number"] or 1
+
+                # Regular attempt
+                if all(v is not None for v in (L, W, R, S, T)) and (
+                    L >= TOEFL_LR_MIN
+                    and R >= TOEFL_LR_MIN
+                    and W >= TOEFL_WS_MIN
+                    and S >= TOEFL_WS_MIN
+                    and T >= TOEFL_TOTAL_MIN
+                ):
+                    status = "Passed"
+                    desc = f"TOEFL{num}, score is above the minimum requirement (90)"
+                    break
+
+                # MyBest composite
+                elif all(v is not None for v in (mL, mW, mR, mS, mT)) and (
+                    mL >= TOEFL_LR_MIN
+                    and mR >= TOEFL_LR_MIN
+                    and mW >= TOEFL_WS_MIN
+                    and mS >= TOEFL_WS_MIN
+                    and mT >= TOEFL_TOTAL_MIN
+                ):
+                    status = "Passed"
+                    desc = f"TOEFL{num} (MyBest), score is above the minimum requirement (90)"
+                    break
+
+                failed_tests.append(f"TOEFL{num}")
+
+            if status == "Passed":
+                cur.execute(
+                    """
+                    UPDATE application_info
+                       SET english_status = %s,
+                           english_description = %s,
+                           english = TRUE
+                     WHERE user_code = %s
+                    """,
+                    (status, desc, user_code),
+                )
+                conn.commit()
+                return
+
+            # 2) IELTS
+            cur.execute(
+                """
+                SELECT ielts_number, listening, reading, writing, speaking, total_band_score
+                  FROM ielts
+                 WHERE user_code = %s
+                 ORDER BY ielts_number
+                """,
+                (user_code,),
+            )
+            for row in cur.fetchall():
+                L = (
+                    float(row["listening"])
+                    if row["listening"] not in (None, "")
+                    else None
+                )
+                R = float(row["reading"]) if row["reading"] not in (None, "") else None
+                W = float(row["writing"]) if row["writing"] not in (None, "") else None
+                S = (
+                    float(row["speaking"])
+                    if row["speaking"] not in (None, "")
+                    else None
+                )
+                T = (
+                    float(row["total_band_score"])
+                    if row["total_band_score"] not in (None, "")
+                    else None
+                )
+                num = row["ielts_number"] or 1
+
+                if all(v is not None for v in (L, R, W, S, T)) and (
+                    min(L, R, W, S) >= IELTS_EACH_MIN and T >= IELTS_TOTAL_MIN
+                ):
+                    status = "Passed"
+                    desc = f"IELTS{num}, score is above the minimum requirement (6.5 overall, 6.0 each)"
+                    break
+
+                failed_tests.append(f"IELTS{num}")
+
+            if status == "Passed":
+                cur.execute(
+                    """
+                    UPDATE application_info
+                       SET english_status = %s,
+                           english_description = %s,
+                           english = TRUE
+                     WHERE user_code = %s
+                    """,
+                    (status, desc, user_code),
+                )
+                conn.commit()
+                return
+
+            # 3) MELAB
+            cur.execute("SELECT total FROM melab WHERE user_code = %s", (user_code,))
+            melab = cur.fetchone()
+            if melab is not None:
+                total = (
+                    int(melab["total"]) if melab["total"] not in (None, "") else None
+                )
+                if total is not None and total >= MELAB_TOTAL_MIN:
+                    status = "Passed"
+                    desc = "MELAB, score is above the minimum requirement (64)"
+                else:
+                    failed_tests.append("MELAB")
+
+            if status == "Passed":
+                cur.execute(
+                    """
+                    UPDATE application_info
+                       SET english_status = %s,
+                           english_description = %s,
+                           english = TRUE
+                     WHERE user_code = %s
+                    """,
+                    (status, desc, user_code),
+                )
+                conn.commit()
+                return
+
+            # 4) PTE
+            cur.execute("SELECT total FROM pte WHERE user_code = %s", (user_code,))
+            pte = cur.fetchone()
+            if pte is not None:
+                total = int(pte["total"]) if pte["total"] not in (None, "") else None
+                if total is not None and total >= PTE_TOTAL_MIN:
+                    status = "Passed"
+                    desc = "PTE, score is above the minimum requirement (65)"
+                else:
+                    failed_tests.append("PTE")
+
+            if status == "Passed":
+                cur.execute(
+                    """
+                    UPDATE application_info
+                       SET english_status = %s,
+                           english_description = %s,
+                           english = TRUE
+                     WHERE user_code = %s
+                    """,
+                    (status, desc, user_code),
+                )
+                conn.commit()
+                return
+
+            # 5) CAEL
+            cur.execute(
+                """
+                SELECT reading, listening, writing, speaking
+                  FROM cael
+                 WHERE user_code = %s
+                """,
+                (user_code,),
+            )
+            cael = cur.fetchone()
+            if cael is not None:
+                R = int(cael["reading"]) if cael["reading"] not in (None, "") else None
+                L = (
+                    int(cael["listening"])
+                    if cael["listening"] not in (None, "")
+                    else None
+                )
+                W = int(cael["writing"]) if cael["writing"] not in (None, "") else None
+                S = (
+                    int(cael["speaking"])
+                    if cael["speaking"] not in (None, "")
+                    else None
+                )
+                if (
+                    all(v is not None for v in (R, L, W, S))
+                    and min(R, L, W, S) >= CAEL_EACH_MIN
+                ):
+                    status = "Passed"
+                    desc = "CAEL, all sections ≥ 60"
+                else:
+                    failed_tests.append("CAEL")
+
+            # Finalize result
+            if status == "Passed":
+                cur.execute(
+                    """
+                    UPDATE application_info
+                       SET english_status = %s,
+                           english_description = %s,
+                           english = TRUE
+                     WHERE user_code = %s
+                    """,
+                    (status, desc, user_code),
+                )
+            else:
+                if not failed_tests:  # no test rows found at all
+                    cur.execute(
+                        """
+                        UPDATE application_info
+                           SET english_status = 'Not Met',
+                               english_description = 'No English tests submitted',
+                               english = FALSE
+                         WHERE user_code = %s
+                        """,
+                        (user_code,),
+                    )
+                else:
+                    reason = ", ".join(failed_tests)
+                    cur.execute(
+                        """
+                        UPDATE application_info
+                           SET english_status = 'Not Met',
+                               english_description = %s,
+                               english = FALSE
+                         WHERE user_code = %s
+                        """,
+                        (f"{reason} are below the minimum requirement", user_code),
+                    )
+
+        conn.commit()
+
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+
+def compute_english_status_for_all(not_required_rule=None):
+    """
+    Recompute english_status/english_description/english for every row
+    in application_info by calling compute_english_status(user_code).
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT user_code FROM application_info ORDER BY user_code")
+            codes = [r["user_code"] for r in cur.fetchall()]
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+    for code in codes:
+        compute_english_status(code, not_required_rule=not_required_rule)
+
+
 def process_csv_data(df):
     """Process CSV data and insert into sessions, applicant_info and applicant_status tables"""
     conn = get_db_connection()
+    touched_user_codes = set()  # Track all applicants we update
+
     if not conn:
         return False, "Database connection failed", 0
 
@@ -171,10 +524,16 @@ def process_csv_data(df):
             current_time = datetime.now()
 
             # Get UBC Academic History data from CSV
-            ubc_academic_history = row.get("{ UBC Academic History List - eVision Record #; Start Date; End Date; Category; Program of Study; Degree Conferred?; Date Conferred; Credential Received; Withdrawal Reasons; Honours }", "")
-            
+            ubc_academic_history = row.get(
+                "{ UBC Academic History List - eVision Record #; Start Date; End Date; Category; Program of Study; Degree Conferred?; Date Conferred; Credential Received; Withdrawal Reasons; Honours }",
+                "",
+            )
+
             # Clean up the UBC academic history data - handle NaN/null values
-            if pd.isna(ubc_academic_history) or str(ubc_academic_history).strip() == "nan":
+            if (
+                pd.isna(ubc_academic_history)
+                or str(ubc_academic_history).strip() == "nan"
+            ):
                 ubc_academic_history = ""
             else:
                 ubc_academic_history = str(ubc_academic_history).strip()
@@ -283,7 +642,9 @@ def process_csv_data(df):
                     row.get("Aboriginal Type First Nations"),  # first_nation
                     row.get("Aboriginal Type Inuit"),  # inuit
                     row.get("Aboriginal Type Métis"),  # metis
-                    row.get("Aboriginal Type Not Specified"),  # aboriginal_not_specified
+                    row.get(
+                        "Aboriginal Type Not Specified"
+                    ),  # aboriginal_not_specified
                     row.get("Aboriginal Info"),
                     row.get("Academic History Source CODE"),
                     row.get("Academic History Source Value"),  # Fixed typo: removed "I"
@@ -350,6 +711,8 @@ def process_csv_data(df):
             process_ielts_scores(user_code, row, cursor, current_time)
             process_other_test_scores(user_code, row, cursor, current_time)
 
+            touched_user_codes.add(user_code)
+
             # Process institution information first
             process_institution_info(user_code, row, cursor, current_time)
 
@@ -359,6 +722,11 @@ def process_csv_data(df):
             records_processed += 1
 
         conn.commit()
+
+        # Recompute English status for all applicants updated in this import
+        for uc in touched_user_codes:
+            compute_english_status(uc)
+
         cursor.close()
         conn.close()
         return True, "Data processed successfully", records_processed
@@ -802,6 +1170,9 @@ def process_application_info(user_code, row, cursor, current_time):
         print(f"Error processing application_info for user {user_code}: {str(e)}")
 
 
+# Replace your existing get_applicant_application_info_by_code function in models/applicants.py:
+
+
 def get_applicant_application_info_by_code(user_code):
     """Get application_info data for a applicant by user code"""
     conn = get_db_connection()
@@ -815,7 +1186,8 @@ def get_applicant_application_info_by_code(user_code):
             SELECT 
                 user_code, sent, full_name, canadian, english,
                 cs, stat, math, gpa, highest_degree, degree_area,
-                mds_v, mds_cl, scholarship
+                mds_v, mds_cl, scholarship,
+                english_status, english_description, english_comment
             FROM application_info 
             WHERE user_code = %s
         """,
@@ -916,6 +1288,112 @@ def update_applicant_prerequisites(user_code, cs, stat, math, gpa=None):
         conn.close()
 
         return True, "Prerequisites updated successfully"
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return False, f"Database error: {str(e)}"
+
+
+# Add these functions at the end of your models/applicants.py file
+
+
+def update_english_comment(user_code, english_comment):
+    """Update English comment for applicant in application_info table"""
+    conn = get_db_connection()
+    if not conn:
+        return False, "Database connection failed"
+
+    try:
+        cursor = conn.cursor()
+
+        # Validate user_code exists in applicant_info first
+        cursor.execute(
+            "SELECT user_code FROM applicant_info WHERE user_code = %s", (user_code,)
+        )
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return False, "Applicant not found"
+
+        cursor.execute(
+            """
+            UPDATE application_info 
+            SET english_comment = %s
+            WHERE user_code = %s
+        """,
+            (english_comment, user_code),
+        )
+
+        if cursor.rowcount == 0:
+            # If no rows updated, create new record
+            cursor.execute(
+                """
+                INSERT INTO application_info (user_code, english_comment) 
+                VALUES (%s, %s)
+            """,
+                (user_code, english_comment),
+            )
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return True, "English comment updated successfully"
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return False, f"Database error: {str(e)}"
+
+
+def update_english_status(user_code, english_status):
+    """Update English status for applicant in application_info table"""
+    conn = get_db_connection()
+    if not conn:
+        return False, "Database connection failed"
+
+    try:
+        cursor = conn.cursor()
+
+        # Validate user_code exists in applicant_info first
+        cursor.execute(
+            "SELECT user_code FROM applicant_info WHERE user_code = %s", (user_code,)
+        )
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return False, "Applicant not found"
+
+        # Update the english_status and set english boolean based on status
+        english_boolean = english_status in ["Passed", "Not Required"]
+
+        cursor.execute(
+            """
+            UPDATE application_info 
+            SET english_status = %s, english = %s
+            WHERE user_code = %s
+        """,
+            (english_status, english_boolean, user_code),
+        )
+
+        if cursor.rowcount == 0:
+            # If no rows updated, create new record
+            cursor.execute(
+                """
+                INSERT INTO application_info (user_code, english_status, english) 
+                VALUES (%s, %s, %s)
+            """,
+                (user_code, english_status, english_boolean),
+            )
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return True, "English status updated successfully"
 
     except Exception as e:
         if conn:
