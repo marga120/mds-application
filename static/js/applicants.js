@@ -3769,7 +3769,6 @@ class ApplicantsManager {
     updateBtn.disabled = true;
   }
 
-  //updateEnglishStatusFormPermissions method
   async updateEnglishStatusFormPermissions() {
     try {
       const response = await fetch("/api/auth/check-session");
@@ -3782,11 +3781,8 @@ class ApplicantsManager {
         "englishStatusChangeSection"
       );
 
-      if (
-        result.authenticated &&
-        (result.user?.role === "Admin" || result.user?.role === "Faculty")
-      ) {
-        // Admin and Faculty can update English status
+      if (result.authenticated && result.user?.role === "Admin") {
+        // Only Admin can update English status
         if (englishStatusChangeSection) {
           englishStatusChangeSection.style.display = "block";
         }
@@ -3794,11 +3790,14 @@ class ApplicantsManager {
         if (cancelBtn) cancelBtn.style.display = "inline-block";
         if (statusSelect) statusSelect.disabled = false;
       } else {
-        // Viewers can only see current status
+        // Faculty and Viewers can only see current status
         if (englishStatusChangeSection) {
           englishStatusChangeSection.style.display = "none";
         }
       }
+
+      // Update English comment permissions
+      this.updateEnglishCommentPermissions();
     } catch (error) {
       console.error(
         "Error checking user permissions for English status:",
@@ -3807,7 +3806,42 @@ class ApplicantsManager {
     }
   }
 
-  //setupEnglishCommentHandlers method
+  async updateEnglishCommentPermissions() {
+    try {
+      const response = await fetch("/api/auth/check-session");
+      const result = await response.json();
+
+      const textarea = document.getElementById("englishCommentTextarea");
+      const saveBtn = document.getElementById("saveEnglishCommentBtn");
+      const clearBtn = document.getElementById("clearEnglishCommentBtn");
+
+      if (result.authenticated && result.user?.role === "Admin") {
+        // Only Admin can edit English comments
+        if (textarea) {
+          textarea.disabled = false;
+          textarea.placeholder =
+            "Add comments about English proficiency status...";
+        }
+        if (saveBtn) saveBtn.style.display = "inline-block";
+        if (clearBtn) clearBtn.style.display = "inline-block";
+      } else {
+        // Faculty and Viewers can only view English comments
+        if (textarea) {
+          textarea.disabled = true;
+          textarea.placeholder =
+            "N/A";
+        }
+        if (saveBtn) saveBtn.style.display = "none";
+        if (clearBtn) clearBtn.style.display = "none";
+      }
+    } catch (error) {
+      console.error(
+        "Error checking user permissions for English comments:",
+        error
+      );
+    }
+  }
+
   setupEnglishCommentHandlers() {
     const saveBtn = document.getElementById("saveEnglishCommentBtn");
     const clearBtn = document.getElementById("clearEnglishCommentBtn");
@@ -3815,13 +3849,31 @@ class ApplicantsManager {
     const cancelEnglishBtn = document.getElementById("cancelEnglishStatusBtn");
 
     if (saveBtn) {
-      saveBtn.addEventListener("click", () => {
+      saveBtn.addEventListener("click", async () => {
+        // Check permissions before saving
+        const response = await fetch("/api/auth/check-session");
+        const result = await response.json();
+
+        if (!result.authenticated || result.user?.role !== "Admin") {
+          alert("You don't have permission to edit English comments.");
+          return;
+        }
+
         this.saveEnglishComment();
       });
     }
 
     if (clearBtn) {
-      clearBtn.addEventListener("click", () => {
+      clearBtn.addEventListener("click", async () => {
+        // Check permissions before clearing
+        const response = await fetch("/api/auth/check-session");
+        const result = await response.json();
+
+        if (!result.authenticated || result.user?.role !== "Admin") {
+          alert("You don't have permission to edit English comments.");
+          return;
+        }
+
         document.getElementById("englishCommentTextarea").value = "";
       });
     }
