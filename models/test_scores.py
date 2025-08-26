@@ -2,9 +2,32 @@ from utils.database import get_db_connection
 import pandas as pd
 from datetime import datetime
 
-
-
 def process_toefl_scores(user_code, row, cursor, current_time):
+    """
+    Process and insert TOEFL test scores from CSV data.
+    
+    Extracts TOEFL test information from CSV row and inserts into
+    the toefl table with score validation and date parsing.
+    
+    @param cursor: Database cursor for executing queries
+    @param_type cursor: psycopg2.cursor
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+    @param df_row: Pandas DataFrame row containing CSV data
+    @param_type df_row: pandas.Series
+    
+    @return: None (inserts directly into database)
+    @return_type: None
+    
+    @db_tables: toefl
+    @validation: Validates score ranges and date formats
+    @csv_columns: reading, listening, speaking, writing, total scores
+    
+    @example:
+        process_toefl_scores(cursor, "12345", df_row)
+        # Processes TOEFL data from CSV and inserts into database
+    """
+
     """Process TOEFL scores for a student"""
     try:
         # Process up to 3 TOEFL scores (TOEFL, TOEFL2, TOEFL3)
@@ -134,6 +157,31 @@ def process_toefl_scores(user_code, row, cursor, current_time):
 
 
 def process_ielts_scores(user_code, row, cursor, current_time):
+    """
+    Process and insert IELTS test scores from CSV data.
+    
+    Extracts IELTS test information from CSV row and inserts into
+    the ielts table with band score validation.
+    
+    @param cursor: Database cursor for executing queries
+    @param_type cursor: psycopg2.cursor
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+    @param df_row: Pandas DataFrame row containing CSV data
+    @param_type df_row: pandas.Series
+    
+    @return: None (inserts directly into database)
+    @return_type: None
+    
+    @db_tables: ielts
+    @validation: Validates IELTS band scores (0.0-9.0)
+    @csv_columns: listening, reading, writing, speaking, overall bands
+    
+    @example:
+        process_ielts_scores(cursor, "12345", df_row)
+        # Processes IELTS data from CSV and inserts into database
+    """
+
     """Process IELTS scores for a student"""
     try:
         # Process up to 3 IELTS scores (IELTS, IELTS2, IELTS3)
@@ -194,6 +242,31 @@ def process_ielts_scores(user_code, row, cursor, current_time):
 
 
 def process_other_test_scores(user_code, row, cursor, current_time):
+    """
+    Process and insert other standardized test scores from CSV data.
+    
+    Handles various other test types including GRE, GMAT, MELAB, PTE,
+    CAEL, CELPIP, and Alternative ELPP scores from CSV data.
+    
+    @param cursor: Database cursor for executing queries
+    @param_type cursor: psycopg2.cursor
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+    @param df_row: Pandas DataFrame row containing CSV data
+    @param_type df_row: pandas.Series
+    
+    @return: None (inserts directly into database)
+    @return_type: None
+    
+    @db_tables: gre, gmat, melab, pte, cael, celpip, alt_elpp
+    @validation: Test-specific score range and format validation
+    @csv_columns: Various test-specific score columns
+    
+    @example:
+        process_other_test_scores(cursor, "12345", df_row)
+        # Processes GRE, GMAT, and other test scores from CSV
+    """
+
     """Process other test scores (MELAB, PTE, CAEL, CELPIP, ALT ELPP, GRE, GMAT)"""
     try:
         # Convert scores to strings if they exist, otherwise None

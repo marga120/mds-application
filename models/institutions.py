@@ -4,6 +4,32 @@ from datetime import datetime
 
 
 def process_institution_info(user_code, row, cursor, current_time):
+    """
+    Process and insert institutional/academic history from CSV data.
+    
+    Processes academic history information from CSV rows and inserts
+    into the institution_info table. Handles multiple institutions
+    and academic credentials per applicant.
+    
+    @param cursor: Database cursor for executing queries
+    @param_type cursor: psycopg2.cursor
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+    @param df_row: Pandas DataFrame row containing CSV data
+    @param_type df_row: pandas.Series
+    
+    @return: None (inserts directly into database)
+    @return_type: None
+    
+    @db_tables: institution_info
+    @csv_columns: Processes various institution-related columns from CSV
+    @validation: Handles missing data and format conversion
+    
+    @example:
+        process_institution_info(cursor, "12345", df_row)
+        # Processes and inserts institutional history from CSV row
+    """
+
     """Process institution information for a student (up to 6 institutions)"""
     try:
         # Process up to 6 institutions (I1 through I6)
