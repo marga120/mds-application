@@ -1,3 +1,11 @@
+/**
+ * LOGS MANAGER
+ * 
+ * This file manages the system activity logs interface for Admin users.
+ * It handles loading, filtering, pagination, and display of system activity logs
+ * including user actions, status changes, and audit trail information.
+ */
+
 class LogsManager {
   constructor() {
     this.logs = [];

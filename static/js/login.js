@@ -1,3 +1,11 @@
+/**
+ * LOGIN MANAGER
+ * 
+ * This file handles the login page functionality including user authentication,
+ * form validation, session checking, and login form submission. It manages
+ * the login process and redirects users to the main application upon success.
+ */
+
 class LoginManager {
   constructor() {
     this.initializeEventListeners();

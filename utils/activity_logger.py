@@ -1,3 +1,12 @@
+"""
+ACTIVITY LOGGER UTILITY
+
+This module provides system-wide activity logging and audit trail functionality.
+It tracks user actions, status changes, data modifications, and system events
+for security, compliance, and debugging purposes. Logs are stored in the 
+activity_log database table with user attribution and metadata support.
+"""
+
 from utils.database import get_db_connection
 from flask_login import current_user
 from flask import request

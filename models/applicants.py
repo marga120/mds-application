@@ -16,6 +16,23 @@ from models.institutions import process_institution_info
 
 
 def calculate_age(birth_date):
+    """
+    Calculate age from birth date.
+
+    Calculates a person's current age based on their birth date, accounting
+    for whether their birthday has occurred this year.
+
+    @param birth_date: The person's birth date
+    @param_type birth_date: datetime.date or None
+
+    @return: Current age in years, or None if birth_date is None
+    @return_type: int or None
+
+    @example:
+        birth_date = date(1995, 5, 15)
+        age = calculate_age(birth_date)  # Returns current age
+    """
+
     """Calculate age from birth date"""
     if not birth_date:
         return None
@@ -33,6 +50,37 @@ def calculate_age(birth_date):
 
 
 def create_or_get_sessions(cursor, program_code, program, session_abbrev):
+    """
+    Create or retrieve session information based on CSV data.
+
+    Creates a new academic session record or retrieves an existing one
+    based on program code, program name, and session abbreviation.
+    Extracts year information from session abbreviation.
+
+    @param cursor: Database cursor for executing queries
+    @param_type cursor: psycopg2.cursor
+    @param program_code: Program code identifier (max 10 chars)
+    @param_type program_code: str
+    @param program: Program name (max 20 chars)
+    @param_type program: str
+    @param session_abbrev: Session abbreviation with year prefix (max 6 chars)
+    @param_type session_abbrev: str
+
+    @return: Tuple of (session_id, message)
+    @return_type: tuple[int, str] or tuple[None, str]
+
+    @validation:
+        - Session abbreviation must be at least 4 characters
+        - First 4 characters must be numeric (year)
+        - Input strings truncated to database column limits
+
+    @db_tables: sessions
+
+    @example:
+        session_id, message = create_or_get_sessions(cursor, "MDS", "Master of Data Science", "2025W")
+        # Returns (1, "Session created successfully") or existing session ID
+    """
+
     """Create or get session based on CSV data"""
     try:
         # Truncate values to fit database column limits
@@ -455,6 +503,34 @@ def compute_english_status_for_all(not_required_rule=None):
 
 
 def process_csv_data(df):
+    """
+    Process uploaded CSV data and insert into database tables.
+
+    Main function for processing applicant CSV files. Handles session creation,
+    applicant information processing, test scores, institution data, and
+    application metadata. Tracks all processed user codes for updates.
+
+    @param df: Pandas DataFrame containing CSV data
+    @param_type df: pandas.DataFrame
+
+    @return: Tuple of (success, message, records_processed)
+    @return_type: tuple[bool, str, int]
+
+    @validation:
+        - Validates required columns exist
+        - Checks for valid program and session data
+        - Processes each row with error handling
+
+    @db_tables: sessions, applicant_info, applicant_status, application_info,
+               toefl, ielts, gre, gmat, institution_info, and other test tables
+    @transaction: Uses database transaction with rollback on error
+
+    @example:
+        success, message, count = process_csv_data(df)
+        if success:
+            print(f"Processed {count} records successfully")
+    """
+
     """Process CSV data and insert into sessions, applicant_info and applicant_status tables"""
     conn = get_db_connection()
     touched_user_codes = set()  # Track all applicants we update
@@ -739,6 +815,27 @@ def process_csv_data(df):
 
 
 def get_all_applicant_status():
+    """
+    Get all applicants with their status and basic information.
+
+    Retrieves a comprehensive list of all applicants including their current
+    status, contact information, submission dates, and overall ratings.
+    Used for the main applicants dashboard display.
+
+    @return: Tuple of (applicants_list, error_message)
+    @return_type: tuple[list, None] or tuple[None, str]
+
+    @db_tables: applicant_status, applicant_info, ratings
+    @joins: LEFT JOIN to include applicants without ratings
+    @aggregation: Calculates average rating across all reviewers
+
+    @example:
+        applicants, error = get_all_applicant_status()
+        if not error:
+            for applicant in applicants:
+                print(f"{applicant['given_name']} {applicant['family_name']}: {applicant['status']}")
+    """
+
     """Get all students from applicant_status joined with applicant_info and sessions"""
     conn = get_db_connection()
     if not conn:
@@ -782,6 +879,26 @@ def get_all_applicant_status():
 
 
 def get_all_sessions():
+    """
+    Get all academic sessions with applicant counts.
+
+    Retrieves all session records from the database along with the count
+    of applicants associated with each session for administrative overview.
+
+    @return: Tuple of (sessions_list, error_message)
+    @return_type: tuple[list, None] or tuple[None, str]
+
+    @db_tables: sessions, applicant_info
+    @joins: LEFT JOIN to count applicants per session
+    @ordering: Ordered by year (descending) and program name
+
+    @example:
+        sessions, error = get_all_sessions()
+        if not error:
+            for session in sessions:
+                print(f"{session['name']}: {session['applicant_count']} applicants")
+    """
+
     """Get all sessions from the sessions table"""
     conn = get_db_connection()
     if not conn:
@@ -818,6 +935,29 @@ def get_all_sessions():
 
 
 def get_applicant_info_by_code(user_code):
+    """
+    Get detailed applicant information by user code.
+
+    Retrieves comprehensive personal and demographic information for a
+    specific applicant, including contact details, citizenship, and
+    session information.
+
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+
+    @return: Tuple of (applicant_info_dict, error_message)
+    @return_type: tuple[dict, None] or tuple[None, str]
+
+    @db_tables: applicant_info, sessions
+    @joins: JOIN with sessions for session name
+
+    @example:
+        info, error = get_applicant_info_by_code("12345")
+        if not error:
+            print(f"Name: {info['given_name']} {info['family_name']}")
+            print(f"Email: {info['email']}")
+    """
+
     """Get detailed applicant information by user code"""
     conn = get_db_connection()
     if not conn:
@@ -858,6 +998,30 @@ def get_applicant_info_by_code(user_code):
 
 
 def get_applicant_test_scores_by_code(user_code):
+    """
+    Get all standardized test scores for an applicant.
+
+    Retrieves all test scores from multiple test types including TOEFL,
+    IELTS, GRE, GMAT, Duolingo, and other English proficiency tests.
+
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+
+    @return: Tuple of (test_scores_dict, error_message)
+    @return_type: tuple[dict, None] or tuple[None, str]
+
+    @db_tables: toefl, ielts, melab, pte, cael, celpip, duolingo, alt_elpp, gre, gmat
+    @structure: Returns dictionary with test type as keys, score records as values
+
+    @example:
+        scores, error = get_applicant_test_scores_by_code("12345")
+        if not error:
+            if scores['toefl']:
+                print(f"TOEFL Total: {scores['toefl']['total']}")
+            if scores['gre']:
+                print(f"GRE Verbal: {scores['gre']['verbal']}")
+    """
+
     """Get all test scores for a applicant by user code"""
     conn = get_db_connection()
     if not conn:
@@ -963,6 +1127,28 @@ def get_applicant_test_scores_by_code(user_code):
 
 
 def get_applicant_institutions_by_code(user_code):
+    """
+    Get all institutional/academic history for an applicant.
+
+    Retrieves educational background information including all institutions
+    attended, degrees earned, GPAs, and academic credentials.
+
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+
+    @return: Tuple of (institutions_list, error_message)
+    @return_type: tuple[list, None] or tuple[None, str]
+
+    @db_tables: institution_info
+    @ordering: Ordered by institution_number for consistent display
+
+    @example:
+        institutions, error = get_applicant_institutions_by_code("12345")
+        if not error:
+            for inst in institutions:
+                print(f"{inst['full_name']} - {inst['degree_confer']} in {inst['program_study']}")
+    """
+
     """Get all institution information for a applicant by user code"""
     conn = get_db_connection()
     if not conn:
@@ -1170,10 +1356,29 @@ def process_application_info(user_code, row, cursor, current_time):
         print(f"Error processing application_info for user {user_code}: {str(e)}")
 
 
-# Replace your existing get_applicant_application_info_by_code function in models/applicants.py:
-
-
 def get_applicant_application_info_by_code(user_code):
+    """
+    Get application-specific information and metadata.
+
+    Retrieves application status, English proficiency information,
+    prerequisite course data, GPA, and other application-specific metadata.
+
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+
+    @return: Tuple of (application_info_dict, error_message)
+    @return_type: tuple[dict, None] or tuple[None, str]
+
+    @db_tables: application_info
+
+    @example:
+        app_info, error = get_applicant_application_info_by_code("12345")
+        if not error:
+            print(f"Status: {app_info['sent']}")
+            print(f"English Status: {app_info['english_status']}")
+            print(f"GPA: {app_info['gpa']}")
+    """
+
     """Get application_info data for a applicant by user code"""
     conn = get_db_connection()
     if not conn:
@@ -1207,6 +1412,30 @@ def get_applicant_application_info_by_code(user_code):
 
 
 def update_applicant_application_status(user_code, status):
+    """
+    Update the application status for an applicant.
+
+    Changes the application review status in the application_info table.
+    Creates a new record if none exists for the applicant.
+
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+    @param status: New application status
+    @param_type status: str
+
+    @return: Tuple of (success, message)
+    @return_type: tuple[bool, str]
+
+    @valid_statuses: ["Not Reviewed", "Reviewed", "Waitlist", "Declined", "Offer", "CoGS", "Offer Sent"]
+    @db_tables: application_info
+    @upsert: Updates existing record or creates new one
+
+    @example:
+        success, message = update_applicant_application_status("12345", "Reviewed")
+        if success:
+            print("Status updated successfully")
+    """
+
     """Update applicant status in application_info table"""
     conn = get_db_connection()
     if not conn:
@@ -1247,6 +1476,40 @@ def update_applicant_application_status(user_code, status):
 
 
 def update_applicant_prerequisites(user_code, cs, stat, math, gpa=None):
+    """
+    Update prerequisite course and GPA information for an applicant.
+
+    Updates computer science, statistics, and mathematics prerequisite
+    course information along with GPA data in the application_info table.
+
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+    @param cs: Computer Science courses completed
+    @param_type cs: str
+    @param stat: Statistics courses completed
+    @param_type stat: str
+    @param math: Mathematics courses completed
+    @param_type math: str
+    @param gpa: Overall GPA (optional)
+    @param_type gpa: str or None
+
+    @return: Tuple of (success, message)
+    @return_type: tuple[bool, str]
+
+    @validation: Validates that user_code exists in applicant_info
+    @db_tables: application_info, applicant_info
+    @upsert: Updates existing record or creates new one
+
+    @example:
+        success, msg = update_applicant_prerequisites(
+            "12345",
+            "CPSC 110, CPSC 210",
+            "STAT 251",
+            "MATH 100, MATH 101",
+            "3.85"
+        )
+    """
+
     """Update applicant prerequisites (courses and GPA) in application_info table"""
     conn = get_db_connection()
     if not conn:
@@ -1296,10 +1559,29 @@ def update_applicant_prerequisites(user_code, cs, stat, math, gpa=None):
         return False, f"Database error: {str(e)}"
 
 
-# Add these functions at the end of your models/applicants.py file
-
-
 def update_english_comment(user_code, english_comment):
+    """
+    Update English proficiency comments for an applicant.
+
+    Updates the English language assessment comments in the application_info
+    table. Used by Admin users for documenting English proficiency evaluations.
+
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+    @param english_comment: English proficiency assessment comment
+    @param_type english_comment: str
+
+    @return: Tuple of (success, message)
+    @return_type: tuple[bool, str]
+
+    @validation: Validates that user_code exists in applicant_info
+    @db_tables: application_info, applicant_info
+    @upsert: Updates existing record or creates new one
+
+    @example:
+        success, msg = update_english_comment("12345", "Strong English proficiency demonstrated")
+    """
+
     """Update English comment for applicant in application_info table"""
     conn = get_db_connection()
     if not conn:
@@ -1350,6 +1632,29 @@ def update_english_comment(user_code, english_comment):
 
 
 def update_english_status(user_code, english_status):
+    """
+    Update English proficiency status for an applicant.
+
+    Updates the English language requirement status in the application_info
+    table. Used to track whether English requirements are met.
+
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+    @param english_status: English proficiency status
+    @param_type english_status: str
+
+    @return: Tuple of (success, message)
+    @return_type: tuple[bool, str]
+
+    @valid_statuses: ["Not Met", "Not Required", "Passed"]
+    @validation: Validates that user_code exists in applicant_info
+    @db_tables: application_info, applicant_info
+    @upsert: Updates existing record or creates new one
+
+    @example:
+        success, msg = update_english_status("12345", "Passed")
+    """
+
     """Update English status for applicant in application_info table"""
     conn = get_db_connection()
     if not conn:

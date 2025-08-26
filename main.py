@@ -1,3 +1,13 @@
+"""
+FLASK APPLICATION ENTRY POINT - MDS APPLICATION MANAGEMENT SYSTEM
+
+This is the main Flask application file that initializes and configures the 
+MDS (Masters of Data Science) Application Management System. It sets up 
+authentication, registers API blueprints, defines web routes, configures 
+session management, and handles application startup including database 
+initialization. This serves as the central hub for the entire web application.
+"""
+
 from flask import Flask, render_template, redirect, url_for, session
 from flask_cors import CORS
 from flask_login import LoginManager, login_required, current_user

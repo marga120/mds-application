@@ -1,3 +1,12 @@
+"""
+DATABASE CONNECTION AND INITIALIZATION UTILITY
+
+This module handles all database connectivity, configuration, and initialization
+for the MDS Application Management System. It provides connection management,
+schema initialization from SQL files, database setup functions, and handles
+PostgreSQL-specific operations including complex SQL statement execution.
+"""
+
 import psycopg2
 import os
 from dotenv import load_dotenv

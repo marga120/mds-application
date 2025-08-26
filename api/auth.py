@@ -9,6 +9,56 @@ auth_api = Blueprint("auth_api", __name__)
 
 @auth_api.route("/login", methods=["POST"])
 def login():
+    """
+    Handle user authentication and session creation.
+
+    Authenticates users using email and password, creates a session using
+    Flask-Login, and logs the activity. Supports optional "remember me" functionality.
+
+    @method: POST
+    @param email: User's email address (JSON body)
+    @param_type email: str
+    @param password: User's password (JSON body)
+    @param_type password: str
+    @param remember: Whether to remember the session (JSON body, optional)
+    @param_type remember: bool
+
+    @return: JSON response with authentication result and user info
+    @return_type: flask.Response
+    @status_codes:
+        - 200: Login successful
+        - 400: Missing email or password
+        - 401: Invalid credentials
+        - 500: Server error
+
+    @logs: Activity logging for successful and failed login attempts
+    @session: Creates Flask-Login session
+
+    @example:
+        POST /api/auth/login
+        Content-Type: application/json
+
+        Request:
+        {
+            "email": "admin@example.com",
+            "password": "password123",
+            "remember": true
+        }
+
+        Response:
+        {
+            "success": true,
+            "message": "Login successful",
+            "user": {
+                "id": 1,
+                "email": "admin@example.com",
+                "full_name": "Admin User",
+                "role": "Admin"
+            },
+            "redirect": "/"
+        }
+    """
+
     """Handle user login"""
     try:
         data = request.get_json()
@@ -65,6 +115,33 @@ def login():
 @auth_api.route("/logout", methods=["POST"])
 @login_required
 def logout():
+    """
+    Handle user logout and session termination.
+
+    Terminates the current user session using Flask-Login logout functionality.
+
+    @requires: Valid user session
+    @method: POST
+
+    @return: JSON response with logout confirmation
+    @return_type: flask.Response
+    @status_codes:
+        - 200: Logout successful
+        - 500: Server error
+
+    @session: Destroys Flask-Login session
+
+    @example:
+        POST /api/auth/logout
+
+        Response:
+        {
+            "success": true,
+            "message": "Logout successful",
+            "redirect": "/login"
+        }
+    """
+
     """Handle user logout"""
     try:
         logout_user()
@@ -82,6 +159,38 @@ def logout():
 @auth_api.route("/user", methods=["GET"])
 @login_required
 def get_current_user():
+    """
+    Get information about the currently authenticated user.
+
+    Returns detailed information about the logged-in user including role
+    information and permission flags.
+
+    @requires: Valid user session
+    @method: GET
+
+    @return: JSON response with current user information
+    @return_type: flask.Response
+    @status_codes:
+        - 200: User information retrieved successfully
+
+    @example:
+        GET /api/auth/user
+
+        Response:
+        {
+            "success": true,
+            "user": {
+                "id": 1,
+                "email": "admin@example.com",
+                "full_name": "Admin User",
+                "role": "Admin",
+                "is_admin": true,
+                "is_faculty": false,
+                "is_viewer": false
+            }
+        }
+    """
+
     """Get current logged in user info"""
     return jsonify(
         {
@@ -101,8 +210,64 @@ def get_current_user():
 
 @auth_api.route("/register", methods=["POST"])
 def register():
+    """
+    Handle user registration and account creation.
+
+    Creates new user accounts in the system. Only Admin users can create
+    new accounts for security purposes. Validates input data and enforces
+    password requirements.
+
+    @requires: Admin authentication
+    @method: POST
+    @param first_name: User's first name (JSON body)
+    @param_type first_name: str
+    @param last_name: User's last name (JSON body)
+    @param_type last_name: str
+    @param email: User's email address (JSON body)
+    @param_type email: str
+    @param password: User's password (JSON body, min 6 chars)
+    @param_type password: str
+    @param role_user_id: Role ID (JSON body, optional, defaults to 3=Viewer)
+    @param_type role_user_id: int
+    @valid_roles: [1=Admin, 2=Faculty, 3=Viewer]
+
+    @return: JSON response with registration result
+    @return_type: flask.Response
+    @status_codes:
+        - 200: User created successfully
+        - 400: Invalid input data or email format
+        - 403: Access denied (non-Admin user)
+        - 500: Server error
+
+    @validation:
+        - Email format validation
+        - Password minimum 6 characters
+        - Valid role ID (1-3)
+        - All required fields present
+
+    @security: Password hashed using bcrypt before storage
+
+    @example:
+        POST /api/auth/register
+        Content-Type: application/json
+
+        Request:
+        {
+            "first_name": "John",
+            "last_name": "Doe",
+            "email": "john.doe@example.com",
+            "password": "password123",
+            "role_user_id": 2
+        }
+
+        Response:
+        {
+            "success": true,
+            "message": "User created successfully"
+        }
+    """
+
     """Handle user registration (Admin only)"""
-    # SECURITY FIX: Add authorization check
     if not current_user.is_authenticated or not current_user.is_admin:
         return (
             jsonify(
@@ -168,6 +333,39 @@ def register():
 
 @auth_api.route("/check-session", methods=["GET"])
 def check_session():
+    """
+    Check if the current user has a valid session.
+
+    Verifies if a user is currently logged in and returns authentication
+    status along with basic user information if authenticated.
+
+    @method: GET
+
+    @return: JSON response with authentication status
+    @return_type: flask.Response
+    @status_codes:
+        - 200: Session check completed (authenticated or not)
+
+    @example:
+        GET /api/auth/check-session
+
+        Response (authenticated):
+        {
+            "authenticated": true,
+            "user": {
+                "id": 1,
+                "email": "admin@example.com",
+                "full_name": "Admin User",
+                "role": "Admin"
+            }
+        }
+
+        Response (not authenticated):
+        {
+            "authenticated": false
+        }
+    """
+
     """Check if user is logged in"""
     if current_user.is_authenticated:
         return jsonify(

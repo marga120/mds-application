@@ -4,6 +4,29 @@ from datetime import datetime
 
 
 def get_user_ratings(user_code):
+    """
+    Get all ratings for a specific applicant.
+    
+    Retrieves all faculty and admin ratings for an applicant including
+    reviewer information (name, email) and rating details.
+    
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+    
+    @return: Tuple of (ratings_list, error_message)
+    @return_type: tuple[list, None] or tuple[None, str]
+    
+    @db_tables: ratings, user
+    @joins: JOIN with user table for reviewer information
+    @ordering: Ordered by reviewer first name, last name
+    
+    @example:
+        ratings, error = get_user_ratings("12345")
+        if not error:
+            for rating in ratings:
+                print(f"{rating['first_name']} {rating['last_name']}: {rating['rating']}/10")
+    """
+
     """Get all ratings for a specific user"""
     conn = get_db_connection()
     if not conn:
@@ -42,6 +65,39 @@ def get_user_ratings(user_code):
 
 
 def add_or_update_user_ratings(user_code, user_id, rating, comment):
+    """
+    Add or update a rating for an applicant.
+    
+    Creates a new rating record or updates an existing one using PostgreSQL's
+    ON CONFLICT functionality. Validates rating format and range.
+    
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+    @param user_id: ID of the user providing the rating
+    @param_type user_id: int
+    @param rating: Numerical rating (0.0-10.0, one decimal place)
+    @param_type rating: float or str
+    @param comment: Optional comment about the applicant
+    @param_type comment: str
+    
+    @return: Tuple of (success, message)
+    @return_type: tuple[bool, str]
+    
+    @validation:
+        - Rating must be between 0.0 and 10.0
+        - Rating rounded to 1 decimal place
+        - Converts string ratings to float
+    
+    @db_tables: ratings
+    @upsert: Uses PostgreSQL ON CONFLICT DO UPDATE
+    @composite_key: (user_id, user_code) primary key
+    
+    @example:
+        success, msg = add_or_update_user_ratings("12345", user.id, 8.5, "Strong candidate")
+        if success:
+            print("Rating saved successfully")
+    """
+
     """Add or update a rating for a user"""
     conn = get_db_connection()
     if not conn:
@@ -91,6 +147,30 @@ def add_or_update_user_ratings(user_code, user_id, rating, comment):
 
 
 def get_user_own_rating(user_code, user_id):
+    """
+    Get the current user's rating for a specific applicant.
+    
+    Retrieves only the rating and comment that the specified user has
+    assigned to the given applicant.
+    
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+    @param user_id: ID of the user whose rating to retrieve
+    @param_type user_id: int
+    
+    @return: Tuple of (rating_dict, error_message)
+    @return_type: tuple[dict, None] or tuple[None, str]
+    
+    @db_tables: ratings
+    @composite_key: Uses (user_id, user_code) composite primary key
+    
+    @example:
+        rating, error = get_user_own_rating("12345", current_user.id)
+        if not error and rating:
+            print(f"Your rating: {rating['rating']}/10")
+            print(f"Your comment: {rating['user_comment']}")
+    """
+
     """Get current user's own rating for a specific applicant"""
     conn = get_db_connection()
     if not conn:
