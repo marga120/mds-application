@@ -221,8 +221,8 @@ def update_applicant_prerequisites(user_code):
 
 @applicants_api.route("/applicant-application-info/<user_code>/english-comment", methods=["PUT"])
 def update_english_comment(user_code):
-    """Update English comment for applicant (Admin/Faculty only)"""
-    if not current_user.is_authenticated or current_user.is_viewer:
+    """Update English comment for applicant (Admin only)"""
+    if not current_user.is_authenticated or current_user.is_viewer or current_user.is_faculty:
         return jsonify({"success": False, "message": "Access denied"}), 403
 
     from models.applicants import update_english_comment
@@ -248,8 +248,8 @@ def update_english_comment(user_code):
 
 @applicants_api.route("/applicant-application-info/<user_code>/english-status", methods=["PUT"])
 def update_english_status(user_code):
-    """Update English status for applicant (Admin/Faculty only)"""
-    if not current_user.is_authenticated or current_user.is_viewer:
+    """Update English status for applicant (Admin only)"""
+    if not current_user.is_authenticated or current_user.is_viewer or current_user.is_faculty:
         return jsonify({"success": False, "message": "Access denied"}), 403
 
     from models.applicants import update_english_status
