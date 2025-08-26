@@ -585,6 +585,9 @@ def process_csv_data(df):
             if not user_code or user_code == "nan":
                 continue
 
+            # Track if any data changed for this user
+            data_changed = False
+
             # Parse date of birth
             date_birth = None
             if pd.notna(row.get("Date of Birth")):
@@ -613,6 +616,13 @@ def process_csv_data(df):
                 ubc_academic_history = ""
             else:
                 ubc_academic_history = str(ubc_academic_history).strip()
+
+            # Check if applicant_info changed by looking at the updated_at after the query
+            cursor.execute(
+                "SELECT updated_at FROM applicant_info WHERE user_code = %s",
+                (user_code,)
+            )
+            old_info_updated = cursor.fetchone()
 
             # Insert into applicant_info table (now with session_id and ubc_academic_history)
             applicant_info_query = """
@@ -675,7 +685,53 @@ def process_csv_data(df):
                 ubc_academic_history = EXCLUDED.ubc_academic_history,
                 interest_code = EXCLUDED.interest_code,
                 interest = EXCLUDED.interest,
-                updated_at = EXCLUDED.updated_at
+                updated_at = CASE 
+                    WHEN applicant_info.session_id IS DISTINCT FROM EXCLUDED.session_id
+                      OR applicant_info.title IS DISTINCT FROM EXCLUDED.title
+                      OR applicant_info.family_name IS DISTINCT FROM EXCLUDED.family_name
+                      OR applicant_info.given_name IS DISTINCT FROM EXCLUDED.given_name
+                      OR applicant_info.middle_name IS DISTINCT FROM EXCLUDED.middle_name
+                      OR applicant_info.preferred_name IS DISTINCT FROM EXCLUDED.preferred_name
+                      OR applicant_info.former_family_name IS DISTINCT FROM EXCLUDED.former_family_name
+                      OR applicant_info.gender_code IS DISTINCT FROM EXCLUDED.gender_code
+                      OR applicant_info.gender IS DISTINCT FROM EXCLUDED.gender
+                      OR applicant_info.date_birth IS DISTINCT FROM EXCLUDED.date_birth
+                      OR applicant_info.age IS DISTINCT FROM EXCLUDED.age
+                      OR applicant_info.country_birth_code IS DISTINCT FROM EXCLUDED.country_birth_code
+                      OR applicant_info.country_citizenship_code IS DISTINCT FROM EXCLUDED.country_citizenship_code
+                      OR applicant_info.country_citizenship IS DISTINCT FROM EXCLUDED.country_citizenship
+                      OR applicant_info.dual_citizenship_code IS DISTINCT FROM EXCLUDED.dual_citizenship_code
+                      OR applicant_info.dual_citizenship IS DISTINCT FROM EXCLUDED.dual_citizenship
+                      OR applicant_info.primary_spoken_lang_code IS DISTINCT FROM EXCLUDED.primary_spoken_lang_code
+                      OR applicant_info.primary_spoken_lang IS DISTINCT FROM EXCLUDED.primary_spoken_lang
+                      OR applicant_info.other_spoken_lang_code IS DISTINCT FROM EXCLUDED.other_spoken_lang_code
+                      OR applicant_info.other_spoken_lang IS DISTINCT FROM EXCLUDED.other_spoken_lang
+                      OR applicant_info.visa_type_code IS DISTINCT FROM EXCLUDED.visa_type_code
+                      OR applicant_info.visa_type IS DISTINCT FROM EXCLUDED.visa_type
+                      OR applicant_info.country_code IS DISTINCT FROM EXCLUDED.country_code
+                      OR applicant_info.country IS DISTINCT FROM EXCLUDED.country
+                      OR applicant_info.address_line1 IS DISTINCT FROM EXCLUDED.address_line1
+                      OR applicant_info.address_line2 IS DISTINCT FROM EXCLUDED.address_line2
+                      OR applicant_info.city IS DISTINCT FROM EXCLUDED.city
+                      OR applicant_info.province_state_region IS DISTINCT FROM EXCLUDED.province_state_region
+                      OR applicant_info.postal_code IS DISTINCT FROM EXCLUDED.postal_code
+                      OR applicant_info.primary_telephone IS DISTINCT FROM EXCLUDED.primary_telephone
+                      OR applicant_info.secondary_telephone IS DISTINCT FROM EXCLUDED.secondary_telephone
+                      OR applicant_info.email IS DISTINCT FROM EXCLUDED.email
+                      OR applicant_info.aboriginal IS DISTINCT FROM EXCLUDED.aboriginal
+                      OR applicant_info.first_nation IS DISTINCT FROM EXCLUDED.first_nation
+                      OR applicant_info.inuit IS DISTINCT FROM EXCLUDED.inuit
+                      OR applicant_info.metis IS DISTINCT FROM EXCLUDED.metis
+                      OR applicant_info.aboriginal_not_specified IS DISTINCT FROM EXCLUDED.aboriginal_not_specified
+                      OR applicant_info.aboriginal_info IS DISTINCT FROM EXCLUDED.aboriginal_info
+                      OR applicant_info.academic_history_code IS DISTINCT FROM EXCLUDED.academic_history_code
+                      OR applicant_info.academic_history IS DISTINCT FROM EXCLUDED.academic_history
+                      OR applicant_info.ubc_academic_history IS DISTINCT FROM EXCLUDED.ubc_academic_history
+                      OR applicant_info.interest_code IS DISTINCT FROM EXCLUDED.interest_code
+                      OR applicant_info.interest IS DISTINCT FROM EXCLUDED.interest
+                    THEN EXCLUDED.updated_at 
+                    ELSE applicant_info.updated_at 
+                END
             """
 
             cursor.execute(
@@ -732,6 +788,20 @@ def process_csv_data(df):
                 ),
             )
 
+            # Check if applicant_info actually changed
+            cursor.execute(
+                "SELECT updated_at FROM applicant_info WHERE user_code = %s",
+                (user_code,)
+            )
+            new_info_updated = cursor.fetchone()
+            
+            if old_info_updated is None:  # New record
+                data_changed = True
+            elif old_info_updated and new_info_updated:
+                # Check if updated_at changed (meaning data changed)
+                if old_info_updated[0] != new_info_updated[0]:
+                    data_changed = True
+
             # Parse dates for student_status
             app_start = None
             submit_date = None
@@ -748,6 +818,13 @@ def process_csv_data(df):
                 except:
                     pass
 
+            # Check if applicant_status changed
+            cursor.execute(
+                "SELECT updated_at FROM applicant_status WHERE user_code = %s",
+                (user_code,)
+            )
+            old_status_updated = cursor.fetchone()
+
             # Insert into applicant_status table
             status_query = """
             INSERT INTO applicant_status (
@@ -756,10 +833,16 @@ def process_csv_data(df):
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
              ON CONFLICT (user_code) DO UPDATE SET
                 student_number = EXCLUDED.student_number,
+                app_start = EXCLUDED.app_start,
+                submit_date = EXCLUDED.submit_date,
+                status_code = EXCLUDED.status_code,
                 status = EXCLUDED.status,
                 detail_status = EXCLUDED.detail_status,
                 updated_at = CASE 
                     WHEN applicant_status.student_number IS DISTINCT FROM EXCLUDED.student_number 
+                      OR applicant_status.app_start IS DISTINCT FROM EXCLUDED.app_start
+                      OR applicant_status.submit_date IS DISTINCT FROM EXCLUDED.submit_date
+                      OR applicant_status.status_code IS DISTINCT FROM EXCLUDED.status_code
                       OR applicant_status.status IS DISTINCT FROM EXCLUDED.status 
                       OR applicant_status.detail_status IS DISTINCT FROM EXCLUDED.detail_status 
                     THEN EXCLUDED.updated_at 
@@ -782,18 +865,43 @@ def process_csv_data(df):
                 ),
             )
 
+            # Check if applicant_status actually changed
+            cursor.execute(
+                "SELECT updated_at FROM applicant_status WHERE user_code = %s",
+                (user_code,)
+            )
+            new_status_updated = cursor.fetchone()
+            
+            if old_status_updated is None:  # New record
+                data_changed = True
+            elif old_status_updated and new_status_updated:
+                # Check if updated_at changed (meaning data changed)
+                if old_status_updated[0] != new_status_updated[0]:
+                    data_changed = True
+
             # Process test scores
-            process_toefl_scores(user_code, row, cursor, current_time)
-            process_ielts_scores(user_code, row, cursor, current_time)
-            process_other_test_scores(user_code, row, cursor, current_time)
+            toefl_changed = process_toefl_scores(user_code, row, cursor, current_time)
+            ielts_changed = process_ielts_scores(user_code, row, cursor, current_time)
+            other_tests_changed = process_other_test_scores(user_code, row, cursor, current_time)
 
             touched_user_codes.add(user_code)
 
             # Process institution information first
-            process_institution_info(user_code, row, cursor, current_time)
+            institution_changed = process_institution_info(user_code, row, cursor, current_time)
 
             # Process application_info after institutions to calculate fields from institution data
             process_application_info(user_code, row, cursor, current_time)
+
+            # If any data changed in any table, force update the applicant_status.updated_at
+            if (data_changed or institution_changed or toefl_changed or ielts_changed or other_tests_changed):
+                cursor.execute(
+                    """
+                    UPDATE applicant_status 
+                    SET updated_at = %s 
+                    WHERE user_code = %s
+                    """,
+                    (current_time, user_code)
+                )
 
             records_processed += 1
 

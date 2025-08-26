@@ -29,7 +29,13 @@ def process_toefl_scores(user_code, row, cursor, current_time):
     """
 
     """Process TOEFL scores for a student"""
+    data_changed = False
     try:
+        # Check existing TOEFL data before processing
+        cursor.execute("SELECT toefl_number, updated_at FROM toefl WHERE user_code = %s ORDER BY toefl_number", (user_code,))
+        old_toefl_records = cursor.fetchall()
+        old_toefl_dict = {record[0]: record[1] for record in old_toefl_records} if old_toefl_records else {}
+
         # Process up to 3 TOEFL scores (TOEFL, TOEFL2, TOEFL3)
         for i in range(1, 4):
             prefix = "TOEFL" if i == 1 else f"TOEFL{i}"
@@ -105,8 +111,8 @@ def process_toefl_scores(user_code, row, cursor, current_time):
                 listening, structure_written, reading, speaking, mybest_total,
                 mybest_date, mybest_listening, mybest_listening_date, mybest_writing,
                 mybest_writing_date, mybest_reading, mybest_reading_date,
-                mybest_speaking, mybest_speaking_date
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                mybest_speaking, mybest_speaking_date, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (user_code, toefl_number) DO UPDATE SET
                 registration_num = EXCLUDED.registration_num,
                 date_written = EXCLUDED.date_written,
@@ -124,7 +130,28 @@ def process_toefl_scores(user_code, row, cursor, current_time):
                 mybest_reading = EXCLUDED.mybest_reading,
                 mybest_reading_date = EXCLUDED.mybest_reading_date,
                 mybest_speaking = EXCLUDED.mybest_speaking,
-                mybest_speaking_date = EXCLUDED.mybest_speaking_date
+                mybest_speaking_date = EXCLUDED.mybest_speaking_date,
+                updated_at = CASE 
+                    WHEN toefl.registration_num IS DISTINCT FROM EXCLUDED.registration_num
+                      OR toefl.date_written IS DISTINCT FROM EXCLUDED.date_written
+                      OR toefl.total_score IS DISTINCT FROM EXCLUDED.total_score
+                      OR toefl.listening IS DISTINCT FROM EXCLUDED.listening
+                      OR toefl.structure_written IS DISTINCT FROM EXCLUDED.structure_written
+                      OR toefl.reading IS DISTINCT FROM EXCLUDED.reading
+                      OR toefl.speaking IS DISTINCT FROM EXCLUDED.speaking
+                      OR toefl.mybest_total IS DISTINCT FROM EXCLUDED.mybest_total
+                      OR toefl.mybest_date IS DISTINCT FROM EXCLUDED.mybest_date
+                      OR toefl.mybest_listening IS DISTINCT FROM EXCLUDED.mybest_listening
+                      OR toefl.mybest_listening_date IS DISTINCT FROM EXCLUDED.mybest_listening_date
+                      OR toefl.mybest_writing IS DISTINCT FROM EXCLUDED.mybest_writing
+                      OR toefl.mybest_writing_date IS DISTINCT FROM EXCLUDED.mybest_writing_date
+                      OR toefl.mybest_reading IS DISTINCT FROM EXCLUDED.mybest_reading
+                      OR toefl.mybest_reading_date IS DISTINCT FROM EXCLUDED.mybest_reading_date
+                      OR toefl.mybest_speaking IS DISTINCT FROM EXCLUDED.mybest_speaking
+                      OR toefl.mybest_speaking_date IS DISTINCT FROM EXCLUDED.mybest_speaking_date
+                    THEN EXCLUDED.updated_at 
+                    ELSE toefl.updated_at 
+                END
             """
 
             cursor.execute(
@@ -149,11 +176,30 @@ def process_toefl_scores(user_code, row, cursor, current_time):
                     mybest_reading_date,
                     convert_score(row.get(f"{prefix} MyBest Speaking Score")),
                     mybest_speaking_date,
+                    current_time,  # created_at
+                    current_time,  # updated_at
                 ),
             )
 
+        # Check if data changed after processing
+        cursor.execute("SELECT toefl_number, updated_at FROM toefl WHERE user_code = %s ORDER BY toefl_number", (user_code,))
+        new_toefl_records = cursor.fetchall()
+        new_toefl_dict = {record[0]: record[1] for record in new_toefl_records} if new_toefl_records else {}
+        
+        # Detect changes
+        if len(old_toefl_dict) != len(new_toefl_dict):
+            data_changed = True
+        else:
+            for toefl_num, new_timestamp in new_toefl_dict.items():
+                old_timestamp = old_toefl_dict.get(toefl_num)
+                if old_timestamp != new_timestamp:
+                    data_changed = True
+                    break
+
     except Exception as e:
         print(f"Error processing TOEFL scores for {user_code}: {e}")
+    
+    return data_changed
 
 
 def process_ielts_scores(user_code, row, cursor, current_time):
@@ -183,7 +229,15 @@ def process_ielts_scores(user_code, row, cursor, current_time):
     """
 
     """Process IELTS scores for a student"""
+    data_changed = False
+
     try:
+        # Check existing IELTS data before processing
+        cursor.execute("SELECT ielts_number, updated_at FROM ielts WHERE user_code = %s ORDER BY ielts_number", (user_code,))
+        old_ielts_records = cursor.fetchall()
+        old_ielts_dict = {record[0]: record[1] for record in old_ielts_records} if old_ielts_records else {}
+
+
         # Process up to 3 IELTS scores (IELTS, IELTS2, IELTS3)
         for i in range(1, 4):
             prefix = "IELTS" if i == 1 else f"IELTS{i}"
@@ -210,8 +264,8 @@ def process_ielts_scores(user_code, row, cursor, current_time):
             ielts_query = """
             INSERT INTO ielts (
                 user_code, ielts_number, candidate_num, date_written, total_band_score,
-                listening, reading, writing, speaking
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                listening, reading, writing, speaking, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (user_code, ielts_number) DO UPDATE SET
                 candidate_num = EXCLUDED.candidate_num,
                 date_written = EXCLUDED.date_written,
@@ -219,7 +273,18 @@ def process_ielts_scores(user_code, row, cursor, current_time):
                 listening = EXCLUDED.listening,
                 reading = EXCLUDED.reading,
                 writing = EXCLUDED.writing,
-                speaking = EXCLUDED.speaking
+                speaking = EXCLUDED.speaking,
+                updated_at = CASE 
+                    WHEN ielts.candidate_num IS DISTINCT FROM EXCLUDED.candidate_num
+                      OR ielts.date_written IS DISTINCT FROM EXCLUDED.date_written
+                      OR ielts.total_band_score IS DISTINCT FROM EXCLUDED.total_band_score
+                      OR ielts.listening IS DISTINCT FROM EXCLUDED.listening
+                      OR ielts.reading IS DISTINCT FROM EXCLUDED.reading
+                      OR ielts.writing IS DISTINCT FROM EXCLUDED.writing
+                      OR ielts.speaking IS DISTINCT FROM EXCLUDED.speaking
+                    THEN EXCLUDED.updated_at 
+                    ELSE ielts.updated_at 
+                END
             """
 
             cursor.execute(
@@ -234,11 +299,30 @@ def process_ielts_scores(user_code, row, cursor, current_time):
                     convert_score(row.get(f"{prefix} Reading")),
                     convert_score(row.get(f"{prefix} Writing")),
                     convert_score(row.get(f"{prefix} Speaking")),
+                    current_time,  # created_at
+                    current_time,  # updated_at
                 ),
             )
 
+        # Check if data changed after processing
+        cursor.execute("SELECT ielts_number, updated_at FROM ielts WHERE user_code = %s ORDER BY ielts_number", (user_code,))
+        new_ielts_records = cursor.fetchall()
+        new_ielts_dict = {record[0]: record[1] for record in new_ielts_records} if new_ielts_records else {}
+        
+        # Detect changes
+        if len(old_ielts_dict) != len(new_ielts_dict):
+            data_changed = True
+        else:
+            for ielts_num, new_timestamp in new_ielts_dict.items():
+                old_timestamp = old_ielts_dict.get(ielts_num)
+                if old_timestamp != new_timestamp:
+                    data_changed = True
+                    break
+
     except Exception as e:
         print(f"Error processing IELTS scores for {user_code}: {e}")
+    
+    return data_changed
 
 
 def process_other_test_scores(user_code, row, cursor, current_time):
@@ -268,7 +352,18 @@ def process_other_test_scores(user_code, row, cursor, current_time):
     """
 
     """Process other test scores (MELAB, PTE, CAEL, CELPIP, ALT ELPP, GRE, GMAT)"""
+    data_changed = False
+
     try:
+        # Check existing data for all test types
+        tables_to_check = ['melab', 'pte', 'cael', 'celpip', 'alt_elpp', 'gre', 'gmat']
+        old_timestamps = {}
+        
+        for table in tables_to_check:
+            cursor.execute(f"SELECT updated_at FROM {table} WHERE user_code = %s", (user_code,))
+            result = cursor.fetchone()
+            old_timestamps[table] = result[0] if result else None
+        
         # Convert scores to strings if they exist, otherwise None
         def convert_score(value):
             return str(value) if pd.notna(value) else None
@@ -284,12 +379,19 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                     melab_date = None
 
             melab_query = """
-            INSERT INTO melab (user_code, ref_num, date_written, total)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO melab (user_code, ref_num, date_written, total, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s)
             ON CONFLICT (user_code) DO UPDATE SET
                 ref_num = EXCLUDED.ref_num,
                 date_written = EXCLUDED.date_written,
-                total = EXCLUDED.total
+                total = EXCLUDED.total,
+                updated_at = CASE 
+                    WHEN melab.ref_num IS DISTINCT FROM EXCLUDED.ref_num
+                      OR melab.date_written IS DISTINCT FROM EXCLUDED.date_written
+                      OR melab.total IS DISTINCT FROM EXCLUDED.total
+                    THEN EXCLUDED.updated_at 
+                    ELSE melab.updated_at 
+                END
             """
             cursor.execute(
                 melab_query,
@@ -298,8 +400,11 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                     str(int(melab_ref)),
                     melab_date,
                     convert_score(row.get("MELAB Total Score")),
+                    current_time,  # created_at
+                    current_time,  # updated_at
                 ),
             )
+
 
         # PTE
         pte_ref = row.get("PTE Reference #")
@@ -312,12 +417,19 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                     pte_date = None
 
             pte_query = """
-            INSERT INTO pte (user_code, ref_num, date_written, total)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO pte (user_code, ref_num, date_written, total, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s)
             ON CONFLICT (user_code) DO UPDATE SET
                 ref_num = EXCLUDED.ref_num,
                 date_written = EXCLUDED.date_written,
-                total = EXCLUDED.total
+                total = EXCLUDED.total,
+                updated_at = CASE 
+                    WHEN pte.ref_num IS DISTINCT FROM EXCLUDED.ref_num
+                      OR pte.date_written IS DISTINCT FROM EXCLUDED.date_written
+                      OR pte.total IS DISTINCT FROM EXCLUDED.total
+                    THEN EXCLUDED.updated_at 
+                    ELSE pte.updated_at 
+                END
             """
             cursor.execute(
                 pte_query,
@@ -326,6 +438,8 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                     str(int(pte_ref)),
                     pte_date,
                     convert_score(row.get("PTE Total Score")),
+                    current_time,  # created_at
+                    current_time,  # updated_at
                 ),
             )
 
@@ -340,15 +454,25 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                     cael_date = None
 
             cael_query = """
-            INSERT INTO cael (user_code, ref_num, date_written, reading, listening, writing, speaking)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO cael (user_code, ref_num, date_written, reading, listening, writing, speaking, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (user_code) DO UPDATE SET
                 ref_num = EXCLUDED.ref_num,
                 date_written = EXCLUDED.date_written,
                 reading = EXCLUDED.reading,
                 listening = EXCLUDED.listening,
                 writing = EXCLUDED.writing,
-                speaking = EXCLUDED.speaking
+                speaking = EXCLUDED.speaking,
+                updated_at = CASE 
+                    WHEN cael.ref_num IS DISTINCT FROM EXCLUDED.ref_num
+                      OR cael.date_written IS DISTINCT FROM EXCLUDED.date_written
+                      OR cael.reading IS DISTINCT FROM EXCLUDED.reading
+                      OR cael.listening IS DISTINCT FROM EXCLUDED.listening
+                      OR cael.writing IS DISTINCT FROM EXCLUDED.writing
+                      OR cael.speaking IS DISTINCT FROM EXCLUDED.speaking
+                    THEN EXCLUDED.updated_at 
+                    ELSE cael.updated_at 
+                END
             """
             cursor.execute(
                 cael_query,
@@ -360,6 +484,8 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                     convert_score(row.get("CAEL Listening Performance Score")),
                     convert_score(row.get("CAEL Writing Performance Score")),
                     convert_score(row.get("CAEL Speaking Performance Score")),
+                    current_time,
+                    current_time,
                 ),
             )
 
@@ -376,14 +502,23 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                     celpip_date = None
 
             celpip_query = """
-            INSERT INTO celpip (user_code, ref_num, date_written, listening, speaking, reading_writing)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO celpip (user_code, ref_num, date_written, listening, speaking, reading_writing, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (user_code) DO UPDATE SET
                 ref_num = EXCLUDED.ref_num,
                 date_written = EXCLUDED.date_written,
                 listening = EXCLUDED.listening,
                 speaking = EXCLUDED.speaking,
-                reading_writing = EXCLUDED.reading_writing
+                reading_writing = EXCLUDED.reading_writing,
+                updated_at = CASE 
+                    WHEN celpip.ref_num IS DISTINCT FROM EXCLUDED.ref_num
+                      OR celpip.date_written IS DISTINCT FROM EXCLUDED.date_written
+                      OR celpip.listening IS DISTINCT FROM EXCLUDED.listening
+                      OR celpip.speaking IS DISTINCT FROM EXCLUDED.speaking
+                      OR celpip.reading_writing IS DISTINCT FROM EXCLUDED.reading_writing
+                    THEN EXCLUDED.updated_at 
+                    ELSE celpip.updated_at 
+                END
             """
             cursor.execute(
                 celpip_query,
@@ -394,6 +529,8 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                     convert_score(row.get("CELPIP Listening Score")),
                     convert_score(row.get("CELPIP Speaking Score")),
                     convert_score(row.get("CELPIP Academic Reading & Writing Score")),
+                    current_time,
+                    current_time,
                 ),
             )
 
@@ -410,13 +547,21 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                     alt_elpp_date = None
 
             alt_elpp_query = """
-            INSERT INTO alt_elpp (user_code, ref_num, date_written, total, test_type)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO alt_elpp (user_code, ref_num, date_written, total, test_type, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (user_code) DO UPDATE SET
                 ref_num = EXCLUDED.ref_num,
                 date_written = EXCLUDED.date_written,
                 total = EXCLUDED.total,
-                test_type = EXCLUDED.test_type
+                test_type = EXCLUDED.test_type,
+                updated_at = CASE 
+                    WHEN alt_elpp.ref_num IS DISTINCT FROM EXCLUDED.ref_num
+                      OR alt_elpp.date_written IS DISTINCT FROM EXCLUDED.date_written
+                      OR alt_elpp.total IS DISTINCT FROM EXCLUDED.total
+                      OR alt_elpp.test_type IS DISTINCT FROM EXCLUDED.test_type
+                    THEN EXCLUDED.updated_at 
+                    ELSE alt_elpp.updated_at 
+                END
             """
             cursor.execute(
                 alt_elpp_query,
@@ -426,6 +571,8 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                     alt_elpp_date,
                     convert_score(row.get("ALT ELPP Total Score")),
                     convert_score(row.get("ALT ELPP Test Type")),
+                    current_time,
+                    current_time,
                 ),
             )
 
@@ -452,8 +599,8 @@ def process_other_test_scores(user_code, row, cursor, current_time):
             INSERT INTO gre (
                 user_code, reg_num, date_written, verbal, verbal_below, quantitative,
                 quantitative_below, writing, writing_below, subject_tests, subject_reg_num,
-                subject_date, subject_scaled_score, subject_below
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                subject_date, subject_scaled_score, subject_below, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (user_code) DO UPDATE SET
                 reg_num = EXCLUDED.reg_num,
                 date_written = EXCLUDED.date_written,
@@ -467,7 +614,24 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 subject_reg_num = EXCLUDED.subject_reg_num,
                 subject_date = EXCLUDED.subject_date,
                 subject_scaled_score = EXCLUDED.subject_scaled_score,
-                subject_below = EXCLUDED.subject_below
+                subject_below = EXCLUDED.subject_below,
+                updated_at = CASE 
+                    WHEN gre.reg_num IS DISTINCT FROM EXCLUDED.reg_num
+                      OR gre.date_written IS DISTINCT FROM EXCLUDED.date_written
+                      OR gre.verbal IS DISTINCT FROM EXCLUDED.verbal
+                      OR gre.verbal_below IS DISTINCT FROM EXCLUDED.verbal_below
+                      OR gre.quantitative IS DISTINCT FROM EXCLUDED.quantitative
+                      OR gre.quantitative_below IS DISTINCT FROM EXCLUDED.quantitative_below
+                      OR gre.writing IS DISTINCT FROM EXCLUDED.writing
+                      OR gre.writing_below IS DISTINCT FROM EXCLUDED.writing_below
+                      OR gre.subject_tests IS DISTINCT FROM EXCLUDED.subject_tests
+                      OR gre.subject_reg_num IS DISTINCT FROM EXCLUDED.subject_reg_num
+                      OR gre.subject_date IS DISTINCT FROM EXCLUDED.subject_date
+                      OR gre.subject_scaled_score IS DISTINCT FROM EXCLUDED.subject_scaled_score
+                      OR gre.subject_below IS DISTINCT FROM EXCLUDED.subject_below
+                    THEN EXCLUDED.updated_at 
+                    ELSE gre.updated_at 
+                END
             """
             cursor.execute(
                 gre_query,
@@ -492,6 +656,8 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                         row.get("GRE (Subject Tests) - Overall Scaled Score")
                     ),
                     convert_score(row.get("GRE (Subject Tests) - Overall % Below")),
+                    current_time,
+                    current_time,
                 ),
             )
 
@@ -506,8 +672,8 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                     gmat_date = None
 
             gmat_query = """
-            INSERT INTO gmat (user_code, ref_num, date_written, total, integrated_reasoning, quantitative, verbal, writing)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO gmat (user_code, ref_num, date_written, total, integrated_reasoning, quantitative, verbal, writing, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (user_code) DO UPDATE SET
                 ref_num = EXCLUDED.ref_num,
                 date_written = EXCLUDED.date_written,
@@ -515,7 +681,18 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 integrated_reasoning = EXCLUDED.integrated_reasoning,
                 quantitative = EXCLUDED.quantitative,
                 verbal = EXCLUDED.verbal,
-                writing = EXCLUDED.writing
+                writing = EXCLUDED.writing,
+                updated_at = CASE 
+                    WHEN gmat.ref_num IS DISTINCT FROM EXCLUDED.ref_num
+                      OR gmat.date_written IS DISTINCT FROM EXCLUDED.date_written
+                      OR gmat.total IS DISTINCT FROM EXCLUDED.total
+                      OR gmat.integrated_reasoning IS DISTINCT FROM EXCLUDED.integrated_reasoning
+                      OR gmat.quantitative IS DISTINCT FROM EXCLUDED.quantitative
+                      OR gmat.verbal IS DISTINCT FROM EXCLUDED.verbal
+                      OR gmat.writing IS DISTINCT FROM EXCLUDED.writing
+                    THEN EXCLUDED.updated_at 
+                    ELSE gmat.updated_at 
+                END
             """
             cursor.execute(
                 gmat_query,
@@ -528,8 +705,22 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                     convert_score(row.get("Quantitative")),
                     convert_score(row.get("Verbal")),
                     convert_score(row.get("Analytical Writing Assessment")),
+                    current_time,
+                    current_time,
                 ),
             )
 
+    # Check if data changed after processing
+        for table in tables_to_check:
+            cursor.execute(f"SELECT updated_at FROM {table} WHERE user_code = %s", (user_code,))
+            result = cursor.fetchone()
+            new_timestamp = result[0] if result else None
+            
+            if old_timestamps[table] != new_timestamp:
+                data_changed = True
+                break
+
     except Exception as e:
         print(f"Error processing other test scores for {user_code}: {e}")
+    
+    return data_changed

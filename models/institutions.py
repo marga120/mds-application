@@ -31,7 +31,13 @@ def process_institution_info(user_code, row, cursor, current_time):
     """
 
     """Process institution information for a student (up to 6 institutions)"""
+    data_changed = False
     try:
+         # Check existing institution data before processing
+        cursor.execute("SELECT institution_number, updated_at FROM institution_info WHERE user_code = %s ORDER BY institution_number", (user_code,))
+        old_institution_records = cursor.fetchall()
+        old_institution_dict = {record[0]: record[1] for record in old_institution_records} if old_institution_records else {}
+
         # Process up to 6 institutions (I1 through I6)
         for i in range(1, 7):
             prefix = f"I{i}"
@@ -104,9 +110,10 @@ def process_institution_info(user_code, row, cursor, current_time):
                 user_code, institution_number, institution_code, full_name, country,
                 start_date, end_date, program_study, degree_confer_code, degree_confer,
                 date_confer, credential_receive_code, credential_receive, expected_confer_date,
-                expected_credential_code, expected_credential, honours, fail_withdraw, reason, gpa
+                expected_credential_code, expected_credential, honours, fail_withdraw, reason, gpa,
+                created_at, updated_at
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
             ON CONFLICT (user_code, institution_number) DO UPDATE SET
                 institution_code = EXCLUDED.institution_code,
@@ -126,7 +133,29 @@ def process_institution_info(user_code, row, cursor, current_time):
                 honours = EXCLUDED.honours,
                 fail_withdraw = EXCLUDED.fail_withdraw,
                 reason = EXCLUDED.reason,
-                gpa = EXCLUDED.gpa
+                gpa = EXCLUDED.gpa,
+                updated_at = CASE 
+                    WHEN institution_info.institution_code IS DISTINCT FROM EXCLUDED.institution_code
+                      OR institution_info.full_name IS DISTINCT FROM EXCLUDED.full_name
+                      OR institution_info.country IS DISTINCT FROM EXCLUDED.country
+                      OR institution_info.start_date IS DISTINCT FROM EXCLUDED.start_date
+                      OR institution_info.end_date IS DISTINCT FROM EXCLUDED.end_date
+                      OR institution_info.program_study IS DISTINCT FROM EXCLUDED.program_study
+                      OR institution_info.degree_confer_code IS DISTINCT FROM EXCLUDED.degree_confer_code
+                      OR institution_info.degree_confer IS DISTINCT FROM EXCLUDED.degree_confer
+                      OR institution_info.date_confer IS DISTINCT FROM EXCLUDED.date_confer
+                      OR institution_info.credential_receive_code IS DISTINCT FROM EXCLUDED.credential_receive_code
+                      OR institution_info.credential_receive IS DISTINCT FROM EXCLUDED.credential_receive
+                      OR institution_info.expected_confer_date IS DISTINCT FROM EXCLUDED.expected_confer_date
+                      OR institution_info.expected_credential_code IS DISTINCT FROM EXCLUDED.expected_credential_code
+                      OR institution_info.expected_credential IS DISTINCT FROM EXCLUDED.expected_credential
+                      OR institution_info.honours IS DISTINCT FROM EXCLUDED.honours
+                      OR institution_info.fail_withdraw IS DISTINCT FROM EXCLUDED.fail_withdraw
+                      OR institution_info.reason IS DISTINCT FROM EXCLUDED.reason
+                      OR institution_info.gpa IS DISTINCT FROM EXCLUDED.gpa
+                    THEN EXCLUDED.updated_at 
+                    ELSE institution_info.updated_at 
+                END
             """
 
             cursor.execute(
@@ -152,8 +181,27 @@ def process_institution_info(user_code, row, cursor, current_time):
                     fail_withdraw,
                     safe_str(row.get(f"{prefix} Provide Details/Reason")),
                     safe_str(row.get(f"{prefix} Self Reported GPA")),
+                    current_time,  # created_at
+                    current_time,  # updated_at
                 ),
             )
 
+        # Check if data changed after processing
+        cursor.execute("SELECT institution_number, updated_at FROM institution_info WHERE user_code = %s ORDER BY institution_number", (user_code,))
+        new_institution_records = cursor.fetchall()
+        new_institution_dict = {record[0]: record[1] for record in new_institution_records} if new_institution_records else {}
+        
+        # Detect changes
+        if len(old_institution_dict) != len(new_institution_dict):
+            data_changed = True
+        else:
+            for inst_num, new_timestamp in new_institution_dict.items():
+                old_timestamp = old_institution_dict.get(inst_num)
+                if old_timestamp != new_timestamp:
+                    data_changed = True
+                    break
+
     except Exception as e:
         print(f"Error processing institution info for {user_code}: {e}")
+    
+    return data_changed
