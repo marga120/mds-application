@@ -7,6 +7,45 @@ ratings_api = Blueprint("ratings_api", __name__)
 
 @ratings_api.route("/ratings/<user_code>", methods=["GET"])
 def get_ratings(user_code):
+    """
+    Get all ratings for a specific applicant.
+
+    Retrieves all faculty/admin ratings and comments for an applicant,
+    including reviewer information.
+
+    @requires: Any authenticated user
+    @method: GET
+    @param user_code: Unique identifier for the applicant (URL parameter)
+    @param_type user_code: str
+
+    @return: JSON response with all ratings for the applicant
+    @return_type: flask.Response
+    @status_codes:
+        - 200: Ratings retrieved successfully
+        - 400: Database error
+
+    @db_tables: ratings, user
+
+    @example:
+        GET /api/ratings/12345
+
+        Response:
+        {
+            "success": true,
+            "ratings": [
+                {
+                    "user_code": "12345",
+                    "user_id": 2,
+                    "rating": 8.5,
+                    "user_comment": "Strong candidate",
+                    "first_name": "Jane",
+                    "last_name": "Faculty",
+                    "email": "jane@university.edu"
+                }
+            ]
+        }
+    """
+
     """Get all ratings for a specific user"""
     from models.ratings import get_user_ratings
 
@@ -19,6 +58,41 @@ def get_ratings(user_code):
 
 @ratings_api.route("/ratings/<user_code>/my-rating", methods=["GET"])
 def get_my_ratings(user_code):
+    """
+    Get the current user's rating for a specific applicant.
+
+    Retrieves only the rating and comment that the current user has
+    assigned to the specified applicant.
+
+    @requires: Any authenticated user
+    @method: GET
+    @param user_code: Unique identifier for the applicant (URL parameter)
+    @param_type user_code: str
+
+    @return: JSON response with current user's rating
+    @return_type: flask.Response
+    @status_codes:
+        - 200: Rating retrieved successfully
+        - 400: Database error
+        - 401: Authentication required
+
+    @db_tables: ratings
+
+    @example:
+        GET /api/ratings/12345/my-rating
+
+        Response:
+        {
+            "success": true,
+            "rating": {
+                "user_code": "12345",
+                "user_id": 2,
+                "rating": 8.5,
+                "user_comment": "Strong technical background"
+            }
+        }
+    """
+
     """Get current user's rating for a specific applicant"""
     if not current_user.is_authenticated:
         return jsonify({"success": False, "message": "Authentication required"}), 401
@@ -34,6 +108,56 @@ def get_my_ratings(user_code):
 
 @ratings_api.route("/ratings/<user_code>", methods=["POST"])
 def add_or_update_ratings(user_code):
+    """
+    Add or update a rating for an applicant.
+
+    Creates a new rating or updates an existing rating for the specified
+    applicant. Only Admin and Faculty users can add/update ratings.
+    Viewer users are restricted from rating functionality.
+
+    @requires: Admin or Faculty authentication (Viewer access denied)
+    @method: POST
+    @param user_code: Unique identifier for the applicant (URL parameter)
+    @param_type user_code: str
+    @param rating: Numerical rating value (JSON body, 0.0-10.0, one decimal)
+    @param_type rating: float
+    @param comment: Optional comment about the applicant (JSON body)
+    @param_type comment: str
+
+    @return: JSON response with operation result
+    @return_type: flask.Response
+    @status_codes:
+        - 200: Rating added/updated successfully
+        - 400: Invalid rating format or missing data
+        - 401: Authentication required
+        - 403: Access denied (Viewer user)
+        - 500: Database error
+
+    @validation:
+        - Rating must be between 0.0 and 10.0
+        - Rating can have maximum one decimal place
+        - Rating is required (comment is optional)
+
+    @db_tables: ratings
+    @upsert: Uses PostgreSQL ON CONFLICT to update existing ratings
+
+    @example:
+        POST /api/ratings/12345
+        Content-Type: application/json
+
+        Request:
+        {
+            "rating": 8.5,
+            "comment": "Excellent academic background and strong programming skills"
+        }
+
+        Response:
+        {
+            "success": true,
+            "message": "Rating updated successfully"
+        }
+    """
+
     """Add or update a rating for a user (Admin/Faculty only)"""
     if not current_user.is_authenticated:
         return jsonify({"success": False, "message": "Authentication required"}), 401

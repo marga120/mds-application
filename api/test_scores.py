@@ -10,6 +10,57 @@ test_scores_api = Blueprint("test_scores_api", __name__)
 @test_scores_api.route("/duolingo-score/<user_code>", methods=["POST"])
 @login_required
 def save_duolingo_score(user_code):
+    """
+    Save or update Duolingo English test score for an applicant.
+
+    Updates the Duolingo test score, description, and test date for a
+    specific applicant. Only Admin users can modify test score data.
+
+    @requires: Admin authentication
+    @method: POST
+    @param user_code: Unique identifier for the applicant (URL parameter)
+    @param_type user_code: str
+    @param score: Duolingo test score (JSON body, 0-160)
+    @param_type score: int
+    @param description: Test description or notes (JSON body, optional)
+    @param_type description: str
+    @param date_written: Test date in YYYY-MM-DD format (JSON body, optional)
+    @param_type date_written: str
+
+    @return: JSON response with operation result
+    @return_type: flask.Response
+    @status_codes:
+        - 200: Score saved successfully
+        - 400: Invalid score range, date format, or future date
+        - 403: Access denied (non-Admin user)
+        - 500: Database connection failed
+
+    @validation:
+        - Score must be between 0 and 160
+        - Date must be in valid format and not in the future
+        - User code must exist in the system
+
+    @db_tables: duolingo
+    @upsert: Creates new record or updates existing based on user_code
+
+    @example:
+        POST /api/duolingo-score/12345
+        Content-Type: application/json
+
+        Request:
+        {
+            "score": 135,
+            "description": "English proficiency test",
+            "date_written": "2024-06-15"
+        }
+
+        Response:
+        {
+            "success": true,
+            "message": "Duolingo score updated successfully"
+        }
+    """
+
     """Save Duolingo score for an applicant (Admin only)"""
     if not current_user.is_authenticated or not current_user.is_admin:
         return jsonify({"success": False, "message": "Access denied"}), 403

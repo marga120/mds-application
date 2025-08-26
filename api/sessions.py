@@ -29,13 +29,46 @@ def get_session_name():
             conn.close()
         return None, f"Database error: {str(e)}"
 
-
-# COPY PASTE: Add authorization to session endpoint around line 33:
-
-
 @sessions_api.route("/sessions", methods=["GET"])
 @login_required
 def api_get_session():
+    """
+    Get current session information.
+    
+    Retrieves information about the current academic session. Session
+    information is read-only and available to all authenticated users
+    for display purposes.
+    
+    @requires: Any authenticated user
+    @method: GET
+    
+    @return: JSON response with session information
+    @return_type: flask.Response
+    @status_codes:
+        - 200: Session information retrieved
+        - 500: Server error
+    
+    @db_tables: sessions
+    @fallback: Returns default session name if no session found
+    
+    @example:
+        GET /api/sessions
+        
+        Response:
+        {
+            "success": true,
+            "session_name": "Session 2025 - 2026",
+            "message": "Session retrieved successfully"
+        }
+        
+        Response (fallback):
+        {
+            "success": true,
+            "session_name": "Default Session",
+            "message": "No session found, using default"
+        }
+    """
+
     """API endpoint to get session information"""
     # Session info is read-only, so all authenticated users can access
     try:
