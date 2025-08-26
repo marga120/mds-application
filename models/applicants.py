@@ -804,21 +804,20 @@ def process_csv_data(df):
                     data_changed = True
 
             # Process test scores
-            process_toefl_scores(user_code, row, cursor, current_time)
-            process_ielts_scores(user_code, row, cursor, current_time)
-            process_other_test_scores(user_code, row, cursor, current_time)
+            toefl_changed = process_toefl_scores(user_code, row, cursor, current_time)
+            ielts_changed = process_ielts_scores(user_code, row, cursor, current_time)
+            other_tests_changed = process_other_test_scores(user_code, row, cursor, current_time)
 
             touched_user_codes.add(user_code)
 
             # Process institution information first
-            process_institution_info(user_code, row, cursor, current_time)
+            institution_changed = process_institution_info(user_code, row, cursor, current_time)
 
             # Process application_info after institutions to calculate fields from institution data
             process_application_info(user_code, row, cursor, current_time)
 
-            # If any data changed in applicant_info but applicant_status wasn't updated, 
-            # force update the applicant_status.updated_at
-            if data_changed:
+            # If any data changed in any table, force update the applicant_status.updated_at
+            if (data_changed or institution_changed or toefl_changed or ielts_changed or other_tests_changed):
                 cursor.execute(
                     """
                     UPDATE applicant_status 

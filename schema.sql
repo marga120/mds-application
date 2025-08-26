@@ -160,6 +160,8 @@ CREATE TABLE IF NOT EXISTS institution_info(
     fail_withdraw VARCHAR(3),
     reason VARCHAR(250),
     gpa VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_code, institution_number)
 );
 
@@ -183,6 +185,8 @@ CREATE TABLE IF NOT EXISTS toefl(
     mybest_reading_date DATE,
     mybest_speaking VARCHAR(2),
     mybest_speaking_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_code, toefl_number)
 );
 
@@ -196,6 +200,8 @@ CREATE TABLE IF NOT EXISTS ielts(
     reading VARCHAR(3),
     writing VARCHAR(3),
     speaking VARCHAR(3),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_code, ielts_number)
 );
 
@@ -203,14 +209,18 @@ CREATE TABLE IF NOT EXISTS melab(
     user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
     ref_num VARCHAR(20),
     date_written DATE,
-    total VARCHAR(2)
+    total VARCHAR(2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS pte(
     user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
     ref_num VARCHAR(20),
     date_written DATE,
-    total VARCHAR(2)
+    total VARCHAR(2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS cael(
@@ -220,7 +230,9 @@ CREATE TABLE IF NOT EXISTS cael(
     reading VARCHAR(2),
     listening VARCHAR(2),
     writing VARCHAR(2),
-    speaking VARCHAR(2)
+    speaking VARCHAR(2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS celpip(
@@ -229,7 +241,9 @@ CREATE TABLE IF NOT EXISTS celpip(
     date_written DATE,
     listening VARCHAR(2),
     speaking VARCHAR(2),
-    reading_writing VARCHAR(2)
+    reading_writing VARCHAR(2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS alt_elpp(
@@ -237,7 +251,9 @@ CREATE TABLE IF NOT EXISTS alt_elpp(
     ref_num VARCHAR(20),
     date_written DATE,
     total VARCHAR(20),
-    test_type VARCHAR(50)
+    test_type VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS gre(
@@ -254,7 +270,9 @@ CREATE TABLE IF NOT EXISTS gre(
     subject_reg_num VARCHAR(20),
     subject_date DATE, 
     subject_scaled_score VARCHAR(3),
-    subject_below VARCHAR(3)
+    subject_below VARCHAR(3),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS gmat(
@@ -265,7 +283,9 @@ CREATE TABLE IF NOT EXISTS gmat(
     integrated_reasoning VARCHAR(2),
     quantitative VARCHAR(2),
     verbal VARCHAR(2),
-    writing VARCHAR(2)
+    writing VARCHAR(2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS duolingo (
