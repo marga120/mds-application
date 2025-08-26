@@ -1,3 +1,11 @@
+/**
+ * SESSIONS MANAGER
+ * 
+ * This file manages academic session information and display.
+ * It handles loading and displaying the current academic session name
+ * throughout the application interface for proper context.
+ */
+
 class SessionsManager {
   constructor() {
     this.selectedSessionFile = null;

@@ -1,3 +1,11 @@
+/**
+ * AUTHENTICATION MANAGER
+ * 
+ * This file handles user authentication, session management, and role-based access control.
+ * It manages user login/logout, session validation, user information display, 
+ * and updates the UI based on user permissions (Admin, Faculty, Viewer roles).
+ */
+
 class AuthManager {
   constructor() {
     this.checkAuthentication();

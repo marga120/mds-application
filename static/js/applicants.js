@@ -1,3 +1,12 @@
+/**
+ * APPLICANTS MANAGER - Main Application Controller
+ * 
+ * This file manages the core functionality of the MDS Application Management System.
+ * It handles applicant data display, CSV file uploads, search/filtering, modal interactions,
+ * test scores management, ratings system, status updates, and all user interactions 
+ * with the applicant database. This is the primary controller for the main dashboard.
+ */
+
 class ApplicantsManager {
   constructor() {
     this.allApplicants = [];
