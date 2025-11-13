@@ -528,28 +528,28 @@ DROP TRIGGER IF EXISTS update_user_updated_at ON "user";
 CREATE TRIGGER update_user_updated_at 
     BEFORE UPDATE ON "user" 
     FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
+    EXECUTE PROCEDURE update_updated_at_column();
 
 -- Create trigger for institution_info deletion (renamed from academic_info)
 DROP TRIGGER IF EXISTS institution_info_deletion_trigger ON institution_info;
 CREATE TRIGGER institution_info_deletion_trigger 
     AFTER DELETE ON institution_info 
     FOR EACH ROW 
-    EXECUTE FUNCTION handle_institution_info_deletion();
+    EXECUTE PROCEDURE handle_institution_info_deletion();
 
 -- Create trigger for user deletion  
 DROP TRIGGER IF EXISTS user_deletion_trigger ON "user";
 CREATE TRIGGER user_deletion_trigger 
     AFTER DELETE ON "user" 
     FOR EACH ROW 
-    EXECUTE FUNCTION handle_user_deletion();
+    EXECUTE PROCEDURE handle_user_deletion();
 
 -- Create trigger for ratings table to auto-update updated_at
 DROP TRIGGER IF EXISTS update_ratings_updated_at ON ratings;
 CREATE TRIGGER update_ratings_updated_at 
     BEFORE UPDATE ON ratings
     FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
+    EXECUTE PROCEDURE update_updated_at_column();
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_email ON "user"(email);

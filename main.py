@@ -111,4 +111,4 @@ if __name__ == "__main__":
     if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
         init_database()
 
-    app.run(debug=True)
+    app.run(debug=False)

@@ -85,7 +85,7 @@ http://localhost:5000
 
 ### Test Login Credentials
 After seeding, use these test accounts:
-- **Admin**: `testuser1@example.com` / `password`, `testuser2@example.com` / `password`
+- **Admin**: `1@example.com` / `password`, `testuser2@example.com` / `password`
 - **Faculty**: `testuser3@example.com` / `password`
 - **Viewer**: `testuser4@example.com` / `password`
 

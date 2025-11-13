@@ -334,6 +334,7 @@ def create_user(first_name, last_name, email, password, role_user_id):
 
         # Hash password
         password_hash = hash_password(password)
+  
 
         # Insert new user
         cursor.execute(
