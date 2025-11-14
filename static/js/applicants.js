@@ -1191,6 +1191,10 @@ class ApplicantsManager {
                     "Age",
                     applicant.age ? `${applicant.age} years old` : null
                   )}
+                  ${this.renderInfoField(
+                    "Racialized",
+                    this.formatYesNo(applicant.racialized)
+                  )}
                   ${this.renderInfoField("Email", applicant.email, "email")}
                 </div>
               </div>
