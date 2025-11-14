@@ -616,6 +616,14 @@ def process_csv_data(df):
                 ubc_academic_history = ""
             else:
                 ubc_academic_history = str(ubc_academic_history).strip()
+            
+            # Handle racialized field - convert NaN to None, keep Y/N values
+            racialized_value = row.get("Racialized")
+            
+            if pd.isna(racialized_value):
+                racialized_value = None
+            else:
+                racialized_value = str(racialized_value).strip()
 
             # Check if applicant_info changed by looking at the updated_at after the query
             cursor.execute(
@@ -635,12 +643,12 @@ def process_csv_data(df):
                 country_code, country, address_line1, address_line2, city,
                 province_state_region, postal_code, primary_telephone, secondary_telephone,
                 email, aboriginal, first_nation, inuit, metis, aboriginal_not_specified,
-                aboriginal_info, academic_history_code, academic_history, ubc_academic_history, interest_code, interest,
+                aboriginal_info, racialized, academic_history_code, academic_history, ubc_academic_history, interest_code, interest,
                 created_at, updated_at
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s)
+                %s, %s, %s, %s)
             ON CONFLICT (user_code) DO UPDATE SET
                 session_id = EXCLUDED.session_id,
                 title = EXCLUDED.title,
@@ -680,6 +688,7 @@ def process_csv_data(df):
                 metis = EXCLUDED.metis,
                 aboriginal_not_specified = EXCLUDED.aboriginal_not_specified,
                 aboriginal_info = EXCLUDED.aboriginal_info,
+                racialized = EXCLUDED.racialized,
                 academic_history_code = EXCLUDED.academic_history_code,
                 academic_history = EXCLUDED.academic_history,
                 ubc_academic_history = EXCLUDED.ubc_academic_history,
@@ -724,6 +733,7 @@ def process_csv_data(df):
                       OR applicant_info.metis IS DISTINCT FROM EXCLUDED.metis
                       OR applicant_info.aboriginal_not_specified IS DISTINCT FROM EXCLUDED.aboriginal_not_specified
                       OR applicant_info.aboriginal_info IS DISTINCT FROM EXCLUDED.aboriginal_info
+                      OR applicant_info.racialized IS DISTINCT FROM EXCLUDED.racialized
                       OR applicant_info.academic_history_code IS DISTINCT FROM EXCLUDED.academic_history_code
                       OR applicant_info.academic_history IS DISTINCT FROM EXCLUDED.academic_history
                       OR applicant_info.ubc_academic_history IS DISTINCT FROM EXCLUDED.ubc_academic_history
@@ -774,12 +784,11 @@ def process_csv_data(df):
                     row.get("Aboriginal Type First Nations"),  # first_nation
                     row.get("Aboriginal Type Inuit"),  # inuit
                     row.get("Aboriginal Type Métis"),  # metis
-                    row.get(
-                        "Aboriginal Type Not Specified"
-                    ),  # aboriginal_not_specified
+                    row.get("Aboriginal Type Not Specified"),  # aboriginal_not_specified
                     row.get("Aboriginal Info"),
+                    racialized_value,
                     row.get("Academic History Source CODE"),
-                    row.get("Academic History Source Value"),  # Fixed typo: removed "I"
+                    row.get("IAcademic History Source Value"),
                     ubc_academic_history,  # Add the UBC Academic History data
                     row.get("Source of Interest in UBC CODE"),
                     row.get("Source of Interest in UBC"),
@@ -1085,7 +1094,7 @@ def get_applicant_info_by_code(user_code):
                 visa_type, country_code, country, address_line1, address_line2, 
                 city, province_state_region, postal_code, primary_telephone, 
                 secondary_telephone, email, aboriginal, first_nation, inuit, 
-                metis, aboriginal_not_specified, aboriginal_info, 
+                metis, aboriginal_not_specified, aboriginal_info, racialized,
                 academic_history_code, academic_history, ubc_academic_history
             FROM applicant_info 
             WHERE user_code = %s
@@ -1763,7 +1772,6 @@ def update_english_status(user_code, english_status):
         success, msg = update_english_status("12345", "Passed")
     """
 
-    """Update English status for applicant in application_info table"""
     conn = get_db_connection()
     if not conn:
         return False, "Database connection failed"
