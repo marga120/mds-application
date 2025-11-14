@@ -69,6 +69,9 @@ def upload_csv():
         csv_data = file.read().decode("utf-8")
         df = pd.read_csv(io.StringIO(csv_data))
 
+        # Trim trailing whitespace from all column names
+        df.columns = df.columns.str.rstrip()
+
         # Validate that we have the User Code column (primary identifier)
         if "User Code" not in df.columns:
             return jsonify(

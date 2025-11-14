@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS applicant_info(
     metis VARCHAR(3),
     aboriginal_not_specified VARCHAR(3),
     aboriginal_info VARCHAR(100),
+    racialized VARCHAR(3), 
     academic_history_code VARCHAR(10),
     academic_history VARCHAR(250),
     ubc_academic_history TEXT,
