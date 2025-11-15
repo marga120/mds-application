@@ -157,6 +157,46 @@ class LogsManager {
   createLogCard(log) {
     const timestamp = new Date(log.created_at).toLocaleString();
 
+    // Special handling for clear_all_data action
+    if (log.action_type === "clear_all_data") {
+      const metadata = log.additional_metadata || {};
+      const recordsDeleted = metadata.records_deleted || {};
+      
+      // Total records deleted = just the number of applicants
+      const totalRecords = parseInt(log.old_value) || 0;
+
+      return `
+        <div class="border border-gray-200 rounded-lg p-4 mb-3 hover:bg-gray-50 transition-colors">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-2">
+                <div>
+                  <span class="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    ${this.formatActionType(log.action_type)}
+                  </span>
+                </div>
+              </div>
+              
+              <div class="text-sm text-gray-900 mb-1">
+                <span class="font-medium">${log.user_name || 'Unknown User'}</span>
+                <span class="text-gray-600">(${log.user_role || 'Unknown'})</span>
+                performed <span class="font-medium">${this.formatActionType(log.action_type)}</span>
+              </div>
+
+              <div class="mt-2 text-sm text-gray-600">
+                <span class="font-medium">Total records deleted:</span> 
+                <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-semibold">${totalRecords}</span>
+              </div>
+            </div>
+            
+            <div class="text-right text-xs text-gray-500">
+              <div>${timestamp}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     let changeDetails = "";
     if (log.old_value && log.new_value && log.old_value !== log.new_value) {
       changeDetails = `

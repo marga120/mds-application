@@ -15,6 +15,7 @@ class ApplicantsManager {
     this.loadSessionName();
     this.loadApplicants();
     this.initializeActionButtons();
+    this.initializeClearDataButton();
   }
 
   initializeEventListeners() {
@@ -4022,4 +4023,84 @@ class ApplicantsManager {
       updateBtn.innerHTML = originalHTML;
     }
   }
+
+  initializeClearDataButton() {
+  const clearBtn = document.getElementById('clearAllDataBtn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => this.confirmClearAllData());
+  }
+
+  const cancelBtn = document.getElementById('cancelClearBtn');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => this.closeConfirmModal());
+  }
+
+  const confirmBtn = document.getElementById('confirmClearBtn');
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', () => this.executeClearAllData());
+  }
+}
+
+confirmClearAllData() {
+  document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+closeConfirmModal() {
+  document.getElementById('confirmModal').classList.add('hidden');
+}
+
+async executeClearAllData() {
+  const confirmBtn = document.getElementById('confirmClearBtn');
+  const originalText = confirmBtn.textContent;
+  
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Deleting...';
+  
+  try {
+    const response = await fetch('/api/clear-all-data', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      this.closeConfirmModal();
+      this.showClearDataMessage(result.message, 'success');
+      
+      // Reload the applicants list to show empty state
+      setTimeout(() => {
+        this.loadApplicants();
+      }, 1000);
+    } else {
+      this.closeConfirmModal();
+      this.showClearDataMessage(result.message, 'error');
+    }
+  } catch (error) {
+    this.closeConfirmModal();
+    this.showClearDataMessage(`Error: ${error.message}`, 'error');
+  } finally {
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = originalText;
+  }
+}
+
+showClearDataMessage(text, type) {
+  const messageDiv = document.getElementById('clearDataMessage');
+  if (!messageDiv) return;
+  
+  messageDiv.textContent = text;
+  messageDiv.className = `mt-4 p-4 rounded-md ${
+    type === 'success' 
+      ? 'bg-green-100 text-green-700' 
+      : 'bg-red-100 text-red-700'
+  }`;
+  messageDiv.classList.remove('hidden');
+  
+  setTimeout(() => {
+    messageDiv.classList.add('hidden');
+  }, 5000);
+}
 }

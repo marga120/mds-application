@@ -2,11 +2,11 @@ from flask import Blueprint, request, jsonify
 import pandas as pd
 import io
 from datetime import datetime, timezone
-from flask_login import current_user
+from flask_login import current_user, login_required
 from utils.activity_logger import log_activity
 
 # Import our model functions
-from models.applicants import process_csv_data, get_all_applicant_status
+from models.applicants import process_csv_data, get_all_applicant_status, clear_all_applicant_data
 
 # Create a Blueprint for applicant info API routes
 applicants_api = Blueprint("applicants_api", __name__)
@@ -684,3 +684,57 @@ def update_english_status(user_code):
         return jsonify({"success": True, "message": message})
     else:
         return jsonify({"success": False, "message": message}), 400
+
+@applicants_api.route("/clear-all-data", methods=["DELETE"])
+@login_required
+def clear_all_data():
+    """
+    Clear all applicant data from the database (Admin only).
+    
+    Deletes all records from applicant-related tables while preserving
+    the table structure. This is a destructive operation that cannot be undone.
+    
+    @requires: Admin authentication
+    @method: DELETE
+    
+    @return: JSON response with operation result
+    @return_type: flask.Response
+    @status_codes:
+        - 200: Data cleared successfully
+        - 403: Access denied (non-Admin user)
+        - 500: Database error
+    
+    @logs: Activity logging for data deletion action
+    """
+    # Only Admin can clear all data
+    if not current_user.is_authenticated or not current_user.is_admin:
+        return jsonify({"success": False, "message": "Access denied. Admin privileges required."}), 403
+    
+    # Call the model function to do the actual work
+    success, message, tables_cleared, records_cleared = clear_all_applicant_data()
+    
+    if success:
+        # Log the action
+        log_activity(
+            action_type="clear_all_data",
+            target_entity="database",
+            target_id="all_applicant_tables",
+            old_value=f"{records_cleared} records",
+            new_value="0 records",
+            additional_metadata={
+                "tables_cleared": tables_cleared,
+                "records_cleared": records_cleared,
+                "admin_user": current_user.email
+            }
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": message,
+            "tables_cleared": tables_cleared
+        }), 200
+    else:
+        return jsonify({
+            "success": False,
+            "message": message
+        }), 500

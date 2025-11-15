@@ -93,7 +93,7 @@ def get_activity_logs(
         params = []
 
         # Filter to only Login and Status Change actions
-        where_conditions.append("action_type IN ('login', 'status_change')")
+        where_conditions.append("action_type IN ('login', 'status_change', 'clear_all_data')")
 
         if filter_action_type:
             where_conditions = ["action_type = %s"]  # Override the IN clause
