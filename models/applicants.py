@@ -1821,3 +1821,356 @@ def update_english_status(user_code, english_status):
             conn.rollback()
             conn.close()
         return False, f"Database error: {str(e)}"
+    
+    ###CHANGED
+def get_single_applicant_for_export(user_code, include_sections=None):
+    """
+    Fetch comprehensive data for a single applicant, structured by section.
+    Retrieves all application-related data for a specific applicant. The data
+    is compiled from multiple tables and returned as a dictionary nested by
+    section. Optionally, the 'include_sections' parameter can be used to
+    limit the returned data to specific sections (e.g., 'personal', 'ratings').
+
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+    @param include_sections: An iterable (e.g., list or set) of section names
+                             to include. If None, all sections are included.
+    @param_type include_sections: iterable[str] or None
+    @return: A tuple containing the applicant's data dictionary and an error
+             message. On success, (result_dict, None). On failure,
+             (None, error_message).
+    @return_type: tuple[dict | None, str | None]
+    @validation: Validates that user_code exists in applicant_info.
+    @db_tables: applicant_info, applicant_status, application_info,
+                test_scores, institutions, ratings, "user"
+    @example:
+        # Fetch all data for one applicant
+        data, error = get_single_applicant_for_export("12345")
+        if not error:
+            print(data['basic']['given_name'])
+
+        # Fetch only basic info and ratings
+        data, error = get_single_applicant_for_export(
+            "67890",
+            include_sections=['basic', 'ratings']
+        )
+    """
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        result = {}
+        
+        # basic applicant info
+        applicant_info, error = get_applicant_info_by_code(user_code)
+        if error or not applicant_info:
+            return None, error or "Applicant not found"
+        
+        result['basic'] = {
+            'user_code': user_code,
+            'given_name': applicant_info.get('given_name'),
+            'family_name': applicant_info.get('family_name'),
+            'email': applicant_info.get('email')
+        }
+        
+        # Personal Information
+        if not include_sections or 'personal' in include_sections:
+            # Get status info separately
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("""
+                SELECT student_number, app_start, submit_date, status, detail_status
+                FROM applicant_status
+                WHERE user_code = %s
+            """, (user_code,))
+            status_info = cursor.fetchone()
+            cursor.close()
+            
+            # Combine applicant_info with status_info
+            result['personal'] = {**applicant_info, **(status_info or {})}
+        
+        # Application Information - use existing getter
+        if not include_sections or 'application' in include_sections:
+            app_info, _ = get_applicant_application_info_by_code(user_code)
+            result['application'] = app_info
+        
+        # Prerequisites - already part of application_info
+        if not include_sections or 'prerequisites' in include_sections:
+            if 'application' not in result:
+                app_info, _ = get_applicant_application_info_by_code(user_code)
+            else:
+                app_info = result['application']
+            
+            result['prerequisites'] = {
+                'cs': app_info.get('cs') if app_info else None,
+                'stat': app_info.get('stat') if app_info else None,
+                'math': app_info.get('math') if app_info else None,
+                'gpa': app_info.get('gpa') if app_info else None
+            }
+        
+        # Test Scores - use existing getter
+        if not include_sections or 'test_scores' in include_sections:
+            test_scores, _ = get_applicant_test_scores_by_code(user_code)
+            result['test_scores'] = test_scores or {}
+        
+        # Institutions - use existing getter
+        if not include_sections or 'institutions' in include_sections:
+            institutions, _ = get_applicant_institutions_by_code(user_code)
+            result['institutions'] = institutions or []
+        
+        # Ratings and Comments - only unique query needed
+        if not include_sections or 'ratings' in include_sections:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("""
+                SELECT 
+                    r.rating, r.user_comment, r.created_at, r.updated_at,
+                    u.first_name, u.last_name, u.email as reviewer_email
+                FROM ratings r
+                JOIN "user" u ON r.user_id = u.id
+                WHERE r.user_code = %s
+                ORDER BY r.created_at DESC
+            """, (user_code,))
+            result['ratings'] = cursor.fetchall()
+            cursor.close()
+        
+        conn.close()
+        return result, None
+
+    except Exception as e:
+        if conn:
+            conn.close()
+        print(f"Error in get_single_applicant_for_export: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None, f"Database error: {str(e)}"
+
+
+def get_selected_applicants_for_export(user_codes, sections=None):
+    """
+    Fetch aggregated data for a selected list of applicants.
+    Please note, this structure for the code is formatted as to keep performance.
+    If I were to reuse the get_single_applicant for export, and loop over that to
+    grab each selected applicants data, this would cause huge performance issues, the current
+    structure only executes 1 query in order to keep this to a minimum.
+
+    @param_type user_codes: list[str] or tuple[str]
+    @param sections: An iterable (e.g., list or set) of section names to
+                     include (e.g., 'personal', 'application', 'ratings').
+                     If None, all sections are included.
+    @param_type sections: iterable[str] or None
+    @return: A tuple containing a list of applicant data dictionaries and
+             an error message. On success, (list_of_dicts, None).
+             On failure, (None, error_message).
+    @return_type: tuple[list[dict] | None, str | None]
+    @validation: The user_codes parameter must be a non-empty list or tuple.
+    @db_tables: applicant_info, applicant_status, application_info,
+                sessions, ratings, "user"
+    @example:
+        user_list = ["12345", "67890"]
+        section_list = ['personal', 'ratings']
+        
+        data, error = get_selected_applicants_for_export(user_list, section_list)
+        
+        if not error:
+            for applicant in data:
+                print(applicant['family_name'], applicant['avg_rating'])
+    """
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Determine which fields to include based on sections
+        all_sections = sections is None
+        include_personal = all_sections or 'personal' in sections
+        include_application = all_sections or 'application' in sections
+        include_prerequisites = all_sections or 'prerequisites' in sections
+        include_ratings = all_sections or 'ratings' in sections
+        
+        # Build dynamic SELECT based on sections
+        select_fields = ["ai.user_code", "ai.given_name", "ai.family_name"]
+        
+        if include_personal:
+            select_fields.extend([
+                "ai.email", "ast.student_number", "ai.date_birth", "ai.gender",
+                "ai.country", "ai.country_citizenship", "ai.primary_spoken_lang"
+            ])
+        
+        if include_application:
+            select_fields.extend([
+                "COALESCE(app.sent, 'Not Reviewed') as current_status",
+                "ast.submit_date", "ast.updated_at as uploaded_at",
+                "app.english_status as english_proficiency_status",
+                "app.english_comment"
+            ])
+        
+        if include_prerequisites:
+            select_fields.extend(["app.cs", "app.stat", "app.math", "app.gpa"])
+        
+        if include_ratings:
+            select_fields.extend([
+                "COALESCE(AVG(r.rating), 0) as avg_rating",
+                "COUNT(r.user_id) as rating_count",
+                "STRING_AGG(CASE WHEN r.user_comment IS NOT NULL AND r.user_comment != '' " +
+                "THEN u.first_name || ' ' || u.last_name || ': ' || r.user_comment END, ' | ') as all_comments"
+            ])
+        
+        # Add session info
+        select_fields.extend(["s.program_code", "s.year as program_year", "app.canadian"])
+        
+        placeholders = ','.join(['%s'] * len(user_codes))
+        query = f"""
+            SELECT {', '.join(select_fields)}
+            FROM applicant_info ai
+            LEFT JOIN applicant_status ast ON ai.user_code = ast.user_code
+            LEFT JOIN application_info app ON ai.user_code = app.user_code
+            LEFT JOIN sessions s ON ai.session_id = s.id
+        """
+        
+        if include_ratings:
+            query += """
+            LEFT JOIN ratings r ON ai.user_code = r.user_code
+            LEFT JOIN "user" u ON r.user_id = u.id
+            """
+        
+        query += f"""
+            WHERE ai.user_code IN ({placeholders})
+            GROUP BY 
+                ai.user_code, ai.given_name, ai.family_name
+        """
+        
+        # Add GROUP BY fields based on what's selected
+        if include_personal:
+            query += ", ai.email, ast.student_number, ai.date_birth, ai.gender, ai.country, ai.country_citizenship, ai.primary_spoken_lang"
+        if include_application:
+            query += ", app.sent, ast.submit_date, ast.updated_at, app.english_status, app.english_comment"
+        if include_prerequisites:
+            query += ", app.cs, app.stat, app.math, app.gpa"
+        
+        query += ", s.program_code, s.year, app.canadian ORDER BY ai.family_name, ai.given_name"
+        
+        cursor.execute(query, user_codes)
+        applicants = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return applicants, None
+
+    except Exception as e:
+        if conn:
+            conn.close()
+        print(f"Error in get_selected_applicants_for_export: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None, f"Database error: {str(e)}"
+
+
+def get_all_applicants_for_export(status_filter=None):
+    """
+    Fetch comprehensive, aggregated data for all applicants.
+
+
+    @param status_filter: Optional status string to filter applicants
+                          (e.g., 'Passed', 'Failed', 'Not Reviewed').
+                          If None, all applicants are returned.
+    @param_type status_filter: str or None
+    @return: A tuple containing a list of all applicant data dictionaries
+             and an error message. On success, (list_of_dicts, None).
+             On failure, (None, error_message).
+    @return_type: tuple[list[dict] | None, str | None]
+    @db_tables: applicant_info, applicant_status, application_info,
+                ratings, "user", sessions
+    @example:
+        # Get all applicants
+        all_data, error = get_all_applicants_for_export()
+
+        # Get only applicants with 'Passed' status
+        passed_data, error = get_all_applicants_for_export(
+            status_filter="Passed"
+        )
+        
+        if not error:
+            print(f"Total applicants found: {len(all_data)}")
+    """
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        query = """
+            SELECT 
+                ai.user_code,
+                ai.given_name,
+                ai.family_name,
+                ai.email,
+                ast.student_number,
+                ai.date_birth,
+                ai.gender,
+                ai.country,
+                ai.country_citizenship,
+                ai.primary_spoken_lang,
+                COALESCE(app.sent, 'Not Reviewed') as current_status,
+                ast.submit_date,
+                ast.updated_at as uploaded_at,
+                app.english_status as english_proficiency_status,
+                app.english_comment,
+                app.cs,
+                app.stat,
+                app.math,
+                app.gpa,
+                app.canadian,
+                COALESCE(AVG(r.rating), 0) as avg_rating,
+                COUNT(r.user_id) as rating_count,
+                STRING_AGG(
+                    CASE 
+                        WHEN r.user_comment IS NOT NULL AND r.user_comment != '' 
+                        THEN u.first_name || ' ' || u.last_name || ': ' || r.user_comment 
+                    END, 
+                    ' | '
+                ) as all_comments,
+                s.program_code,
+                s.year as program_year
+            FROM applicant_info ai
+            LEFT JOIN applicant_status ast ON ai.user_code = ast.user_code
+            LEFT JOIN application_info app ON ai.user_code = app.user_code
+            LEFT JOIN ratings r ON ai.user_code = r.user_code
+            LEFT JOIN "user" u ON r.user_id = u.id
+            LEFT JOIN sessions s ON ai.session_id = s.id
+        """
+        
+        params = []
+        if status_filter:
+            query += " WHERE app.sent = %s"
+            params.append(status_filter)
+        
+        query += """
+            GROUP BY 
+                ai.user_code, ai.given_name, ai.family_name, ai.email,
+                ast.student_number, ai.date_birth, ai.gender, ai.country,
+                ai.country_citizenship, ai.primary_spoken_lang,
+                app.sent, ast.submit_date, ast.updated_at,
+                app.english_status, app.english_comment,
+                app.cs, app.stat, app.math, app.gpa, app.canadian,
+                s.program_code, s.year
+            ORDER BY ai.family_name, ai.given_name
+        """
+        
+        cursor.execute(query, params) if params else cursor.execute(query)
+        
+        applicants = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return applicants, None
+
+    except Exception as e:
+        if conn:
+            conn.close()
+        print(f"Error in get_all_applicants_for_export: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None, f"Database error: {str(e)}"
