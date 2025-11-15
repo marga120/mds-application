@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS sessions(
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY, 
     program_code VARCHAR(10),
     program VARCHAR(50),
-    session_abbrev VARCHAR(6), -- change to 10
+    session_abbrev VARCHAR(10), 
     year INTEGER,
     name VARCHAR(30),
     description VARCHAR(100),
@@ -35,34 +35,34 @@ CREATE TABLE IF NOT EXISTS applicant_info(
     user_code VARCHAR(10) PRIMARY KEY,
     session_id INT,
     interest_code VARCHAR(10),
-    interest VARCHAR(100), --change 250
+    interest VARCHAR(250),
     title VARCHAR(4),
-    family_name VARCHAR(100), --change 250
-    given_name VARCHAR(100), --change 250
-    middle_name VARCHAR(100), --change 250
-    preferred_name VARCHAR(100), --change 250
-    former_family_name VARCHAR(100), --change 250
+    family_name VARCHAR(250),
+    given_name VARCHAR(250), 
+    middle_name VARCHAR(250),
+    preferred_name VARCHAR(250), 
+    former_family_name VARCHAR(250), 
     gender_code VARCHAR(10),
-    gender VARCHAR(100), --change 250
+    gender VARCHAR(250),
     country_birth_code VARCHAR(10),
-    country_birth VARCHAR(100), --change 250
+    country_birth VARCHAR(250),
     date_birth DATE,
     age INTEGER,
     country_citizenship_code VARCHAR(10),
-    country_citizenship VARCHAR(100), --change 250
+    country_citizenship VARCHAR(250),
     dual_citizenship_code VARCHAR(10),
-    dual_citizenship VARCHAR(100), --change 250
-    primary_spoken_lang_code VARCHAR(4), --change 10
-    primary_spoken_lang VARCHAR(100), --change 250
-    other_spoken_lang_code VARCHAR(4), --change 10
-    other_spoken_lang VARCHAR(100), --change 250
+    dual_citizenship VARCHAR(250), 
+    primary_spoken_lang_code VARCHAR(10), 
+    primary_spoken_lang VARCHAR(250),
+    other_spoken_lang_code VARCHAR(10),
+    other_spoken_lang VARCHAR(250), 
     visa_type_code VARCHAR(20),
-    visa_type VARCHAR(100), --change 250
+    visa_type VARCHAR(250), 
     country_code VARCHAR(10),
-    country VARCHAR(100), --change 250
-    address_line1 VARCHAR(100), --change 1000
-    address_line2 VARCHAR(100), --change 1000
-    city VARCHAR(100), --change 250
+    country VARCHAR(250), 
+    address_line1 VARCHAR(1000), 
+    address_line2 VARCHAR(1000),
+    city VARCHAR(250),
     province_state_region VARCHAR(100),
     postal_code VARCHAR(50),
     primary_telephone VARCHAR(50),
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS applicant_info(
     aboriginal_info VARCHAR(100),
     racialized VARCHAR(3), 
     academic_history_code VARCHAR(10),
-    academic_history VARCHAR(250), --change 1000
+    academic_history VARCHAR(1000), 
     ubc_academic_history TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -100,9 +100,9 @@ CREATE TABLE IF NOT EXISTS applicant_status(
     student_number VARCHAR(100),
     app_start DATE,
     submit_date DATE,
-    status_code VARCHAR(1), --change to 5
+    status_code VARCHAR(5), 
     status VARCHAR(20),
-    detail_status VARCHAR(100), --change to 250
+    detail_status VARCHAR(250), 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -144,22 +144,22 @@ CREATE TABLE IF NOT EXISTS institution_info(
     user_code VARCHAR(10) REFERENCES applicant_info(user_code),
     institution_number INT,
     institution_code VARCHAR(50),
-    full_name VARCHAR(100), --change 1000
-    country VARCHAR(50), --change 100
+    full_name VARCHAR(1000),
+    country VARCHAR(100), 
     start_date DATE,
     end_date DATE,
-    program_study VARCHAR(100), --change 250
+    program_study VARCHAR(250), 
     degree_confer_code VARCHAR(100),
     degree_confer VARCHAR(100),
     date_confer DATE,
     credential_receive_code VARCHAR(10),
-    credential_receive VARCHAR(50), --change 250
+    credential_receive VARCHAR(250),
     expected_confer_date DATE,
     expected_credential_code VARCHAR(100),
     expected_credential VARCHAR(100),
-    honours VARCHAR(100), --change 5000
+    honours VARCHAR(5000), 
     fail_withdraw VARCHAR(3),
-    reason VARCHAR(250), --change 3000
+    reason VARCHAR(3000), 
     gpa VARCHAR(50), 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
