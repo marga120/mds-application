@@ -124,11 +124,25 @@ class AuthManager {
   }
 
   updateUploadSection(user) {
-    const uploadSection = document.getElementById("uploadSection");
-    if (uploadSection && (user.role === "Viewer" || user.role === "Faculty")) {
+  const uploadSection = document.getElementById("uploadSection");
+  const clearDataSection = document.getElementById("clearDataSection");
+  
+  if (user.role === "Viewer" || user.role === "Faculty") {
+    if (uploadSection) {
       uploadSection.style.display = "none";
     }
+    if (clearDataSection) {
+      clearDataSection.style.display = "none";
+    }
+  } else if (user.role === "Admin") {
+    if (uploadSection) {
+      uploadSection.style.display = "block";
+    }
+    if (clearDataSection) {
+      clearDataSection.style.display = "block";
+    }
   }
+}
 
   initializeDropdowns() {
     // User dropdown functionality
