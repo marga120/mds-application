@@ -2039,31 +2039,27 @@ def get_selected_applicants_for_export(user_codes, sections=None):
                 # Years Since Degree (Raw Number)
                 "(EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) as \"Years Since Degree\"",
                 
-                # Years Since Degree Grouped (Calculated Date logic based on ranges)
-                # Logic: If <3 years, return Today's Date (dd-Mon).
-                # If 3-5 years, return 05-Mar.
-                # If 6-10 years, return 06-Jan.
-                # If >10 years, return 02-Jan.
-                """CASE 
-                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) < 3 THEN TO_CHAR(CURRENT_DATE, 'DD-Mon')
-                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) BETWEEN 3 AND 5 THEN '05-Mar'
-                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) BETWEEN 6 AND 10 THEN '06-Jan'
-                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) > 10 THEN '02-Jan'
-                    ELSE ''
-                   END as "Years Since Degree Grouped"
+                # Years Since Degree Grouped (The Date of the last degree year shifted to current year: YYYY-MM-DD)
+                """TO_CHAR(
+                    (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code) + 
+                    MAKE_INTERVAL(years => (EXTRACT(YEAR FROM CURRENT_DATE)::int - EXTRACT(YEAR FROM (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code))::int)),
+                    'YYYY-MM-DD'
+                ) as "Years Since Degree Grouped"
                 """,
                 
                 "app.highest_degree as \"Level of Education\"",
                 "app.degree_area as \"Subject of Degree\"",
                 
-                # Subject Grouped (Separated by /)
-                # This I'm not too sure about, I'm thinking that it's pre set as I can't find any information regarding the subject of the applicants in the schema
-                # Take a look at this and let me know TODO
+                # Subject Grouped (Specific categories)
                 """CASE 
-                    WHEN app.degree_area ILIKE '%%Computer%%' OR app.degree_area ILIKE '%%Engineer%%' OR app.degree_area ILIKE '%%Technology%%' THEN 'Computer Science / Engineering / Technology'
-                    WHEN app.degree_area ILIKE '%%Math%%' OR app.degree_area ILIKE '%%Stat%%' OR app.degree_area ILIKE '%%Actuarial%%' THEN 'Stats / Math / Actuarial Sciences'
-                    WHEN app.degree_area ILIKE '%%Finance%%' OR app.degree_area ILIKE '%%Business%%' OR app.degree_area ILIKE '%%Manage%%' OR app.degree_area ILIKE '%%Econ%%' THEN 'Finance / Business / Management / Economics'
-                    ELSE 'Other' 
+                    WHEN app.degree_area ILIKE '%%comput%%' OR app.degree_area ILIKE '%%tech%%' OR app.degree_area ILIKE '%%software%%' OR app.degree_area ILIKE '%%inform%%' OR app.degree_area ILIKE '%%security%%' OR app.degree_area ILIKE '%%network%%' OR app.degree_area ILIKE '%%system%%' OR app.degree_area ILIKE '%%machine%%' OR app.degree_area ILIKE '%%data mining%%' OR app.degree_area ILIKE '%%analysis%%' THEN 'Computer Science / Engineering / Technology'
+                    WHEN app.degree_area ILIKE '%%engineering%%' OR app.degree_area ILIKE '%%elect%%' OR app.degree_area ILIKE '%%power%%' OR app.degree_area ILIKE '%%mech%%' OR app.degree_area ILIKE '%%design%%' OR app.degree_area ILIKE '%%applied%%' OR app.degree_area ILIKE '%%civil%%' THEN 'Engineering (excluding computer engineering)'
+                    WHEN app.degree_area ILIKE '%%stat%%' OR app.degree_area ILIKE '%%math%%' OR app.degree_area ILIKE '%%actuarial%%' OR app.degree_area ILIKE '%%operational%%' THEN 'Stats / Math / Actuarial Sciences'
+                    WHEN app.degree_area ILIKE '%%science%%' OR app.degree_area ILIKE '%%chem%%' OR app.degree_area ILIKE '%%physic%%' OR app.degree_area ILIKE '%%bio%%' OR app.degree_area ILIKE '%%geo%%' THEN 'Sciences'
+                    WHEN app.degree_area ILIKE '%%arts%%' OR app.degree_area ILIKE '%%psych%%' OR app.degree_area ILIKE '%%lang%%' OR app.degree_area ILIKE '%%liter%%' OR app.degree_area ILIKE '%%lingui%%' OR app.degree_area ILIKE '%%philosophy%%' OR app.degree_area ILIKE '%%communication%%' OR app.degree_area ILIKE '%%english%%' THEN 'Arts'
+                    WHEN app.degree_area ILIKE '%%financ%%' OR app.degree_area ILIKE '%%mba%%' OR app.degree_area ILIKE '%%account%%' OR app.degree_area ILIKE '%%market%%' OR app.degree_area ILIKE '%%bus%%' OR app.degree_area ILIKE '%%econ%%' OR app.degree_area ILIKE '%%bba%%' OR app.degree_area ILIKE '%%manage%%' OR app.degree_area ILIKE '%%mgmt%%' OR app.degree_area ILIKE '%%international%%' OR app.degree_area ILIKE '%%admin%%' THEN 'Finance / Business / Management / Economics'
+                    WHEN app.degree_area IS NOT NULL AND app.degree_area != '' THEN 'Other'
+                    ELSE '' 
                    END as "Subject Grouped"
                 """
             ])
