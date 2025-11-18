@@ -686,97 +686,89 @@ def update_english_status(user_code):
     else:
         return jsonify({"success": False, "message": message}), 400
     ###Changed
-@applicants_api.route("/export", methods=["GET"])
-def export_applicants():
-    """Export applicant data to CSV file."""
+def _write_single_applicant_csv_sections(writer, applicant_data, sections=None):
+    """
+    Helper function to write the multi-section CSV report for one applicant (Vertical Format).
+    This logic is shared by the single applicant export endpoint.
+    """
     
-    if not current_user.is_authenticated or current_user.is_viewer:
-        return jsonify({"success": False, "message": "Access denied"}), 403
+    basic_info = applicant_data.get('basic', {})
+    name = f"{basic_info.get('given_name', '')} {basic_info.get('family_name', '')}"
+    user_code = basic_info.get('user_code', 'UNKNOWN')
+    
+    # Add a main header for the applicant
+    writer.writerow([f"Applicant Report for: {name}", f"User Code: {user_code}"])
+    writer.writerow([]) # Spacer
 
-    try:
-        from models.applicants import get_all_applicants_for_export
-        
-        status_filter = request.args.get('status')
-        applicants, error = get_all_applicants_for_export(status_filter)
-        
-        if error:
-            return jsonify({"success": False, "message": error}), 500
-        
-        # Create CSV in memory
-        output = io.StringIO()
-        writer = csv.writer(output)
-        
-        # Simplified header (removed redundant status columns)
-        writer.writerow([
-            'User Code', 'Given Name', 'Family Name', 'Email', 'Student Number',
-            'Date of Birth', 'Gender', 'Country', 'Citizenship', 'Primary Language',
-            'Application Status', 'Submit Date', 'Last Updated',
-            'English Status', 'English Comment',
-            'CS Prerequisites', 'Stats Prerequisites', 'Math Prerequisites', 'GPA',
-            'Canadian Citizen/Resident',
-            'Average Rating', 'Rating Count', 'All Comments',
-            'Program Code', 'Program Year'
-        ])
-        
-        # Write data rows
-        for applicant in applicants:
+    # Ratings & Comments section
+    if not sections or 'ratings' in sections:
+        writer.writerow(['Ratings & Comments'])
+        writer.writerow(['Applicant', 'Reviewer', 'Rating', 'Comment', 'Date'])
+        for rating in (applicant_data.get('ratings') or []):
             writer.writerow([
-                applicant['user_code'] or '',
-                applicant['given_name'] or '',
-                applicant['family_name'] or '',
-                applicant['email'] or '',
-                applicant['student_number'] or '',
-                applicant['date_birth'].strftime('%Y-%m-%d') if applicant['date_birth'] else '',
-                applicant['gender'] or '',
-                applicant['country'] or '',
-                applicant['country_citizenship'] or '',
-                applicant['primary_spoken_lang'] or '',
-                applicant['current_status'],
-                applicant['submit_date'].strftime('%Y-%m-%d') if applicant['submit_date'] else '',
-                applicant['uploaded_at'].strftime('%Y-%m-%d %H:%M:%S') if applicant['uploaded_at'] else '',
-                applicant['english_proficiency_status'] or '',
-                applicant['english_comment'] or '',
-                applicant['cs'] or '',
-                applicant['stat'] or '',
-                applicant['math'] or '',
-                applicant['gpa'] or '',
-                'Yes' if applicant['canadian'] else 'No' if applicant['canadian'] is False else 'Not Determined',
-                round(float(applicant['avg_rating']), 2) if applicant['avg_rating'] else '',
-                applicant['rating_count'] or 0,
-                applicant['all_comments'] or '',
-                applicant['program_code'] or '',
-                applicant['program_year'] or ''
+                name,
+                f"{rating.get('first_name', '')} {rating.get('last_name', '')}",
+                rating.get('rating'),
+                rating.get('user_comment') or '',
+                rating['created_at'].strftime('%Y-%m-%d %H:%M') if rating.get('created_at') else ''
             ])
-        
-        # Log the export action
-        log_activity(
-            action_type="export",
-            target_entity="applicants",
-            target_id=None,
-            additional_metadata={
-                "record_count": len(applicants),
-                "status_filter": status_filter
-            }
-        )
-        
-        # Create response
-        output.seek(0)
-        response = make_response(output.getvalue())
-        response.headers['Content-Type'] = 'text/csv'
-        
-        filename = f'mds_applicants_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
-        if status_filter:
-            filename += f'_{status_filter.replace(" ", "_")}'
-        filename += '.csv'
-        
-        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
-        return response
-        
-    except Exception as e:
-        print(f"Export error: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": f"Export failed: {str(e)}"}), 500
+        writer.writerow([]) # Spacer
+
+    # Personal Information section
+    if not sections or 'personal' in sections:
+        writer.writerow(['Personal Information'])
+        personal = applicant_data.get('personal', {})
+        if personal:
+            for key, value in personal.items():
+                if value and key not in ['user_code']: # Skip user_code
+                    writer.writerow([key.replace('_', ' ').title(), value])
+        writer.writerow([]) # Spacer
+
+    # Prerequisites section
+    if not sections or 'prerequisites' in sections:
+        writer.writerow(['Prerequisites & GPA'])
+        prereq = applicant_data.get('prerequisites', {})
+        if prereq:
+            writer.writerow(['Computer Science', prereq.get('cs', '')])
+            writer.writerow(['Statistics', prereq.get('stat', '')])
+            writer.writerow(['Mathematics', prereq.get('math', '')])
+            writer.writerow(['GPA', prereq.get('gpa', '')])
+        writer.writerow([]) # Spacer
+
+    # Test Scores section
+    if not sections or 'test_scores' in sections:
+        writer.writerow(['Test Scores'])
+        test_scores = applicant_data.get('test_scores', {})
+        for idx, toefl in enumerate(test_scores.get('toefl', []) or [], 1):
+            writer.writerow([
+                f'TOEFL {idx}', 
+                f"Total: {toefl.get('total_score', '')}, " +
+                f"Reading: {toefl.get('reading', '')}, " +
+                f"Listening: {toefl.get('listening', '')}, " +
+                f"Speaking: {toefl.get('speaking', '')}, " +
+                f"Writing: {toefl.get('structure_written', '')}"
+            ])
+        # Note: Add logic for other test types (IELTS, etc.) here if present
+        writer.writerow([]) # Spacer
+
+    # Institutions section
+    if not sections or 'institutions' in sections:
+        writer.writerow(['Educational Background'])
+        writer.writerow(['Institution', 'Degree', 'Program', 'GPA', 'Start Date', 'End Date'])
+        for inst in (applicant_data.get('institutions') or []):
+            writer.writerow([
+                inst.get('full_name', ''),
+                inst.get('credential_receive', ''),
+                inst.get('program_study', ''),
+                inst.get('gpa', ''),
+                inst.get('start_date', ''),
+                inst.get('end_date', '')
+            ])
+        writer.writerow([]) # Spacer
+    
+    # Add a separator for the next applicant
+    writer.writerow(['='*20, '='*20, '='*20])
+    writer.writerow([])
 
 
 @applicants_api.route("/export/single/<user_code>", methods=["POST"])
@@ -792,7 +784,7 @@ def export_single_applicant(user_code):
         data = request.get_json() or {}
         sections = data.get('sections', None)
         
-        applicant_data, error = get_single_applicant_for_export(user_code, sections)
+        applicant_data, error = get_single_applicant_for_export(user_code, include_sections=sections)
         
         if error:
             return jsonify({"success": False, "message": error}), 500
@@ -801,70 +793,8 @@ def export_single_applicant(user_code):
         output = io.StringIO()
         writer = csv.writer(output)
         
-        name = f"{applicant_data['basic']['given_name']} {applicant_data['basic']['family_name']}"
-        
-        # Ratings & Comments section
-        if not sections or 'ratings' in sections:
-            writer.writerow(['Applicant', 'Reviewer', 'Rating', 'Comment', 'Date'])
-            for rating in (applicant_data.get('ratings') or []):
-                writer.writerow([
-                    name,
-                    f"{rating['first_name']} {rating['last_name']}",
-                    rating['rating'],
-                    rating['user_comment'] or '',
-                    rating['created_at'].strftime('%Y-%m-%d %H:%M') if rating['created_at'] else ''
-                ])
-        
-        # Personal Information section
-        if not sections or 'personal' in sections:
-            writer.writerow([])
-            writer.writerow(['Personal Information'])
-            personal = applicant_data.get('personal', {})
-            if personal:
-                for key, value in personal.items():
-                    if value and key not in ['user_code']:  # Skip user_code
-                        writer.writerow([key.replace('_', ' ').title(), value])
-        
-        # Prerequisites section
-        if not sections or 'prerequisites' in sections:
-            writer.writerow([])
-            writer.writerow(['Prerequisites & GPA'])
-            prereq = applicant_data.get('prerequisites', {})
-            if prereq:
-                writer.writerow(['Computer Science', prereq.get('cs', '')])
-                writer.writerow(['Statistics', prereq.get('stat', '')])
-                writer.writerow(['Mathematics', prereq.get('math', '')])
-                writer.writerow(['GPA', prereq.get('gpa', '')])
-        
-        # Test Scores section (simplified - can be expanded as needed)
-        if not sections or 'test_scores' in sections:
-            writer.writerow([])
-            writer.writerow(['Test Scores'])
-            test_scores = applicant_data.get('test_scores', {})
-            for idx, toefl in enumerate(test_scores.get('toefl', []) or [], 1):
-                writer.writerow([
-                    f'TOEFL {idx}', 
-                    f"Total: {toefl.get('total_score', '')}, " +
-                    f"Reading: {toefl.get('reading', '')}, " +
-                    f"Listening: {toefl.get('listening', '')}, " +
-                    f"Speaking: {toefl.get('speaking', '')}, " +
-                    f"Writing: {toefl.get('structure_written', '')}"
-                ])
-        
-        # Institutions section
-        if not sections or 'institutions' in sections:
-            writer.writerow([])
-            writer.writerow(['Educational Background'])
-            writer.writerow(['Institution', 'Degree', 'Program', 'GPA', 'Start Date', 'End Date'])
-            for inst in (applicant_data.get('institutions') or []):
-                writer.writerow([
-                    inst.get('full_name', ''),
-                    inst.get('credential_receive', ''),
-                    inst.get('program_study', ''),
-                    inst.get('gpa', ''),
-                    inst.get('start_date', ''),
-                    inst.get('end_date', '')
-                ])
+        # Call the helper function to write vertically
+        _write_single_applicant_csv_sections(writer, applicant_data, sections)
         
         # Log the export
         log_activity(
@@ -894,7 +824,7 @@ def export_single_applicant(user_code):
 
 @applicants_api.route("/export/selected", methods=["POST"])
 def export_selected_applicants():
-    """Export multiple selected applicants with optional section filtering."""
+    """Export multiple selected applicants (horizontal, one row per applicant)."""
     
     if not current_user.is_authenticated or current_user.is_viewer:
         return jsonify({"success": False, "message": "Access denied"}), 403
@@ -904,7 +834,7 @@ def export_selected_applicants():
         
         data = request.get_json()
         user_codes = data.get('user_codes', [])
-        sections = data.get('sections', None)  # None = export all
+        sections = data.get('sections', None)
         
         if not user_codes:
             return jsonify({"success": False, "message": "No applicants selected"}), 400
@@ -913,84 +843,24 @@ def export_selected_applicants():
         
         if error:
             return jsonify({"success": False, "message": error}), 500
-        
+
+        if not applicants:
+            return jsonify({"success": False, "message": "No applicant data found for selected users"}), 404
+
         # Create CSV with dynamic headers based on sections
         output = io.StringIO()
-        writer = csv.writer(output)
         
-        # Build headers based on what sections are included
-        all_sections = sections is None
-        headers = ['User Code', 'Given Name', 'Family Name']
+        # Use DictWriter. The keys of the dictionary (from SQL aliases) become the headers.
+        headers = list(applicants[0].keys())
+        writer = csv.DictWriter(output, fieldnames=headers)
+        writer.writeheader()
         
-        if all_sections or 'personal' in sections:
-            headers.extend(['Email', 'Student Number', 'Date of Birth', 'Gender', 
-                          'Country', 'Citizenship', 'Primary Language'])
-        
-        if all_sections or 'application' in sections:
-            headers.extend(['Application Status', 'Submit Date', 'Last Updated',
-                          'English Status', 'English Comment'])
-        
-        if all_sections or 'prerequisites' in sections:
-            headers.extend(['CS Prerequisites', 'Stats Prerequisites', 
-                          'Math Prerequisites', 'GPA'])
-        
-        if all_sections or 'ratings' in sections:
-            headers.extend(['Average Rating', 'Rating Count', 'All Comments'])
-        
-        headers.extend(['Canadian Citizen/Resident', 'Program Code', 'Program Year'])
-        
-        writer.writerow(headers)
-        
-        # Write data rows
+        # Helper to clean None values -> Empty String for CSV
+        def clean_row(row):
+            return {k: (v if v is not None else '') for k, v in row.items()}
+
         for applicant in applicants:
-            row = [
-                applicant['user_code'] or '',
-                applicant['given_name'] or '',
-                applicant['family_name'] or ''
-            ]
-            
-            if all_sections or 'personal' in sections:
-                row.extend([
-                    applicant.get('email', ''),
-                    applicant.get('student_number', ''),
-                    applicant['date_birth'].strftime('%Y-%m-%d') if applicant.get('date_birth') else '',
-                    applicant.get('gender', ''),
-                    applicant.get('country', ''),
-                    applicant.get('country_citizenship', ''),
-                    applicant.get('primary_spoken_lang', '')
-                ])
-            
-            if all_sections or 'application' in sections:
-                row.extend([
-                    applicant.get('current_status', 'Not Reviewed'),
-                    applicant['submit_date'].strftime('%Y-%m-%d') if applicant.get('submit_date') else '',
-                    applicant['uploaded_at'].strftime('%Y-%m-%d %H:%M:%S') if applicant.get('uploaded_at') else '',
-                    applicant.get('english_proficiency_status', ''),
-                    applicant.get('english_comment', '')
-                ])
-            
-            if all_sections or 'prerequisites' in sections:
-                row.extend([
-                    applicant.get('cs', ''),
-                    applicant.get('stat', ''),
-                    applicant.get('math', ''),
-                    applicant.get('gpa', '')
-                ])
-            
-            if all_sections or 'ratings' in sections:
-                row.extend([
-                    round(float(applicant['avg_rating']), 2) if applicant.get('avg_rating') else '',
-                    applicant.get('rating_count', 0),
-                    applicant.get('all_comments', '')
-                ])
-            
-            row.extend([
-                'Yes' if applicant.get('canadian') else 'No' if applicant.get('canadian') is False else 'Not Determined',
-                applicant.get('program_code', ''),
-                applicant.get('program_year', '')
-            ])
-            
-            writer.writerow(row)
+            writer.writerow(clean_row(applicant))
         
         log_activity(
             action_type="export",
@@ -999,7 +869,8 @@ def export_selected_applicants():
             additional_metadata={
                 "record_count": len(applicants),
                 "user_codes": user_codes,
-                "sections": sections or "all"
+                "sections": sections or "all",
+                "export_style": "horizontal_dynamic_pivoted"
             }
         )
         

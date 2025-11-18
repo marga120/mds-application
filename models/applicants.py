@@ -1822,7 +1822,7 @@ def update_english_status(user_code, english_status):
             conn.close()
         return False, f"Database error: {str(e)}"
     
-    ###CHANGED
+    ###CHANGED------------------------------------------------------------------------------------------------
 def get_single_applicant_for_export(user_code, include_sections=None):
     """
     Fetch comprehensive data for a single applicant, structured by section.
@@ -1866,7 +1866,7 @@ def get_single_applicant_for_export(user_code, include_sections=None):
         applicant_info, error = get_applicant_info_by_code(user_code)
         if error or not applicant_info:
             return None, error or "Applicant not found"
-        
+        #grab basic info, put into result arr
         result['basic'] = {
             'user_code': user_code,
             'given_name': applicant_info.get('given_name'),
@@ -1947,33 +1947,8 @@ def get_single_applicant_for_export(user_code, include_sections=None):
 
 def get_selected_applicants_for_export(user_codes, sections=None):
     """
-    Fetch aggregated data for a selected list of applicants.
-    Please note, this structure for the code is formatted as to keep performance.
-    If I were to reuse the get_single_applicant for export, and loop over that to
-    grab each selected applicants data, this would cause huge performance issues, the current
-    structure only executes 1 query in order to keep this to a minimum.
-
-    @param_type user_codes: list[str] or tuple[str]
-    @param sections: An iterable (e.g., list or set) of section names to
-                     include (e.g., 'personal', 'application', 'ratings').
-                     If None, all sections are included.
-    @param_type sections: iterable[str] or None
-    @return: A tuple containing a list of applicant data dictionaries and
-             an error message. On success, (list_of_dicts, None).
-             On failure, (None, error_message).
-    @return_type: tuple[list[dict] | None, str | None]
-    @validation: The user_codes parameter must be a non-empty list or tuple.
-    @db_tables: applicant_info, applicant_status, application_info,
-                sessions, ratings, "user"
-    @example:
-        user_list = ["12345", "67890"]
-        section_list = ['personal', 'ratings']
-        
-        data, error = get_selected_applicants_for_export(user_list, section_list)
-        
-        if not error:
-            for applicant in data:
-                print(applicant['family_name'], applicant['avg_rating'])
+    Fetch aggregated data for a selected list of applicants with specific formatting.
+    Matches the specific "Student#, Program Code..." report format.
     """
     conn = get_db_connection()
     if not conn:
@@ -1982,74 +1957,140 @@ def get_selected_applicants_for_export(user_codes, sections=None):
     try:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Determine which fields to include based on sections
-        all_sections = sections is None
-        include_personal = all_sections or 'personal' in sections
-        include_application = all_sections or 'application' in sections
-        include_prerequisites = all_sections or 'prerequisites' in sections
-        include_ratings = all_sections or 'ratings' in sections
+        # Default to all if no sections provided
+        all_sections = sections is None or len(sections) == 0
+        inc_personal = all_sections or 'personal' in sections
+        inc_app = all_sections or 'application' in sections
+        # Mapping 'institutions' or 'education' checkbox to the Education columns
+        inc_edu = all_sections or 'institutions' in sections or 'education' in sections 
         
-        # Build dynamic SELECT based on sections
-        select_fields = ["ai.user_code", "ai.given_name", "ai.family_name"]
+        select_parts = []
         
-        if include_personal:
-            select_fields.extend([
-                "ai.email", "ast.student_number", "ai.date_birth", "ai.gender",
-                "ai.country", "ai.country_citizenship", "ai.primary_spoken_lang"
+        # Base parts usually needed for identification
+        # We always include Student# if any section is picked, or at least User Code
+        # But per your request, we will split them by section.
+        
+        # To maintain the strict order "Student#, Program Code...", we might need to 
+        # select all and let the CSV writer handle filtering, or build carefully.
+        # However, SQL order matters for the final list of dict keys.
+        
+        # Let's build the query with ALL columns available, but we will only 
+        # ADD them to the select list if the section is active. 
+        # To keep the order "Student#, Program Code, Session..." even if 'personal' is checked 
+        # but 'application' is not (which might result in gaps), we will just check flags.
+        
+        # 1. Student# (Personal/Basic)
+        if inc_personal or inc_app: # Usually essential
+            select_parts.append("ast.student_number as \"Student#\"")
+
+        # 2. Program/Session (Application)
+        if inc_app:
+            select_parts.extend([
+                "s.program_code as \"Program Code\"",
+                "s.session_abbrev as \"Session\"",
+                "TO_CHAR(ast.app_start, 'YYYY-MM-DD') as \"Application Start Date\"",
+                "TO_CHAR(ast.submit_date, 'YYYY-MM-DD') as \"Submitted Date\"",
+                "ast.status_code as \"Status Code\"",
+                "ast.status as \"Status\""
             ])
-        
-        if include_application:
-            select_fields.extend([
-                "COALESCE(app.sent, 'Not Reviewed') as current_status",
-                "ast.submit_date", "ast.updated_at as uploaded_at",
-                "app.english_status as english_proficiency_status",
-                "app.english_comment"
+
+        # 3. Personal Demographics (Personal)
+        if inc_personal:
+            select_parts.extend([
+                "ai.gender_code as \"Gender CODE\"",
+                "ai.visa_type_code as \"Visa Type CODE\"",
+                "ai.age as \"Age\"",
+                """CASE 
+                    WHEN ai.age <18 THEN '18-'
+                    WHEN ai.age BETWEEN 18 AND 25 THEN '18-24'
+                    WHEN ai.age BETWEEN 25 AND 34 THEN '25-34'
+                    WHEN ai.age BETWEEN 35 AND 44 THEN '35-44'
+                    WHEN ai.age BETWEEN 45 AND 54 THEN '45-54'
+                    WHEN ai.age >= 55 THEN '55+'
+                    ELSE ''
+                   END as "Age Range"
+                """,
+                "ai.country_citizenship as \"Country of Current Citizenship\"",
+                "ai.primary_spoken_lang as \"Primary Spoken Language\"",
+                "ai.country as \"Country of Current Residence\"",
+                "ai.city as \"City\"",
+                "ai.province_state_region as \"Province, State or Region\""
             ])
-        
-        if include_prerequisites:
-            select_fields.extend(["app.cs", "app.stat", "app.math", "app.gpa"])
-        
-        if include_ratings:
-            select_fields.extend([
-                "COALESCE(AVG(r.rating), 0) as avg_rating",
-                "COUNT(r.user_id) as rating_count",
-                "STRING_AGG(CASE WHEN r.user_comment IS NOT NULL AND r.user_comment != '' " +
-                "THEN u.first_name || ' ' || u.last_name || ': ' || r.user_comment END, ' | ') as all_comments"
+
+        # 4. Admin / Offer Status (Application)
+        if inc_app:
+            select_parts.extend([
+                # Admission Review: Yes if not 'Not Reviewed'
+                "CASE WHEN app.sent != 'Not Reviewed' THEN 'Yes' ELSE 'No' END as \"Admission Review\"",
+                # Offer Sent: Y/N
+                "CASE WHEN app.sent IN ('Offer', 'Offer Sent', 'Accepted', 'Declined') THEN 'Y' ELSE 'N' END as \"Offer Sent\"",
+                # Offer Status: The actual status if it's an offer
+                "CASE WHEN app.sent IN ('Offer', 'Offer Sent', 'Accepted', 'Declined') THEN app.sent ELSE '' END as \"Offer Status\"",
+                # Scholarship: Yes/No (assuming boolean)
+                "CASE WHEN app.scholarship IS TRUE THEN 'Yes' ELSE 'N' END as \"Scholarship Offered\""
             ])
-        
-        # Add session info
-        select_fields.extend(["s.program_code", "s.year as program_year", "app.canadian"])
-        
+
+        # 5. Education History (Institutions/Education)
+        if inc_edu:
+            select_parts.extend([
+                "ai.academic_history_code as \"Academic History Source CODE\"",
+                # Year of Last Degree 
+                "(SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code) as \"Year of Last Degree\"",
+                # Years Since Degree (Raw Number)
+                "(EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) as \"Years Since Degree\"",
+                
+                # Years Since Degree Grouped (Calculated Date logic based on ranges)
+                # Logic: If <3 years, return Today's Date (dd-Mon).
+                # If 3-5 years, return 05-Mar.
+                # If 6-10 years, return 06-Jan.
+                # If >10 years, return 02-Jan.
+                """CASE 
+                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) < 3 THEN TO_CHAR(CURRENT_DATE, 'DD-Mon')
+                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) BETWEEN 3 AND 5 THEN '05-Mar'
+                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) BETWEEN 6 AND 10 THEN '06-Jan'
+                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) > 10 THEN '02-Jan'
+                    ELSE ''
+                   END as "Years Since Degree Grouped"
+                """,
+                
+                "app.highest_degree as \"Level of Education\"",
+                "app.degree_area as \"Subject of Degree\"",
+                
+                # Subject Grouped (Separated by /)
+                # This I'm not too sure about, I'm thinking that it's pre set as I can't find any information regarding the subject of the applicants in the schema
+                # Take a look at this and let me know TODO
+                """CASE 
+                    WHEN app.degree_area ILIKE '%%Computer%%' OR app.degree_area ILIKE '%%Engineer%%' OR app.degree_area ILIKE '%%Technology%%' THEN 'Computer Science / Engineering / Technology'
+                    WHEN app.degree_area ILIKE '%%Math%%' OR app.degree_area ILIKE '%%Stat%%' OR app.degree_area ILIKE '%%Actuarial%%' THEN 'Stats / Math / Actuarial Sciences'
+                    WHEN app.degree_area ILIKE '%%Finance%%' OR app.degree_area ILIKE '%%Business%%' OR app.degree_area ILIKE '%%Manage%%' OR app.degree_area ILIKE '%%Econ%%' THEN 'Finance / Business / Management / Economics'
+                    ELSE 'Other' 
+                   END as "Subject Grouped"
+                """
+            ])
+        # 6. Other / Marketing (Personal or Application)
+        if inc_personal or inc_app:
+            select_parts.extend([
+                "ai.interest as \"Source of Interest in UBC\"",
+                "CASE WHEN app.mds_v IS TRUE THEN 'Y' ELSE '' END as \"Applied MDS-V\"",
+                "'' as \"Applied MDS-O\"", # Placeholder for missing column
+                "CASE WHEN app.mds_cl IS TRUE THEN 'Y' ELSE '' END as \"Applied MDS-CL\""
+            ])
+
+        # Fallback if nothing selected
+        if not select_parts:
+            select_parts = ["ai.user_code as \"User Code\""]
+
         placeholders = ','.join(['%s'] * len(user_codes))
+        
         query = f"""
-            SELECT {', '.join(select_fields)}
+            SELECT {', '.join(select_parts)}
             FROM applicant_info ai
             LEFT JOIN applicant_status ast ON ai.user_code = ast.user_code
             LEFT JOIN application_info app ON ai.user_code = app.user_code
             LEFT JOIN sessions s ON ai.session_id = s.id
-        """
-        
-        if include_ratings:
-            query += """
-            LEFT JOIN ratings r ON ai.user_code = r.user_code
-            LEFT JOIN "user" u ON r.user_id = u.id
-            """
-        
-        query += f"""
             WHERE ai.user_code IN ({placeholders})
-            GROUP BY 
-                ai.user_code, ai.given_name, ai.family_name
+            ORDER BY ai.family_name, ai.given_name
         """
-        
-        # Add GROUP BY fields based on what's selected
-        if include_personal:
-            query += ", ai.email, ast.student_number, ai.date_birth, ai.gender, ai.country, ai.country_citizenship, ai.primary_spoken_lang"
-        if include_application:
-            query += ", app.sent, ast.submit_date, ast.updated_at, app.english_status, app.english_comment"
-        if include_prerequisites:
-            query += ", app.cs, app.stat, app.math, app.gpa"
-        
-        query += ", s.program_code, s.year, app.canadian ORDER BY ai.family_name, ai.given_name"
         
         cursor.execute(query, user_codes)
         applicants = cursor.fetchall()
@@ -2062,115 +2103,6 @@ def get_selected_applicants_for_export(user_codes, sections=None):
         if conn:
             conn.close()
         print(f"Error in get_selected_applicants_for_export: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return None, f"Database error: {str(e)}"
-
-
-def get_all_applicants_for_export(status_filter=None):
-    """
-    Fetch comprehensive, aggregated data for all applicants.
-
-
-    @param status_filter: Optional status string to filter applicants
-                          (e.g., 'Passed', 'Failed', 'Not Reviewed').
-                          If None, all applicants are returned.
-    @param_type status_filter: str or None
-    @return: A tuple containing a list of all applicant data dictionaries
-             and an error message. On success, (list_of_dicts, None).
-             On failure, (None, error_message).
-    @return_type: tuple[list[dict] | None, str | None]
-    @db_tables: applicant_info, applicant_status, application_info,
-                ratings, "user", sessions
-    @example:
-        # Get all applicants
-        all_data, error = get_all_applicants_for_export()
-
-        # Get only applicants with 'Passed' status
-        passed_data, error = get_all_applicants_for_export(
-            status_filter="Passed"
-        )
-        
-        if not error:
-            print(f"Total applicants found: {len(all_data)}")
-    """
-    conn = get_db_connection()
-    if not conn:
-        return None, "Database connection failed"
-
-    try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
-        query = """
-            SELECT 
-                ai.user_code,
-                ai.given_name,
-                ai.family_name,
-                ai.email,
-                ast.student_number,
-                ai.date_birth,
-                ai.gender,
-                ai.country,
-                ai.country_citizenship,
-                ai.primary_spoken_lang,
-                COALESCE(app.sent, 'Not Reviewed') as current_status,
-                ast.submit_date,
-                ast.updated_at as uploaded_at,
-                app.english_status as english_proficiency_status,
-                app.english_comment,
-                app.cs,
-                app.stat,
-                app.math,
-                app.gpa,
-                app.canadian,
-                COALESCE(AVG(r.rating), 0) as avg_rating,
-                COUNT(r.user_id) as rating_count,
-                STRING_AGG(
-                    CASE 
-                        WHEN r.user_comment IS NOT NULL AND r.user_comment != '' 
-                        THEN u.first_name || ' ' || u.last_name || ': ' || r.user_comment 
-                    END, 
-                    ' | '
-                ) as all_comments,
-                s.program_code,
-                s.year as program_year
-            FROM applicant_info ai
-            LEFT JOIN applicant_status ast ON ai.user_code = ast.user_code
-            LEFT JOIN application_info app ON ai.user_code = app.user_code
-            LEFT JOIN ratings r ON ai.user_code = r.user_code
-            LEFT JOIN "user" u ON r.user_id = u.id
-            LEFT JOIN sessions s ON ai.session_id = s.id
-        """
-        
-        params = []
-        if status_filter:
-            query += " WHERE app.sent = %s"
-            params.append(status_filter)
-        
-        query += """
-            GROUP BY 
-                ai.user_code, ai.given_name, ai.family_name, ai.email,
-                ast.student_number, ai.date_birth, ai.gender, ai.country,
-                ai.country_citizenship, ai.primary_spoken_lang,
-                app.sent, ast.submit_date, ast.updated_at,
-                app.english_status, app.english_comment,
-                app.cs, app.stat, app.math, app.gpa, app.canadian,
-                s.program_code, s.year
-            ORDER BY ai.family_name, ai.given_name
-        """
-        
-        cursor.execute(query, params) if params else cursor.execute(query)
-        
-        applicants = cursor.fetchall()
-        cursor.close()
-        conn.close()
-
-        return applicants, None
-
-    except Exception as e:
-        if conn:
-            conn.close()
-        print(f"Error in get_all_applicants_for_export: {str(e)}")
         import traceback
         traceback.print_exc()
         return None, f"Database error: {str(e)}"
