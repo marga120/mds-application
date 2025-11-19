@@ -744,12 +744,14 @@ class ApplicantsManager {
                       <label class="block text-sm text-gray-600 mb-2">Select New Status</label>
                       <select id="prereqStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                         <option value="Not Reviewed">Not Reviewed</option>
-                        <option value="Reviewed">Reviewed</option>
+                        <option value="Reviewed by PPA">Reviewed by PPA</option>
                         <option value="Waitlist">Waitlist</option>
                         <option value="Declined">Declined</option>
-                        <option value="Offer">Offer</option>
-                        <option value="CoGS">CoGS</option>
-                        <option value="Offer Sent">Offer Sent</option>
+                        <option value="Send Offer to CoGS">Send Offer to CoGS</option>
+                        <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
+                        <option value="Offer Sent to Student">Offer Sent to Student</option>
+                        <option value="Offer Accepted">Offer Accepted</option>
+                        <option value="Offer Declined">Offer Declined</option>
                       </select>
                     </div>
                     
@@ -804,12 +806,14 @@ class ApplicantsManager {
                   <label class="block text-sm text-gray-600 mb-2">Select New Status</label>
                   <select id="ratingsStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                     <option value="Not Reviewed">Not Reviewed</option>
-                    <option value="Reviewed">Reviewed</option>
+                    <option value="Reviewed by PPA">Reviewed by PPA</option>
                     <option value="Waitlist">Waitlist</option>
                     <option value="Declined">Declined</option>
-                    <option value="Offer">Offer</option>
-                    <option value="CoGS">CoGS</option>
-                    <option value="Offer Sent">Offer Sent</option>
+                    <option value="Send Offer to CoGS">Send Offer to CoGS</option>
+                    <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
+                    <option value="Offer Sent to Student">Offer Sent to Student</option>
+                    <option value="Offer Accepted">Offer Accepted</option>
+                    <option value="Offer Declined">Offer Declined</option>
                   </select>
                 </div>
                 
@@ -885,12 +889,14 @@ class ApplicantsManager {
                       <div id="statusDropdownContainer">
                         <select id="statusSelect" class="input-ubc w-full text-base">
                           <option value="Not Reviewed">Not Reviewed</option>
-                          <option value="Reviewed">Reviewed</option>
+                          <option value="Reviewed by PPA">Reviewed by PPA</option>
                           <option value="Waitlist">Waitlist</option>
                           <option value="Declined">Declined</option>
-                          <option value="Offer">Offer</option>
-                          <option value="CoGS">CoGS</option>
-                          <option value="Offer Sent">Offer Sent</option>
+                          <option value="Send Offer to CoGS">Send Offer to CoGS</option>
+                          <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
+                          <option value="Offer Sent to Student">Offer Sent to Student</option>
+                          <option value="Offer Accepted">Offer Accepted</option>
+                          <option value="Offer Declined">Offer Declined</option>
                         </select>
                       </div>
                     </div>
@@ -3280,25 +3286,33 @@ class ApplicantsManager {
         badge.classList.add("bg-yellow-100", "text-yellow-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-yellow-400";
         break;
-      case "Offer":
+      case "Send Offer to CoGS":
         badge.classList.add("bg-green-100", "text-green-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-green-400";
         break;
-      case "CoGS":
+      case "Offer Sent to CoGS":
         badge.classList.add("bg-blue-100", "text-blue-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-blue-400";
         break;
-      case "Offer Sent":
+      case "Offer Sent to Student":
         badge.classList.add("bg-purple-100", "text-purple-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-purple-400";
         break;
-      case "Reviewed":
+      case "Reviewed by PPA":
         badge.classList.add("bg-indigo-100", "text-indigo-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-indigo-400";
         break;
       case "Declined":
         badge.classList.add("bg-red-100", "text-red-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-red-400";
+        break;
+      case "Offer Accepted":
+        badge.classList.add("bg-green-100", "text-green-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-green-400";
+        break;
+      case "Offer Declined":
+        badge.classList.add("bg-orange-100", "text-orange-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-orange-400";
         break;
       default:
         badge.classList.add("bg-gray-100", "text-gray-800");
