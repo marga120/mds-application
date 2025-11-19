@@ -1543,7 +1543,7 @@ def update_applicant_application_status(user_code, status):
     @return: Tuple of (success, message)
     @return_type: tuple[bool, str]
 
-    @valid_statuses: ["Not Reviewed", "Reviewed", "Waitlist", "Declined", "Offer", "CoGS", "Offer Sent"]
+    @valid_statuses: ["Not Reviewed", "Reviewed", "Waitlist", "Declined", "Send Offer to CoGS", "Offer Sent to CoGS", "Offer Sent to Student", "Offer Accepted", "Offer Declined"]
     @db_tables: application_info
     @upsert: Updates existing record or creates new one
 
@@ -2102,3 +2102,72 @@ def get_selected_applicants_for_export(user_codes, sections=None):
         import traceback
         traceback.print_exc()
         return None, f"Database error: {str(e)}"
+def clear_all_applicant_data():
+    """
+    Clear all applicant data from the database.
+    
+    Deletes all records from applicant-related tables while preserving
+    table structure. Respects foreign key constraints by deleting in 
+    proper order.
+    
+    @return: Tuple of (success, message, tables_cleared)
+    @return_type: tuple[bool, str, int]
+    
+    @db_tables: All applicant-related tables
+    @transaction: Uses database transaction with rollback on error
+    
+    @example:
+        success, message, count = clear_all_applicant_data()
+        if success:
+            print(f"Cleared {count} tables successfully")
+    """
+    conn = get_db_connection()
+    if not conn:
+        return False, "Database connection failed", 0
+    
+    try:
+        cursor = conn.cursor()
+        
+        # List of tables to clear (in order to respect foreign key constraints)
+        tables_to_clear = [
+            'ratings',              # References applicant_info and user
+            'toefl',                # References applicant_info
+            'ielts',                # References applicant_info
+            'melab',                # References applicant_info
+            'pte',                  # References applicant_info
+            'cael',                 # References applicant_info
+            'celpip',               # References applicant_info
+            'duolingo',             # References applicant_info
+            'alt_elpp',             # References applicant_info
+            'gre',                  # References applicant_info
+            'gmat',                 # References applicant_info
+            'institution_info',     # References applicant_info
+            'application_info',     # References applicant_info
+            'applicant_status',     # References applicant_info
+            'program_info',         # References applicant_info
+            'applicant_info',       # References sessions
+            'sessions',             # No dependencies
+        ]
+        
+        # ADD THIS: Count applicants BEFORE deleting
+        cursor.execute("SELECT COUNT(*) FROM applicant_info")
+        records_cleared = cursor.fetchone()[0]
+        
+        # Your existing deletion code
+        tables_cleared = 0
+        for table in tables_to_clear:
+            cursor.execute(f"DELETE FROM {table}")
+            tables_cleared += 1
+        
+        # Commit all deletions
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return True, "All applicant data has been cleared successfully", tables_cleared, records_cleared
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return False, f"Error clearing data: {str(e)}", 0

@@ -18,6 +18,7 @@ class ApplicantsManager {
     this.selectedApplicants = new Set();
     this.initializeExportButton();
     window.applicantsManager = this;
+    this.initializeClearDataButton();
   }
 
   initializeEventListeners() {
@@ -631,6 +632,40 @@ class ApplicantsManager {
                     Clear
                   </button>
                 </div>
+
+                <!-- Status Change Section for Prerequisites Tab -->
+                <div id="prereqStatusChangeSection" class="mt-6">
+                  <h5 class="text-sm font-medium text-gray-700 mb-3">Change Status</h5>
+                  
+                  <div class="space-y-3">
+                    <div>
+                      <label class="block text-sm text-gray-600 mb-2">Select New Status</label>
+                      <select id="prereqStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="Not Reviewed">Not Reviewed</option>
+                        <option value="Reviewed by PPA">Reviewed by PPA</option>
+                        <option value="Waitlist">Waitlist</option>
+                        <option value="Declined">Declined</option>
+                        <option value="Send Offer to CoGS">Send Offer to CoGS</option>
+                        <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
+                        <option value="Offer Sent to Student">Offer Sent to Student</option>
+                        <option value="Offer Accepted">Offer Accepted</option>
+                        <option value="Offer Declined">Offer Declined</option>
+                      </select>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                      <button id="prereqUpdateStatusBtn" class="px-4 py-2 bg-[#002145] text-white rounded-md hover:bg-[#001a33] transition-colors text-sm font-medium flex items-center">
+                        <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        Update Status
+                      </button>
+                      <button id="prereqCancelStatusBtn" class="px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -656,6 +691,40 @@ class ApplicantsManager {
                 <div class="flex gap-3">
                   <button id="saveRatingBtn" class="btn-ubc">Save Rating</button>
                   <button id="clearRatingBtn" class="btn-ubc-outline">Clear</button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Status Change Section for Comments & Ratings Tab -->
+            <div id="ratingsStatusChangeSection" class="mt-6 mb-8">
+              <h5 class="text-sm font-medium text-gray-700 mb-3">Change Status</h5>
+              
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-sm text-gray-600 mb-2">Select New Status</label>
+                  <select id="ratingsStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="Not Reviewed">Not Reviewed</option>
+                    <option value="Reviewed by PPA">Reviewed by PPA</option>
+                    <option value="Waitlist">Waitlist</option>
+                    <option value="Declined">Declined</option>
+                    <option value="Send Offer to CoGS">Send Offer to CoGS</option>
+                    <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
+                    <option value="Offer Sent to Student">Offer Sent to Student</option>
+                    <option value="Offer Accepted">Offer Accepted</option>
+                    <option value="Offer Declined">Offer Declined</option>
+                  </select>
+                </div>
+                
+                <div class="flex gap-3">
+                  <button id="ratingsUpdateStatusBtn" class="px-4 py-2 bg-[#002145] text-white rounded-md hover:bg-[#001a33] transition-colors text-sm font-medium flex items-center">
+                    <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    Update Status
+                  </button>
+                  <button id="ratingsCancelStatusBtn" class="px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
+                    Cancel
+                  </button>
                 </div>
               </div>
             </div>
@@ -718,12 +787,14 @@ class ApplicantsManager {
                       <div id="statusDropdownContainer">
                         <select id="statusSelect" class="input-ubc w-full text-base">
                           <option value="Not Reviewed">Not Reviewed</option>
-                          <option value="Reviewed">Reviewed</option>
+                          <option value="Reviewed by PPA">Reviewed by PPA</option>
                           <option value="Waitlist">Waitlist</option>
                           <option value="Declined">Declined</option>
-                          <option value="Offer">Offer</option>
-                          <option value="CoGS">CoGS</option>
-                          <option value="Offer Sent">Offer Sent</option>
+                          <option value="Send Offer to CoGS">Send Offer to CoGS</option>
+                          <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
+                          <option value="Offer Sent to Student">Offer Sent to Student</option>
+                          <option value="Offer Accepted">Offer Accepted</option>
+                          <option value="Offer Declined">Offer Declined</option>
                         </select>
                       </div>
                     </div>
@@ -816,6 +887,24 @@ class ApplicantsManager {
 
     modal.querySelector("#cancelStatusBtn").addEventListener("click", () => {
       this.loadAppStatus(modal.dataset.currentUserCode);
+    });
+
+    // Prerequisites tab status change buttons
+    modal.querySelector("#prereqUpdateStatusBtn")?.addEventListener("click", () => {
+      this.updateStatusFromTab('prereqStatusSelect');
+    });
+
+    modal.querySelector("#prereqCancelStatusBtn")?.addEventListener("click", () => {
+      this.loadApplicationStatus(modal.dataset.currentUserCode);
+    });
+
+    // Ratings tab status change buttons
+    modal.querySelector("#ratingsUpdateStatusBtn")?.addEventListener("click", () => {
+      this.updateStatusFromTab('ratingsStatusSelect');
+    });
+
+    modal.querySelector("#ratingsCancelStatusBtn")?.addEventListener("click", () => {
+      this.loadApplicationStatus(modal.dataset.currentUserCode);
     });
 
     // Close modal when clicking outside
@@ -2749,8 +2838,10 @@ class ApplicantsManager {
         // Update status badge styling
         this.updateStatusBadge(currentStatus);
 
-        // Update select dropdown
+        // Update ALL status select dropdowns (sync all three)
         document.getElementById("statusSelect").value = currentStatus;
+        document.getElementById("prereqStatusSelect").value = currentStatus;
+        document.getElementById("ratingsStatusSelect").value = currentStatus;
 
         // Hide preview initially
         document.getElementById("statusPreview").classList.add("hidden");
@@ -2770,6 +2861,10 @@ class ApplicantsManager {
     const statusButtons = document.getElementById("statusUpdateButtons");
     const statusSelect = document.getElementById("statusSelect");
     const statusChangeSection = document.getElementById("statusChangeSection");
+    
+    // Also get the new status sections in prereq and ratings tabs
+    const prereqStatusSection = document.getElementById("prereqStatusChangeSection");
+    const ratingsStatusSection = document.getElementById("ratingsStatusChangeSection");
 
     // Check user role from auth
     fetch("/api/auth/check-session")
@@ -2779,6 +2874,12 @@ class ApplicantsManager {
           // Only Admin can update status - show everything
           if (statusChangeSection) {
             statusChangeSection.style.display = "block";
+          }
+          if (prereqStatusSection) {
+            prereqStatusSection.style.display = "block";
+          }
+          if (ratingsStatusSection) {
+            ratingsStatusSection.style.display = "block";
           }
           if (statusButtons) {
             statusButtons.style.display = "flex";
@@ -2796,9 +2897,15 @@ class ApplicantsManager {
           `;
           }
         } else {
-          // Faculty and Viewers can see current status but not change it - hide the change section
+          // Faculty and Viewers can see current status but not change it
           if (statusChangeSection) {
             statusChangeSection.style.display = "none";
+          }
+          if (prereqStatusSection) {
+            prereqStatusSection.style.display = "none";
+          }
+          if (ratingsStatusSection) {
+            ratingsStatusSection.style.display = "none";
           }
 
           // Set title for Viewers
@@ -2857,6 +2964,9 @@ class ApplicantsManager {
         // Update tab label
         document.getElementById("statusTabLabel").textContent = newStatus;
 
+        // Sync all status selects
+        this.syncAllStatusSelects(newStatus);
+
         // Reload the entire status display
         this.loadApplicationStatus(userCode);
 
@@ -2871,6 +2981,83 @@ class ApplicantsManager {
       updateBtn.disabled = false;
       updateBtn.innerHTML = originalHTML;
     }
+  }
+
+  async updateStatusFromTab(selectId) {
+    const userCode =
+      document.getElementById("applicantModal").dataset.currentUserCode;
+    const selectElement = document.getElementById(selectId);
+    const newStatus = selectElement.value;
+    
+    // Find the corresponding update button
+    let updateBtn;
+    if (selectId === 'prereqStatusSelect') {
+      updateBtn = document.getElementById("prereqUpdateStatusBtn");
+    } else if (selectId === 'ratingsStatusSelect') {
+      updateBtn = document.getElementById("ratingsUpdateStatusBtn");
+    }
+
+    if (!userCode || !newStatus || !updateBtn) return;
+
+    const originalHTML = updateBtn.innerHTML;
+    updateBtn.disabled = true;
+    updateBtn.innerHTML = `
+    <svg class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+    </svg>
+    Updating...
+  `;
+
+    try {
+      const response = await fetch(
+        `/api/applicant-application-info/${userCode}/status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: newStatus,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        this.showMessage(result.message, "success");
+
+        // Update tab label
+        document.getElementById("statusTabLabel").textContent = newStatus;
+
+        // Sync all status selects
+        this.syncAllStatusSelects(newStatus);
+
+        // Reload the entire status display
+        this.loadApplicationStatus(userCode);
+
+        // Reload status history immediately
+        await this.loadStatusHistory(userCode);
+      } else {
+        this.showMessage(result.message, "error");
+      }
+    } catch (error) {
+      this.showMessage(`Error updating status: ${error.message}`, "error");
+    } finally {
+      updateBtn.disabled = false;
+      updateBtn.innerHTML = originalHTML;
+    }
+  }
+
+  syncAllStatusSelects(status) {
+    // Sync all three status selects
+    const statusSelect = document.getElementById("statusSelect");
+    const prereqStatusSelect = document.getElementById("prereqStatusSelect");
+    const ratingsStatusSelect = document.getElementById("ratingsStatusSelect");
+    
+    if (statusSelect) statusSelect.value = status;
+    if (prereqStatusSelect) prereqStatusSelect.value = status;
+    if (ratingsStatusSelect) ratingsStatusSelect.value = status;
   }
 
   async loadStatusHistory(userCode) {
@@ -2997,25 +3184,33 @@ class ApplicantsManager {
         badge.classList.add("bg-yellow-100", "text-yellow-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-yellow-400";
         break;
-      case "Offer":
+      case "Send Offer to CoGS":
         badge.classList.add("bg-green-100", "text-green-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-green-400";
         break;
-      case "CoGS":
+      case "Offer Sent to CoGS":
         badge.classList.add("bg-blue-100", "text-blue-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-blue-400";
         break;
-      case "Offer Sent":
+      case "Offer Sent to Student":
         badge.classList.add("bg-purple-100", "text-purple-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-purple-400";
         break;
-      case "Reviewed":
+      case "Reviewed by PPA":
         badge.classList.add("bg-indigo-100", "text-indigo-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-indigo-400";
         break;
       case "Declined":
         badge.classList.add("bg-red-100", "text-red-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-red-400";
+        break;
+      case "Offer Accepted":
+        badge.classList.add("bg-green-100", "text-green-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-green-400";
+        break;
+      case "Offer Declined":
+        badge.classList.add("bg-orange-100", "text-orange-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-orange-400";
         break;
       default:
         badge.classList.add("bg-gray-100", "text-gray-800");
@@ -4393,4 +4588,83 @@ async initializeExportButton() {
   }
   
   
+  initializeClearDataButton() {
+  const clearBtn = document.getElementById('clearAllDataBtn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => this.confirmClearAllData());
+  }
+
+  const cancelBtn = document.getElementById('cancelClearBtn');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => this.closeConfirmModal());
+  }
+
+  const confirmBtn = document.getElementById('confirmClearBtn');
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', () => this.executeClearAllData());
+  }
+}
+
+confirmClearAllData() {
+  document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+closeConfirmModal() {
+  document.getElementById('confirmModal').classList.add('hidden');
+}
+
+async executeClearAllData() {
+  const confirmBtn = document.getElementById('confirmClearBtn');
+  const originalText = confirmBtn.textContent;
+  
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Deleting...';
+  
+  try {
+    const response = await fetch('/api/clear-all-data', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      this.closeConfirmModal();
+      this.showClearDataMessage(result.message, 'success');
+      
+      // Reload the applicants list to show empty state
+      setTimeout(() => {
+        this.loadApplicants();
+      }, 1000);
+    } else {
+      this.closeConfirmModal();
+      this.showClearDataMessage(result.message, 'error');
+    }
+  } catch (error) {
+    this.closeConfirmModal();
+    this.showClearDataMessage(`Error: ${error.message}`, 'error');
+  } finally {
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = originalText;
+  }
+}
+
+showClearDataMessage(text, type) {
+  const messageDiv = document.getElementById('clearDataMessage');
+  if (!messageDiv) return;
+  
+  messageDiv.textContent = text;
+  messageDiv.className = `mt-4 p-4 rounded-md ${
+    type === 'success' 
+      ? 'bg-green-100 text-green-700' 
+      : 'bg-red-100 text-red-700'
+  }`;
+  messageDiv.classList.remove('hidden');
+  
+  setTimeout(() => {
+    messageDiv.classList.add('hidden');
+  }, 5000);
+}
 }
