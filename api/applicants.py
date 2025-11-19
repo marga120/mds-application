@@ -1,9 +1,10 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, make_response, request, jsonify
 import pandas as pd
 import io
 from datetime import datetime, timezone
 from flask_login import current_user, login_required
 from utils.activity_logger import log_activity
+import csv
 
 # Import our model functions
 from models.applicants import process_csv_data, get_all_applicant_status, clear_all_applicant_data
@@ -686,6 +687,210 @@ def update_english_status(user_code):
         return jsonify({"success": True, "message": message})
     else:
         return jsonify({"success": False, "message": message}), 400
+    ###Changed
+def _write_single_applicant_csv_sections(writer, applicant_data, sections=None):
+    """
+    Helper function to write the multi-section CSV report for one applicant (Vertical Format).
+    This logic is shared by the single applicant export endpoint.
+    """
+    
+    basic_info = applicant_data.get('basic', {})
+    name = f"{basic_info.get('given_name', '')} {basic_info.get('family_name', '')}"
+    user_code = basic_info.get('user_code', 'UNKNOWN')
+    
+    # Add a main header for the applicant
+    writer.writerow([f"Applicant Report for: {name}", f"User Code: {user_code}"])
+    writer.writerow([]) # Spacer
+
+    # Ratings & Comments section
+    if not sections or 'ratings' in sections:
+        writer.writerow(['Ratings & Comments'])
+        writer.writerow(['Applicant', 'Reviewer', 'Rating', 'Comment', 'Date'])
+        for rating in (applicant_data.get('ratings') or []):
+            writer.writerow([
+                name,
+                f"{rating.get('first_name', '')} {rating.get('last_name', '')}",
+                rating.get('rating'),
+                rating.get('user_comment') or '',
+                rating['created_at'].strftime('%Y-%m-%d %H:%M') if rating.get('created_at') else ''
+            ])
+        writer.writerow([]) # Spacer
+
+    # Personal Information section
+    if not sections or 'personal' in sections:
+        writer.writerow(['Personal Information'])
+        personal = applicant_data.get('personal', {})
+        if personal:
+            for key, value in personal.items():
+                if value and key not in ['user_code']: # Skip user_code
+                    writer.writerow([key.replace('_', ' ').title(), value])
+        writer.writerow([]) # Spacer
+
+    # Prerequisites section
+    if not sections or 'prerequisites' in sections:
+        writer.writerow(['Prerequisites & GPA'])
+        prereq = applicant_data.get('prerequisites', {})
+        if prereq:
+            writer.writerow(['Computer Science', prereq.get('cs', '')])
+            writer.writerow(['Statistics', prereq.get('stat', '')])
+            writer.writerow(['Mathematics', prereq.get('math', '')])
+            writer.writerow(['GPA', prereq.get('gpa', '')])
+        writer.writerow([]) # Spacer
+
+    # Test Scores section
+    if not sections or 'test_scores' in sections:
+        writer.writerow(['Test Scores'])
+        test_scores = applicant_data.get('test_scores', {})
+        for idx, toefl in enumerate(test_scores.get('toefl', []) or [], 1):
+            writer.writerow([
+                f'TOEFL {idx}', 
+                f"Total: {toefl.get('total_score', '')}, " +
+                f"Reading: {toefl.get('reading', '')}, " +
+                f"Listening: {toefl.get('listening', '')}, " +
+                f"Speaking: {toefl.get('speaking', '')}, " +
+                f"Writing: {toefl.get('structure_written', '')}"
+            ])
+        # Note: Add logic for other test types (IELTS, etc.) here if present
+        writer.writerow([]) # Spacer
+
+    # Institutions section
+    if not sections or 'institutions' in sections:
+        writer.writerow(['Educational Background'])
+        writer.writerow(['Institution', 'Degree', 'Program', 'GPA', 'Start Date', 'End Date'])
+        for inst in (applicant_data.get('institutions') or []):
+            writer.writerow([
+                inst.get('full_name', ''),
+                inst.get('credential_receive', ''),
+                inst.get('program_study', ''),
+                inst.get('gpa', ''),
+                inst.get('start_date', ''),
+                inst.get('end_date', '')
+            ])
+        writer.writerow([]) # Spacer
+    
+    # Add a separator for the next applicant
+    writer.writerow(['='*20, '='*20, '='*20])
+    writer.writerow([])
+
+
+@applicants_api.route("/export/single/<user_code>", methods=["POST"])
+def export_single_applicant(user_code):
+    """Export single applicant data to CSV with optional section filtering."""
+    
+    if not current_user.is_authenticated or current_user.is_viewer:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    try:
+        from models.applicants import get_single_applicant_for_export
+        
+        data = request.get_json() or {}
+        sections = data.get('sections', None)
+        
+        applicant_data, error = get_single_applicant_for_export(user_code, include_sections=sections)
+        
+        if error:
+            return jsonify({"success": False, "message": error}), 500
+        
+        # Create CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Call the helper function to write vertically
+        _write_single_applicant_csv_sections(writer, applicant_data, sections)
+        
+        # Log the export
+        log_activity(
+            action_type="export",
+            target_entity="single_applicant",
+            target_id=user_code,
+            additional_metadata={"sections": sections or "all"}
+        )
+        
+        # Create response
+        output.seek(0)
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        
+        sections_str = '_'.join(sections) if sections else 'complete'
+        filename = f'applicant_{user_code}_{sections_str}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+        
+        return response
+        
+    except Exception as e:
+        print(f"Export error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"Export failed: {str(e)}"}), 500
+
+
+@applicants_api.route("/export/selected", methods=["POST"])
+def export_selected_applicants():
+    """Export multiple selected applicants (horizontal, one row per applicant)."""
+    
+    if not current_user.is_authenticated or current_user.is_viewer:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    try:
+        from models.applicants import get_selected_applicants_for_export
+        
+        data = request.get_json()
+        user_codes = data.get('user_codes', [])
+        sections = data.get('sections', None)
+        
+        if not user_codes:
+            return jsonify({"success": False, "message": "No applicants selected"}), 400
+        
+        applicants, error = get_selected_applicants_for_export(user_codes, sections)
+        
+        if error:
+            return jsonify({"success": False, "message": error}), 500
+
+        if not applicants:
+            return jsonify({"success": False, "message": "No applicant data found for selected users"}), 404
+
+        # Create CSV with dynamic headers based on sections
+        output = io.StringIO()
+        
+        # Use DictWriter. The keys of the dictionary (from SQL aliases) become the headers.
+        headers = list(applicants[0].keys())
+        writer = csv.DictWriter(output, fieldnames=headers)
+        writer.writeheader()
+        
+        # Helper to clean None values -> Empty String for CSV
+        def clean_row(row):
+            return {k: (v if v is not None else '') for k, v in row.items()}
+
+        for applicant in applicants:
+            writer.writerow(clean_row(applicant))
+        
+        log_activity(
+            action_type="export",
+            target_entity="selected_applicants",
+            target_id=None,
+            additional_metadata={
+                "record_count": len(applicants),
+                "user_codes": user_codes,
+                "sections": sections or "all",
+                "export_style": "horizontal_dynamic_pivoted"
+            }
+        )
+        
+        output.seek(0)
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        
+        sections_str = '_'.join(sections) if sections else 'all'
+        filename = f'selected_{len(user_codes)}_{sections_str}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+        
+        return response
+        
+    except Exception as e:
+        print(f"Export error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"Export failed: {str(e)}"}), 500
 
 @applicants_api.route("/clear-all-data", methods=["DELETE"])
 @login_required

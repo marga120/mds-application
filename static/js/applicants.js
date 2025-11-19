@@ -15,30 +15,56 @@ class ApplicantsManager {
     this.loadSessionName();
     this.loadApplicants();
     this.initializeActionButtons();
+    this.selectedApplicants = new Set();
+    this.initializeExportButton();
+    window.applicantsManager = this;
     this.initializeClearDataButton();
   }
 
   initializeEventListeners() {
-    const fileInput = document.getElementById("fileInput");
-    const uploadBtn = document.getElementById("uploadBtn");
-    const searchInput = document.getElementById("searchInput");
-    const searchFilter = document.getElementById("searchFilter");
-
-    fileInput.addEventListener("change", (e) => {
-      this.handleFileSelect(e.target.files[0]);
+  const fileInput = document.getElementById("fileInput");
+  const uploadBtn = document.getElementById("uploadBtn");
+  const searchInput = document.getElementById("searchInput");
+  const searchFilter = document.getElementById("searchFilter");
+  const exportBtn = document.getElementById("exportBtn");
+  const bulkExportBtn = document.getElementById("bulkExportBtn");
+  
+  if (exportBtn) {
+    exportBtn.addEventListener("click", () => {
+      this.exportApplicants();
     });
+  }
 
-    uploadBtn.addEventListener("click", () => {
-      this.uploadFile();
+  if (bulkExportBtn) {
+    bulkExportBtn.addEventListener("click", () => {
+      this.exportSelectedApplicants();
     });
+  }
 
-    searchInput.addEventListener("input", () => {
-      this.filterApplicants();
-    });
+  fileInput.addEventListener("change", (e) => {
+    this.handleFileSelect(e.target.files[0]);
+  });
 
-    searchFilter.addEventListener("change", () => {
-      this.filterApplicants();
-    });
+  uploadBtn.addEventListener("click", () => {
+    this.uploadFile();
+  });
+
+  searchInput.addEventListener("input", () => {
+    this.filterApplicants();
+  });
+
+  searchFilter.addEventListener("change", () => {
+    this.filterApplicants();
+  });
+}
+  // Add checkbox selection tracking
+  toggleApplicantSelection(userCode, checked) {
+    if (checked) {
+      this.selectedApplicants.add(userCode);
+    } else {
+      this.selectedApplicants.delete(userCode);
+    }
+    this.updateBulkExportButton();
   }
 
   getTimeAgo(date) {
@@ -191,135 +217,6 @@ class ApplicantsManager {
     }
   }
 
-  displayApplicants(applicants) {
-    const container = document.getElementById("applicantsContainer");
-
-    if (applicants.length === 0) {
-      const searchInput = document.getElementById("searchInput");
-      const isSearching = searchInput.value.trim() !== "";
-
-      if (isSearching) {
-        container.innerHTML = `
-          <div class="no-data-state">
-            <h3 class="text-lg font-medium text-gray-900 mb-2">No results found</h3>
-            <p>No applicants match your search criteria. Try adjusting your search terms.</p>
-          </div>`;
-      } else {
-        container.innerHTML = `
-          <div class="no-data-state">
-            <h3 class="text-lg font-medium text-gray-900 mb-2">No applicants yet</h3>
-            <p>Upload a CSV file to see applicant data here.</p>
-          </div>`;
-      }
-      return;
-    }
-
-    const searchInput = document.getElementById("searchInput");
-    const isSearching = searchInput.value.trim() !== "";
-    const resultText = isSearching
-      ? `<div class="mb-4 text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg">
-           Showing <span class="font-semibold">${applicants.length}</span> of <span class="font-semibold">${this.allApplicants.length}</span> applicants
-         </div>`
-      : "";
-
-    const table = `
-      ${resultText}
-      <div class="overflow-x-auto">
-        <table class="modern-table">
-          <thead>
-            <tr>
-              <th style="width: 28%;">Applicant</th>
-              <th style="width: 14%;">Student Number</th>
-              <th style="width: 16%;">Application Status</th>
-              <th style="width: 16%;">Submit Date</th>
-              <th style="width: 13%;">Overall Rating</th>
-              <th style="width: 13%;">Last Updated</th>
-              <th style="width: 10%;">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${applicants
-              .map(
-                (applicant) => `
-                <tr>
-                  <td>
-                    <div class="applicant-card">
-                      <div class="applicant-avatar">
-                        ${this.getInitials(
-                          applicant.given_name,
-                          applicant.family_name
-                        )}
-                      </div>
-                      <div class="applicant-info">
-                        <h3>${applicant.given_name} ${
-                  applicant.family_name
-                }</h3>
-                        <p>User Code: ${Math.floor(
-                          parseFloat(applicant.user_code)
-                        )}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="text-center">
-                    ${
-                      applicant.student_number &&
-                      applicant.student_number !== "NaN"
-                        ? `<span class="text-sm font-mono text-gray-800">${Math.floor(
-                            parseFloat(applicant.student_number)
-                          )}</span>`
-                        : '<span class="text-xs text-gray-400">N/A</span>'
-                    }
-                  </td>
-                  <td>
-                    ${this.getStatusBadge(applicant.status)}
-                  </td>
-                  <td>
-                    ${
-                      applicant.submit_date
-                        ? `<div class="date-display">${new Date(
-                            applicant.submit_date
-                          ).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}</div>`
-                        : '<div class="text-gray-400 text-sm">Not submitted</div>'
-                    }
-                  </td>
-                  <td class="text-center">
-                    ${this.getOverallRatingDisplay(applicant.overall_rating)}
-                  </td>
-                  <td>
-                    <span class="${
-                      this.isRecentUpdate(applicant.seconds_since_update)
-                        ? "last-updated-recent"
-                        : "last-updated"
-                    }">
-                      ${this.formatLastChanged(applicant.seconds_since_update)}
-                    </span>
-                  </td>
-                  <td>
-                    <button class="btn-actions" data-user-code="${
-                      applicant.user_code
-                    }" data-user-name="${applicant.given_name} ${
-                  applicant.family_name
-                }">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zM12 13a1 1 0 110-2 1 1 0 010 2zM12 20a1 1 0 110-2 1 1 0 010 2z"></path>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              `
-              )
-              .join("")}
-          </tbody>
-        </table>
-      </div>
-    `;
-
-    container.innerHTML = table;
-  }
 
   formatLastChanged(secondsAgo) {
     const seconds = Math.floor(secondsAgo);
@@ -557,6 +454,7 @@ class ApplicantsManager {
 
     this.loadStatusHistory(userCode);
   }
+  
 
   createApplicantModal() {
     const modal = document.createElement("div");
@@ -4218,6 +4116,478 @@ class ApplicantsManager {
     }
   }
 
+//    ###CHANGED------------------------------------------------------------------------------------------------  
+async initializeExportButton() {
+    try {
+      const response = await fetch("/api/auth/check-session");
+      const result = await response.json();
+
+      if (result.authenticated && result.user) {
+        this.currentUser = result.user;
+        
+        // "Export All" button logic is removed as requested.
+        // We rely on the bulk selection export button which appears when items are selected.
+      }
+    } catch (error) {
+      console.error("Error checking user permissions:", error);
+    }
+  }
+
+  toggleAllApplicants(checked) {
+    const checkboxes = document.querySelectorAll('.applicant-checkbox');
+    checkboxes.forEach(cb => {
+      cb.checked = checked;
+      this.toggleApplicantSelection(cb.dataset.userCode, checked);
+    });
+  }
+
+  updateBulkExportButton() {
+    const bulkExportBtn = document.getElementById('bulkExportBtn');
+    const count = this.selectedApplicants.size;
+
+    if (bulkExportBtn) {
+      if (count > 0) {
+        bulkExportBtn.classList.remove('hidden');
+        bulkExportBtn.classList.add('flex');
+        bulkExportBtn.innerHTML = `
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Export Selected (${count})
+        `;
+      } else {
+        bulkExportBtn.classList.add('hidden');
+        bulkExportBtn.classList.remove('flex');
+      }
+    }
+  }
+
+  async exportSelectedApplicants() {
+    if (this.selectedApplicants.size === 0) {
+      this.showMessage('No applicants selected', 'error');
+      return;
+    }
+
+    // Show export options modal for bulk export
+    this.showBulkExportOptionsModal();
+  }
+
+  showBulkExportOptionsModal() {
+    let modal = document.getElementById('sharedExportOptionsModal');
+    if (!modal) {
+      modal = this.createSharedExportOptionsModal();
+      document.body.appendChild(modal);
+    }
+
+    // Update modal text
+    document.getElementById('exportModalTitle').textContent = 'Export Selected Applicants';
+    document.getElementById('exportModalDescription').textContent = 
+      `Exporting ${this.selectedApplicants.size} applicants. Select data columns to include:`;
+
+    // Remove old click handler and add new one
+    const confirmBtn = modal.querySelector('#confirmExportBtn');
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    
+    newConfirmBtn.addEventListener('click', () => {
+      this.executeBulkExport();
+    });
+
+    // Show modal
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  createSharedExportOptionsModal() {
+    const modal = document.createElement('div');
+    modal.id = 'sharedExportOptionsModal';
+    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50';
+
+    modal.innerHTML = `
+      <div class="relative top-20 mx-auto p-6 border w-11/12 max-w-md shadow-lg rounded-lg bg-white">
+        <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+          <h3 class="text-xl font-semibold text-gray-900" id="exportModalTitle">Export Options</h3>
+          <button class="export-modal-close text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="mt-4">
+          <p class="text-sm text-gray-600 mb-4" id="exportModalDescription">
+            Select data columns to include
+          </p>
+
+          <div class="space-y-3" id="exportSectionsContainer">
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input type="checkbox" class="export-section-checkbox w-4 h-4" value="personal" checked>
+              <span class="text-sm font-medium text-gray-700">Personal Info (Age, Gender, Citizenship...)</span>
+            </label>
+
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input type="checkbox" class="export-section-checkbox w-4 h-4" value="application" checked>
+              <span class="text-sm font-medium text-gray-700">Application Data (Status, Dates, Offer...)</span>
+            </label>
+
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input type="checkbox" class="export-section-checkbox w-4 h-4" value="education" checked>
+              <span class="text-sm font-medium text-gray-700">Education History (Degree, Year, Subject...)</span>
+            </label>
+          </div>
+
+          <div class="mt-6 flex gap-3">
+            <button id="confirmExportBtn" class="btn-ubc flex-1">
+              Export Selected
+            </button>
+            <button class="export-modal-close btn-ubc-outline">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add event listeners
+    modal.querySelectorAll('.export-modal-close').forEach(btn => {
+      btn.addEventListener('click', () => this.closeExportModal());
+    });
+
+    return modal;
+  }
+
+  showExportOptionsModal(userCode, userName) {
+    // Single export not requested to change, but using same modal
+    let modal = document.getElementById('sharedExportOptionsModal');
+    if (!modal) {
+      modal = this.createSharedExportOptionsModal();
+      document.body.appendChild(modal);
+    }
+
+    modal.dataset.userCode = userCode;
+    document.getElementById('exportModalTitle').textContent = 'Export Options';
+    document.getElementById('exportModalDescription').textContent = `Exporting data for: ${userName}`;
+
+    const confirmBtn = modal.querySelector('#confirmExportBtn');
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    
+    newConfirmBtn.addEventListener('click', () => {
+      this.exportSingleApplicant();
+    });
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  closeExportModal() {
+    const modal = document.getElementById('sharedExportOptionsModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  getSelectedExportSections() {
+    const checkboxes = document.querySelectorAll('.export-section-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+  }
+
+  async executeBulkExport() {
+    const sections = this.getSelectedExportSections();
+
+    if (sections.length === 0) {
+      this.showMessage('Please select at least one section to export', 'error');
+      return;
+    }
+
+    const confirmBtn = document.querySelector('#confirmExportBtn');
+    const originalHTML = confirmBtn.innerHTML;
+    
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = `
+      <svg class="w-5 h-5 animate-spin mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+    `;
+
+    try {
+      const response = await fetch('/api/export/selected', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          user_codes: Array.from(this.selectedApplicants),
+          sections: sections
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.download = `selected_applicants_${this.selectedApplicants.size}_${dateStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      this.showMessage(`Successfully exported ${this.selectedApplicants.size} applicants`, 'success');
+      
+      this.closeExportModal();
+      this.selectedApplicants.clear();
+      document.querySelectorAll('.applicant-checkbox').forEach(cb => cb.checked = false);
+      const selectAllCb = document.getElementById('selectAllCheckbox');
+      if(selectAllCb) selectAllCb.checked = false;
+      this.updateBulkExportButton();
+
+    } catch (error) {
+      console.error('Export error:', error);
+      this.showMessage(`Failed to export: ${error.message}`, 'error');
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = originalHTML;
+    }
+  }
+  async exportSingleApplicant() {
+    const modal = document.getElementById('sharedExportOptionsModal');
+    const userCode = modal.dataset.userCode;
+    const sections = this.getSelectedExportSections();
+
+    if (sections.length === 0) {
+      this.showMessage('Please select at least one section to export', 'error');
+      return;
+    }
+
+    const confirmBtn = modal.querySelector('#confirmExportBtn');
+    const originalHTML = confirmBtn.innerHTML;
+
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = `
+    <svg class="w-5 h-5 animate-spin mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+    </svg>
+  `;
+
+    try {
+      const response = await fetch(`/api/export/single/${userCode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ sections })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.download = `applicant_${userCode}_${sections.join('_')}_${dateStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      this.showMessage('Successfully exported applicant data', 'success');
+      this.closeExportModal();
+
+    } catch (error) {
+      console.error('Export error:', error);
+      this.showMessage(`Failed to export: ${error.message}`, 'error');
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = originalHTML;
+    }
+  }
+
+  // NOTE: Ensure you are calling this method, not 'showApplicants'
+  displayApplicants(applicants) {
+    const container = document.getElementById("applicantsContainer");
+
+    if (applicants.length === 0) {
+      const searchInput = document.getElementById("searchInput");
+      const isSearching = searchInput && searchInput.value.trim() !== "";
+
+      if (isSearching) {
+        container.innerHTML = `
+        <div class="no-data-state">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">No results found</h3>
+          <p>No applicants match your search criteria. Try adjusting your search terms.</p>
+        </div>`;
+      } else {
+        container.innerHTML = `
+        <div class="no-data-state">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">No applicants yet</h3>
+          <p>Upload a CSV file to see applicant data here.</p>
+        </div>`;
+      }
+      return;
+    }
+
+    const searchInput = document.getElementById("searchInput");
+    const isSearching = searchInput && searchInput.value.trim() !== "";
+    const resultText = isSearching
+      ? `<div class="mb-4 text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg">
+         Showing <span class="font-semibold">${applicants.length}</span> of <span class="font-semibold">${this.allApplicants.length}</span> applicants
+       </div>`
+      : "";
+
+    const table = `
+    ${resultText}
+    <div class="overflow-x-auto">
+      <table class="modern-table">
+        <thead>
+          <tr>
+            <th style="width: 3%;">
+              <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4" onchange="window.applicantsManager.toggleAllApplicants(this.checked)">
+            </th>
+            <th style="width: 25%;">Applicant</th>
+            <th style="width: 12%;">Student Number</th>
+            <th style="width: 14%;">Application Status</th>
+            <th style="width: 14%;">Submit Date</th>
+            <th style="width: 11%;">Overall Rating</th>
+            <th style="width: 11%;">Last Updated</th>
+            <th style="width: 10%;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${applicants
+            .map(
+              (applicant) => `
+              <tr>
+                <td class="text-center">
+                  <input type="checkbox" class="applicant-checkbox w-4 h-4" 
+                           data-user-code="${applicant.user_code}"
+                           onchange="window.applicantsManager.toggleApplicantSelection('${applicant.user_code}', this.checked)">
+                </td>
+                <td>
+                  <div class="applicant-card">
+                    <div class="applicant-avatar">
+                      ${this.getInitials(applicant.given_name, applicant.family_name)}
+                    </div>
+                    <div class="applicant-info">
+                      <h3>${applicant.given_name} ${applicant.family_name}</h3>
+                      <p>User Code: ${Math.floor(parseFloat(applicant.user_code))}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center">
+                  ${
+                    applicant.student_number && applicant.student_number !== "NaN"
+                      ? `<span class="text-sm font-mono text-gray-800">${Math.floor(parseFloat(applicant.student_number))}</span>`
+                      : '<span class="text-xs text-gray-400">N/A</span>'
+                  }
+                </td>
+                <td>
+                  ${this.getStatusBadge(applicant.status)}
+                </td>
+                <td>
+                  ${
+                    applicant.submit_date
+                      ? `<div class="date-display">${new Date(applicant.submit_date).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}</div>`
+                      : '<div class="text-gray-400 text-sm">Not submitted</div>'
+                  }
+                </td>
+                <td class="text-center">
+                  ${this.getOverallRatingDisplay(applicant.overall_rating)}
+                </td>
+                <td>
+                  <span class="${this.isRecentUpdate(applicant.seconds_since_update) ? "last-updated-recent" : "last-updated"}">
+                    ${this.formatLastChanged(applicant.seconds_since_update)}
+                  </span>
+                </td>
+                <td>
+                  <div class="relative">
+                    <button class="btn-actions" data-user-code="${applicant.user_code}" 
+                            data-user-name="${applicant.given_name} ${applicant.family_name}"
+                            onclick="window.applicantsManager.showActionsMenu(event, '${applicant.user_code}', '${applicant.given_name} ${applicant.family_name}')">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zM12 13a1 1 0 110-2 1 1 0 010 2zM12 20a1 1 0 110-2 1 1 0 010 2z"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+    container.innerHTML = table;
+    // If you have logic that re-checks checkboxes based on selectedApplicants set, call it here
+  }
+
+  showActionsMenu(event, userCode, userName) {
+    event.stopPropagation();
+
+    // Remove any existing menu
+    const existingMenu = document.querySelector('.actions-dropdown');
+    if (existingMenu) {
+      existingMenu.remove();
+    }
+
+    // Create dropdown menu
+    const menu = document.createElement('div');
+    menu.className = 'actions-dropdown absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50';
+    menu.innerHTML = `
+    <button class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150 flex items-center gap-2 rounded-t-lg"
+            onclick="window.applicantsManager.showApplicantModal('${userCode}', '${userName}')">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+      </svg>
+      View Details
+    </button>
+    <button class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150 flex items-center gap-2 rounded-b-lg"
+            onclick="window.applicantsManager.showExportOptionsModal('${userCode}', '${userName}')">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>
+      Export Applicant
+    </button>
+  `;
+
+    // Position menu relative to button
+    const button = event.currentTarget;
+    const rect = button.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.top = `${rect.bottom + 5}px`;
+    menu.style.left = `${rect.left - 150}px`; // Offset to the left
+
+    document.body.appendChild(menu);
+
+    // Close menu when clicking outside
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target) && e.target !== button) {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeMenu), 10);
+  }
+  
+  
   initializeClearDataButton() {
   const clearBtn = document.getElementById('clearAllDataBtn');
   if (clearBtn) {
