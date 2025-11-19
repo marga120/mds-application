@@ -357,8 +357,8 @@ def update_applicant_status(user_code):
     """
     Update the application status for an applicant.
 
-    Changes the application status (e.g., from "Not Reviewed" to "Reviewed",
-    "Offer", "Declined", etc.). Only Admin users can modify application status.
+    Changes the application status (e.g., from "Not Reviewed" to "Reviewed by PPA",
+    "Send Offer to CoGS", "Declined", etc.). Only Admin users can modify application status.
     Activity is logged for audit purposes.
 
     @requires: Admin authentication
@@ -367,7 +367,7 @@ def update_applicant_status(user_code):
     @param_type user_code: str
     @param status: New application status (JSON body)
     @param_type status: str
-    @valid_statuses: ["Not Reviewed", "Reviewed", "Waitlist", "Declined", "Offer", "CoGS", "Offer Sent"]
+    @valid_statuses: ["Not Reviewed", "Reviewed", "Waitlist", "Declined", "Send Offer to CoGS", "Offer Sent to CoGS", "Offer Sent to Student", "Offer Accepted", "Offer Declined"]
 
     @return: JSON response with operation result
     @return_type: flask.Response
@@ -386,7 +386,7 @@ def update_applicant_status(user_code):
 
         Request:
         {
-            "status": "Offer"
+            "status": "Send Offer to CoGS"
         }
 
         Response:
@@ -411,12 +411,14 @@ def update_applicant_status(user_code):
     # Validate status values
     valid_statuses = [
         "Not Reviewed",
-        "Reviewed",
+        "Reviewed by PPA",
         "Waitlist",
         "Declined",
-        "Offer",
-        "CoGS",
-        "Offer Sent",
+        "Send Offer to CoGS",
+        "Offer Sent to CoGS",
+        "Offer Sent to Student",
+        "Offer Accepted",
+        "Offer Declined"
     ]
     if status not in valid_statuses:
         return jsonify({"success": False, "message": "Invalid status value"}), 400

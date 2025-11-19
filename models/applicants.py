@@ -1543,7 +1543,7 @@ def update_applicant_application_status(user_code, status):
     @return: Tuple of (success, message)
     @return_type: tuple[bool, str]
 
-    @valid_statuses: ["Not Reviewed", "Reviewed", "Waitlist", "Declined", "Offer", "CoGS", "Offer Sent"]
+    @valid_statuses: ["Not Reviewed", "Reviewed", "Waitlist", "Declined", "Send Offer to CoGS", "Offer Sent to CoGS", "Offer Sent to Student", "Offer Accepted", "Offer Declined"]
     @db_tables: application_info
     @upsert: Updates existing record or creates new one
 
