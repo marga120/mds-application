@@ -439,6 +439,8 @@ class ApplicantsManager {
 
     this.loadRatings(userCode);
 
+    this.loadPrerequisitesSummary(userCode);
+
     this.loadMyRating(userCode);
 
     // Update rating form for viewers
@@ -686,8 +688,37 @@ class ApplicantsManager {
         <div id="comments-ratings" class="tab-content flex-1 overflow-y-auto">
           <div class="pr-2">
 
+            <!-- Summary of Prerequisites Section -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200 mb-6">
+              <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                Summary of Prerequisites
+              </h4>
+              <div class="space-y-3 text-sm">
+                <div>
+                  <span class="font-semibold text-gray-700">Overall CGPA:</span>
+                  <span class="text-gray-900 ml-2" id="summaryGpa">-</span>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">CS Prerequisite:</span>
+                  <span class="text-gray-900 ml-2" id="summaryCs">-</span>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">Stat Prerequisite:</span>
+                  <span class="text-gray-900 ml-2" id="summaryStat">-</span>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">Math Prerequisite:</span>
+                  <span class="text-gray-900 ml-2" id="summaryMath">-</span>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">Additional Comments:</span>
+                  <span class="text-gray-900 ml-2" id="summaryAdditionalComments">-</span>
+                </div>
+              </div>
+            </div>
+
             <!-- Add/Edit Rating Section -->
-            <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg mb-6">
+            <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg border border-blue-200 mb-6">
               <h4 class="text-lg font-semibold text-gray-900 mb-4">Your Rating & Comment</h4>
               <div class="space-y-4">
                 <div>
@@ -1045,6 +1076,31 @@ class ApplicantsManager {
           <p>Error loading ratings: ${error.message}</p>
         </div>
       `;
+    }
+  }
+
+  async loadPrerequisitesSummary(userCode) {
+    try {
+      const response = await fetch(`/api/applicant-application-info/${userCode}`);
+      const result = await response.json();
+
+      if (result.success && result.application_info) {
+        const appInfo = result.application_info;
+        document.getElementById("summaryGpa").textContent = appInfo.gpa || "Not Provided";
+        document.getElementById("summaryCs").textContent = appInfo.cs || "Not Provided";
+        document.getElementById("summaryStat").textContent = appInfo.stat || "Not Provided";
+        document.getElementById("summaryMath").textContent = appInfo.math || "Not Provided";
+        document.getElementById("summaryAdditionalComments").textContent = appInfo.additional_comments || "Not Provided";
+      } else {
+        // Set all to "Not Provided" if no data
+        document.getElementById("summaryGpa").textContent = "Not Provided";
+        document.getElementById("summaryCs").textContent = "Not Provided";
+        document.getElementById("summaryStat").textContent = "Not Provided";
+        document.getElementById("summaryMath").textContent = "Not Provided";
+        document.getElementById("summaryAdditionalComments").textContent = "Not Provided";
+      }
+    } catch (error) {
+      console.error("Error loading prerequisites summary:", error);
     }
   }
 
@@ -3431,6 +3487,7 @@ class ApplicantsManager {
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
+      this.loadPrerequisitesSummary(userCode);
     }
   }
 
@@ -3495,6 +3552,7 @@ class ApplicantsManager {
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
+      this.loadPrerequisitesSummary(modal.dataset.currentUserCode);
     }
   }
 
