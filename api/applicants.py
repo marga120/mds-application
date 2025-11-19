@@ -521,6 +521,7 @@ def update_applicant_prerequisites(user_code):
     cs = str(data.get("cs", "")).strip()[:1000]  # Limit to 1000 chars
     stat = str(data.get("stat", "")).strip()[:1000]
     math = str(data.get("math", "")).strip()[:1000]
+    additional_comments = str(data.get("additional_comments", "")).strip()[:2000]
 
     # Handle GPA - accept as string input
     gpa = data.get("gpa", "")
@@ -530,7 +531,7 @@ def update_applicant_prerequisites(user_code):
     else:
         gpa = None
 
-    success, message = update_applicant_prerequisites(user_code, cs, stat, math, gpa)
+    success, message = update_applicant_prerequisites(user_code, cs, stat, math, gpa, additional_comments)
 
     if success:
         return jsonify({"success": True, "message": message})
