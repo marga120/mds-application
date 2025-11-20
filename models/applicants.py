@@ -2088,17 +2088,23 @@ def get_selected_applicants_for_export(user_codes, sections=None):
             ])
 
         # 4. Admin / Offer Status (Application)
-        if inc_app:
-            select_parts.extend([
-                # Admission Review: Yes if not 'Not Reviewed'
-                "CASE WHEN app.sent != 'Not Reviewed' THEN 'Yes' ELSE 'No' END as \"Admission Review\"",
-                # Offer Sent: Y/N
-                "CASE WHEN app.sent IN ('Offer', 'Offer Sent', 'Accepted', 'Declined') THEN 'Y' ELSE 'N' END as \"Offer Sent\"",
-                # Offer Status: The actual status if it's an offer
-                "CASE WHEN app.sent IN ('Offer', 'Offer Sent', 'Accepted', 'Declined') THEN app.sent ELSE '' END as \"Offer Status\"",
-                # Scholarship: Yes/No (assuming boolean)
-                "CASE WHEN app.scholarship IS TRUE THEN 'Yes' ELSE 'N' END as \"Scholarship Offered\""
-            ])
+        select_parts.extend([
+            # Admission Review: Yes if not 'Not Reviewed'
+            "CASE WHEN sent != 'Not Reviewed' THEN 'Yes' ELSE 'No' END AS \"Admission Review\"",
+
+            # Offer Sent: Y/N
+            "CASE WHEN sent IN ('Offer', 'Offer Sent', 'Accepted', 'Declined') THEN 'Y' ELSE 'N' END AS \"Offer Sent\"",
+
+            # Offer Status: The actual status if it's an offer
+            "CASE WHEN sent IN ('Offer', 'Offer Sent', 'Accepted', 'Declined') THEN sent ELSE '' END AS \"Offer Status\"",
+
+            # Scholarship Offered
+            "CASE "
+            "WHEN scholarship = TRUE THEN 'Yes' "
+            "WHEN scholarship IS NULL THEN 'Undecided' "
+            "ELSE 'No' "
+            "END AS \"Scholarship Offered\""
+        ])
 
         # 5. Education History (Institutions/Education)
         if inc_edu:
