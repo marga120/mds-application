@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS application_info (
     degree_area VARCHAR(50),
     mds_v BOOLEAN,
     mds_cl BOOLEAN,
-    scholarship BOOLEAN
+    scholarship VARCHAR(20) DEFAULT 'Undecided' CHECK (scholarship IN ('Yes', 'No', 'Undecided'))
 );
 
 CREATE TABLE IF NOT EXISTS ratings(
