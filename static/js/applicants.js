@@ -454,6 +454,8 @@ class ApplicantsManager {
 
     this.loadPrerequisites(userCode);
 
+    this.loadScholarship(userCode);
+
     this.loadStatusHistory(userCode);
   }
   
@@ -736,7 +738,31 @@ class ApplicantsManager {
                 </div>
               </div>
             </div>
-            
+
+            <!-- Scholarship Section -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200 mb-6">
+              <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                Offer Scholarship
+              </h4>
+              <div class="flex items-center gap-6 mb-4">
+                <label class="flex items-center cursor-pointer">
+                  <input type="radio" name="scholarship" value="Yes" class="w-4 h-4 text-ubc-blue focus:ring-ubc-blue">
+                  <span class="ml-2 text-gray-700">Yes</span>
+                </label>
+                <label class="flex items-center cursor-pointer">
+                  <input type="radio" name="scholarship" value="No" class="w-4 h-4 text-ubc-blue focus:ring-ubc-blue">
+                  <span class="ml-2 text-gray-700">No</span>
+                </label>
+                <label class="flex items-center cursor-pointer">
+                  <input type="radio" name="scholarship" value="Undecided" class="w-4 h-4 text-ubc-blue focus:ring-ubc-blue" checked>
+                  <span class="ml-2 text-gray-700">Undecided</span>
+                </label>
+              </div>
+              <button id="saveScholarshipBtn" class="btn-ubc">
+                Save
+              </button>
+            </div>
+
             <!-- Status Change Section for Comments & Ratings Tab -->
             <div id="ratingsStatusChangeSection" class="mt-6 mb-8">
               <h5 class="text-sm font-medium text-gray-700 mb-3">Change Status</h5>
@@ -921,6 +947,10 @@ class ApplicantsManager {
 
     modal.querySelector("#clearRatingBtn").addEventListener("click", () => {
       this.clearRatingForm();
+    });
+
+    modal.querySelector("#saveScholarshipBtn").addEventListener("click", () => {
+      this.saveScholarship();
     });
 
     modal.querySelector("#updateStatusBtn").addEventListener("click", () => {
@@ -1178,6 +1208,44 @@ class ApplicantsManager {
       }
     } catch (error) {
       this.showMessage(`Error saving rating: ${error.message}`, "error");
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalText;
+    }
+  }
+
+  async saveScholarship() {
+    const modal = document.getElementById("applicantModal");
+    const userCode = modal.dataset.currentUserCode;
+    if (!userCode) return;
+
+    const selectedScholarship = document.querySelector('input[name="scholarship"]:checked').value;
+
+    const saveBtn = document.getElementById("saveScholarshipBtn");
+    const originalText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+
+    try {
+      const response = await fetch(`/api/applicant-application-info/${userCode}/scholarship`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          scholarship: selectedScholarship,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        this.showMessage("Scholarship decision saved successfully", "success");
+      } else {
+        this.showMessage(result.message || "Failed to save scholarship decision", "error");
+      }
+    } catch (error) {
+      this.showMessage(`Error saving scholarship decision: ${error.message}`, "error");
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
@@ -3304,6 +3372,56 @@ class ApplicantsManager {
       await this.updatePrerequisitesFormPermissions();
     } catch (error) {
       console.error("Error loading prerequisites:", error);
+    }
+  }
+
+  async loadScholarship(userCode) {
+    try {
+      const response = await fetch(`/api/applicant-application-info/${userCode}`);
+      const result = await response.json();
+
+      if (result.success && result.application_info) {
+        const scholarship = result.application_info.scholarship || "Undecided";
+        const radioButton = document.querySelector(`input[name="scholarship"][value="${scholarship}"]`);
+        if (radioButton) {
+          radioButton.checked = true;
+        }
+      } else {
+        // Default to Undecided
+        const undecidedRadio = document.querySelector('input[name="scholarship"][value="Undecided"]');
+        if (undecidedRadio) {
+          undecidedRadio.checked = true;
+        }
+      }
+
+      // Update permissions after loading
+      await this.updateScholarshipFormPermissions();
+    } catch (error) {
+      console.error("Error loading scholarship:", error);
+    }
+  }
+
+  async updateScholarshipFormPermissions() {
+    try {
+      const response = await fetch("/api/auth/check-session");
+      const result = await response.json();
+
+      const scholarshipRadios = document.querySelectorAll('input[name="scholarship"]');
+      const saveScholarshipBtn = document.getElementById("saveScholarshipBtn");
+
+      if (result.authenticated && result.user) {
+        if (result.user.role === "Admin") {
+          // Admin can edit - enable all controls
+          scholarshipRadios.forEach(radio => radio.disabled = false);
+          if (saveScholarshipBtn) saveScholarshipBtn.style.display = "inline-block";
+        } else {
+          // Faculty and Viewer can only view - disable all controls
+          scholarshipRadios.forEach(radio => radio.disabled = true);
+          if (saveScholarshipBtn) saveScholarshipBtn.style.display = "none";
+        }
+      }
+    } catch (error) {
+      console.error("Error checking user permissions:", error);
     }
   }
 
