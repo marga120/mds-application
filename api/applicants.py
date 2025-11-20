@@ -1,9 +1,10 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, make_response, request, jsonify
 import pandas as pd
 import io
 from datetime import datetime, timezone
 from flask_login import current_user, login_required
 from utils.activity_logger import log_activity
+import csv
 
 # Import our model functions
 from models.applicants import process_csv_data, get_all_applicant_status, clear_all_applicant_data
@@ -357,8 +358,8 @@ def update_applicant_status(user_code):
     """
     Update the application status for an applicant.
 
-    Changes the application status (e.g., from "Not Reviewed" to "Reviewed",
-    "Offer", "Declined", etc.). Only Admin users can modify application status.
+    Changes the application status (e.g., from "Not Reviewed" to "Reviewed by PPA",
+    "Send Offer to CoGS", "Declined", etc.). Only Admin users can modify application status.
     Activity is logged for audit purposes.
 
     @requires: Admin authentication
@@ -367,7 +368,7 @@ def update_applicant_status(user_code):
     @param_type user_code: str
     @param status: New application status (JSON body)
     @param_type status: str
-    @valid_statuses: ["Not Reviewed", "Reviewed", "Waitlist", "Declined", "Offer", "CoGS", "Offer Sent"]
+    @valid_statuses: ["Not Reviewed", "Reviewed", "Waitlist", "Declined", "Send Offer to CoGS", "Offer Sent to CoGS", "Offer Sent to Student", "Offer Accepted", "Offer Declined"]
 
     @return: JSON response with operation result
     @return_type: flask.Response
@@ -386,7 +387,7 @@ def update_applicant_status(user_code):
 
         Request:
         {
-            "status": "Offer"
+            "status": "Send Offer to CoGS"
         }
 
         Response:
@@ -411,12 +412,14 @@ def update_applicant_status(user_code):
     # Validate status values
     valid_statuses = [
         "Not Reviewed",
-        "Reviewed",
+        "Reviewed by PPA",
         "Waitlist",
         "Declined",
-        "Offer",
-        "CoGS",
-        "Offer Sent",
+        "Send Offer to CoGS",
+        "Offer Sent to CoGS",
+        "Offer Sent to Student",
+        "Offer Accepted",
+        "Offer Declined"
     ]
     if status not in valid_statuses:
         return jsonify({"success": False, "message": "Invalid status value"}), 400
@@ -518,6 +521,7 @@ def update_applicant_prerequisites(user_code):
     cs = str(data.get("cs", "")).strip()[:1000]  # Limit to 1000 chars
     stat = str(data.get("stat", "")).strip()[:1000]
     math = str(data.get("math", "")).strip()[:1000]
+    additional_comments = str(data.get("additional_comments", "")).strip()[:2000]
 
     # Handle GPA - accept as string input
     gpa = data.get("gpa", "")
@@ -527,7 +531,7 @@ def update_applicant_prerequisites(user_code):
     else:
         gpa = None
 
-    success, message = update_applicant_prerequisites(user_code, cs, stat, math, gpa)
+    success, message = update_applicant_prerequisites(user_code, cs, stat, math, gpa, additional_comments)
 
     if success:
         return jsonify({"success": True, "message": message})
@@ -684,6 +688,210 @@ def update_english_status(user_code):
         return jsonify({"success": True, "message": message})
     else:
         return jsonify({"success": False, "message": message}), 400
+    ###Changed
+def _write_single_applicant_csv_sections(writer, applicant_data, sections=None):
+    """
+    Helper function to write the multi-section CSV report for one applicant (Vertical Format).
+    This logic is shared by the single applicant export endpoint.
+    """
+    
+    basic_info = applicant_data.get('basic', {})
+    name = f"{basic_info.get('given_name', '')} {basic_info.get('family_name', '')}"
+    user_code = basic_info.get('user_code', 'UNKNOWN')
+    
+    # Add a main header for the applicant
+    writer.writerow([f"Applicant Report for: {name}", f"User Code: {user_code}"])
+    writer.writerow([]) # Spacer
+
+    # Ratings & Comments section
+    if not sections or 'ratings' in sections:
+        writer.writerow(['Ratings & Comments'])
+        writer.writerow(['Applicant', 'Reviewer', 'Rating', 'Comment', 'Date'])
+        for rating in (applicant_data.get('ratings') or []):
+            writer.writerow([
+                name,
+                f"{rating.get('first_name', '')} {rating.get('last_name', '')}",
+                rating.get('rating'),
+                rating.get('user_comment') or '',
+                rating['created_at'].strftime('%Y-%m-%d %H:%M') if rating.get('created_at') else ''
+            ])
+        writer.writerow([]) # Spacer
+
+    # Personal Information section
+    if not sections or 'personal' in sections:
+        writer.writerow(['Personal Information'])
+        personal = applicant_data.get('personal', {})
+        if personal:
+            for key, value in personal.items():
+                if value and key not in ['user_code']: # Skip user_code
+                    writer.writerow([key.replace('_', ' ').title(), value])
+        writer.writerow([]) # Spacer
+
+    # Prerequisites section
+    if not sections or 'prerequisites' in sections:
+        writer.writerow(['Prerequisites & GPA'])
+        prereq = applicant_data.get('prerequisites', {})
+        if prereq:
+            writer.writerow(['Computer Science', prereq.get('cs', '')])
+            writer.writerow(['Statistics', prereq.get('stat', '')])
+            writer.writerow(['Mathematics', prereq.get('math', '')])
+            writer.writerow(['GPA', prereq.get('gpa', '')])
+        writer.writerow([]) # Spacer
+
+    # Test Scores section
+    if not sections or 'test_scores' in sections:
+        writer.writerow(['Test Scores'])
+        test_scores = applicant_data.get('test_scores', {})
+        for idx, toefl in enumerate(test_scores.get('toefl', []) or [], 1):
+            writer.writerow([
+                f'TOEFL {idx}', 
+                f"Total: {toefl.get('total_score', '')}, " +
+                f"Reading: {toefl.get('reading', '')}, " +
+                f"Listening: {toefl.get('listening', '')}, " +
+                f"Speaking: {toefl.get('speaking', '')}, " +
+                f"Writing: {toefl.get('structure_written', '')}"
+            ])
+        # Note: Add logic for other test types (IELTS, etc.) here if present
+        writer.writerow([]) # Spacer
+
+    # Institutions section
+    if not sections or 'institutions' in sections:
+        writer.writerow(['Educational Background'])
+        writer.writerow(['Institution', 'Degree', 'Program', 'GPA', 'Start Date', 'End Date'])
+        for inst in (applicant_data.get('institutions') or []):
+            writer.writerow([
+                inst.get('full_name', ''),
+                inst.get('credential_receive', ''),
+                inst.get('program_study', ''),
+                inst.get('gpa', ''),
+                inst.get('start_date', ''),
+                inst.get('end_date', '')
+            ])
+        writer.writerow([]) # Spacer
+    
+    # Add a separator for the next applicant
+    writer.writerow(['='*20, '='*20, '='*20])
+    writer.writerow([])
+
+
+@applicants_api.route("/export/single/<user_code>", methods=["POST"])
+def export_single_applicant(user_code):
+    """Export single applicant data to CSV with optional section filtering."""
+    
+    if not current_user.is_authenticated or current_user.is_viewer:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    try:
+        from models.applicants import get_single_applicant_for_export
+        
+        data = request.get_json() or {}
+        sections = data.get('sections', None)
+        
+        applicant_data, error = get_single_applicant_for_export(user_code, include_sections=sections)
+        
+        if error:
+            return jsonify({"success": False, "message": error}), 500
+        
+        # Create CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Call the helper function to write vertically
+        _write_single_applicant_csv_sections(writer, applicant_data, sections)
+        
+        # Log the export
+        log_activity(
+            action_type="export",
+            target_entity="single_applicant",
+            target_id=user_code,
+            additional_metadata={"sections": sections or "all"}
+        )
+        
+        # Create response
+        output.seek(0)
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        
+        sections_str = '_'.join(sections) if sections else 'complete'
+        filename = f'applicant_{user_code}_{sections_str}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+        
+        return response
+        
+    except Exception as e:
+        print(f"Export error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"Export failed: {str(e)}"}), 500
+
+
+@applicants_api.route("/export/selected", methods=["POST"])
+def export_selected_applicants():
+    """Export multiple selected applicants (horizontal, one row per applicant)."""
+    
+    if not current_user.is_authenticated or current_user.is_viewer:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    try:
+        from models.applicants import get_selected_applicants_for_export
+        
+        data = request.get_json()
+        user_codes = data.get('user_codes', [])
+        sections = data.get('sections', None)
+        
+        if not user_codes:
+            return jsonify({"success": False, "message": "No applicants selected"}), 400
+        
+        applicants, error = get_selected_applicants_for_export(user_codes, sections)
+        
+        if error:
+            return jsonify({"success": False, "message": error}), 500
+
+        if not applicants:
+            return jsonify({"success": False, "message": "No applicant data found for selected users"}), 404
+
+        # Create CSV with dynamic headers based on sections
+        output = io.StringIO()
+        
+        # Use DictWriter. The keys of the dictionary (from SQL aliases) become the headers.
+        headers = list(applicants[0].keys())
+        writer = csv.DictWriter(output, fieldnames=headers)
+        writer.writeheader()
+        
+        # Helper to clean None values -> Empty String for CSV
+        def clean_row(row):
+            return {k: (v if v is not None else '') for k, v in row.items()}
+
+        for applicant in applicants:
+            writer.writerow(clean_row(applicant))
+        
+        log_activity(
+            action_type="export",
+            target_entity="selected_applicants",
+            target_id=None,
+            additional_metadata={
+                "record_count": len(applicants),
+                "user_codes": user_codes,
+                "sections": sections or "all",
+                "export_style": "horizontal_dynamic_pivoted"
+            }
+        )
+        
+        output.seek(0)
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        
+        sections_str = '_'.join(sections) if sections else 'all'
+        filename = f'selected_{len(user_codes)}_{sections_str}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+        
+        return response
+        
+    except Exception as e:
+        print(f"Export error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"Export failed: {str(e)}"}), 500
 
 @applicants_api.route("/clear-all-data", methods=["DELETE"])
 @login_required
@@ -738,3 +946,73 @@ def clear_all_data():
             "success": False,
             "message": message
         }), 500
+
+@applicants_api.route("/applicant-application-info/<user_code>/scholarship", methods=["PUT"])
+def update_applicant_scholarship(user_code):
+    """
+    Update applicant scholarship decision.
+
+    Updates the scholarship offer decision for a specific applicant.
+    Only Admin users can update scholarship decisions.
+
+    @requires: Admin authentication (Faculty and Viewer access denied)
+    @method: PUT
+    @param user_code: Unique identifier for the applicant (URL parameter)
+    @param_type user_code: str
+    @param scholarship: Scholarship decision (JSON body: "Yes", "No", or "Undecided")
+    @param_type scholarship: str
+
+    @return: JSON response with operation result
+    @return_type: flask.Response
+    @status_codes:
+        - 200: Scholarship decision updated successfully
+        - 400: Invalid scholarship value or request data
+        - 401: Authentication required
+        - 403: Access denied (non-Admin user)
+        - 404: Applicant not found
+        - 500: Database error
+
+    @validation: Scholarship must be "Yes", "No", or "Undecided"
+    @db_tables: application_info
+    @upsert: Updates existing record or creates new one
+
+    @example:
+        PUT /api/applicant-application-info/12345/scholarship
+        Content-Type: application/json
+
+        Request:
+        {
+            "scholarship": "Yes"
+        }
+
+        Response:
+        {
+            "success": true,
+            "message": "Scholarship decision updated successfully"
+        }
+    """
+    if not current_user.is_authenticated:
+        return jsonify({"success": False, "message": "Authentication required"}), 401
+
+    # Only Admin can update scholarship
+    if not current_user.is_admin:
+        return jsonify({"success": False, "message": "Only Admin users can update scholarship decisions"}), 403
+
+    from models.applicants import update_applicant_scholarship
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "Invalid request data"}), 400
+
+    scholarship = data.get("scholarship", "Undecided")
+    
+    # Validate scholarship value
+    if scholarship not in ["Yes", "No", "Undecided"]:
+        return jsonify({"success": False, "message": "Invalid scholarship value"}), 400
+
+    success, message = update_applicant_scholarship(user_code, scholarship)
+
+    if success:
+        return jsonify({"success": True, "message": message})
+    else:
+        return jsonify({"success": False, "message": message}), 400

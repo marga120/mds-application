@@ -15,30 +15,56 @@ class ApplicantsManager {
     this.loadSessionName();
     this.loadApplicants();
     this.initializeActionButtons();
+    this.selectedApplicants = new Set();
+    this.initializeExportButton();
+    window.applicantsManager = this;
     this.initializeClearDataButton();
   }
 
   initializeEventListeners() {
-    const fileInput = document.getElementById("fileInput");
-    const uploadBtn = document.getElementById("uploadBtn");
-    const searchInput = document.getElementById("searchInput");
-    const searchFilter = document.getElementById("searchFilter");
-
-    fileInput.addEventListener("change", (e) => {
-      this.handleFileSelect(e.target.files[0]);
+  const fileInput = document.getElementById("fileInput");
+  const uploadBtn = document.getElementById("uploadBtn");
+  const searchInput = document.getElementById("searchInput");
+  const searchFilter = document.getElementById("searchFilter");
+  const exportBtn = document.getElementById("exportBtn");
+  const bulkExportBtn = document.getElementById("bulkExportBtn");
+  
+  if (exportBtn) {
+    exportBtn.addEventListener("click", () => {
+      this.exportApplicants();
     });
+  }
 
-    uploadBtn.addEventListener("click", () => {
-      this.uploadFile();
+  if (bulkExportBtn) {
+    bulkExportBtn.addEventListener("click", () => {
+      this.exportSelectedApplicants();
     });
+  }
 
-    searchInput.addEventListener("input", () => {
-      this.filterApplicants();
-    });
+  fileInput.addEventListener("change", (e) => {
+    this.handleFileSelect(e.target.files[0]);
+  });
 
-    searchFilter.addEventListener("change", () => {
-      this.filterApplicants();
-    });
+  uploadBtn.addEventListener("click", () => {
+    this.uploadFile();
+  });
+
+  searchInput.addEventListener("input", () => {
+    this.filterApplicants();
+  });
+
+  searchFilter.addEventListener("change", () => {
+    this.filterApplicants();
+  });
+}
+  // Add checkbox selection tracking
+  toggleApplicantSelection(userCode, checked) {
+    if (checked) {
+      this.selectedApplicants.add(userCode);
+    } else {
+      this.selectedApplicants.delete(userCode);
+    }
+    this.updateBulkExportButton();
   }
 
   getTimeAgo(date) {
@@ -191,135 +217,6 @@ class ApplicantsManager {
     }
   }
 
-  displayApplicants(applicants) {
-    const container = document.getElementById("applicantsContainer");
-
-    if (applicants.length === 0) {
-      const searchInput = document.getElementById("searchInput");
-      const isSearching = searchInput.value.trim() !== "";
-
-      if (isSearching) {
-        container.innerHTML = `
-          <div class="no-data-state">
-            <h3 class="text-lg font-medium text-gray-900 mb-2">No results found</h3>
-            <p>No applicants match your search criteria. Try adjusting your search terms.</p>
-          </div>`;
-      } else {
-        container.innerHTML = `
-          <div class="no-data-state">
-            <h3 class="text-lg font-medium text-gray-900 mb-2">No applicants yet</h3>
-            <p>Upload a CSV file to see applicant data here.</p>
-          </div>`;
-      }
-      return;
-    }
-
-    const searchInput = document.getElementById("searchInput");
-    const isSearching = searchInput.value.trim() !== "";
-    const resultText = isSearching
-      ? `<div class="mb-4 text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg">
-           Showing <span class="font-semibold">${applicants.length}</span> of <span class="font-semibold">${this.allApplicants.length}</span> applicants
-         </div>`
-      : "";
-
-    const table = `
-      ${resultText}
-      <div class="overflow-x-auto">
-        <table class="modern-table">
-          <thead>
-            <tr>
-              <th style="width: 28%;">Applicant</th>
-              <th style="width: 14%;">Student Number</th>
-              <th style="width: 16%;">Application Status</th>
-              <th style="width: 16%;">Submit Date</th>
-              <th style="width: 13%;">Overall Rating</th>
-              <th style="width: 13%;">Last Updated</th>
-              <th style="width: 10%;">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${applicants
-              .map(
-                (applicant) => `
-                <tr>
-                  <td>
-                    <div class="applicant-card">
-                      <div class="applicant-avatar">
-                        ${this.getInitials(
-                          applicant.given_name,
-                          applicant.family_name
-                        )}
-                      </div>
-                      <div class="applicant-info">
-                        <h3>${applicant.given_name} ${
-                  applicant.family_name
-                }</h3>
-                        <p>User Code: ${Math.floor(
-                          parseFloat(applicant.user_code)
-                        )}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="text-center">
-                    ${
-                      applicant.student_number &&
-                      applicant.student_number !== "NaN"
-                        ? `<span class="text-sm font-mono text-gray-800">${Math.floor(
-                            parseFloat(applicant.student_number)
-                          )}</span>`
-                        : '<span class="text-xs text-gray-400">N/A</span>'
-                    }
-                  </td>
-                  <td>
-                    ${this.getStatusBadge(applicant.status)}
-                  </td>
-                  <td>
-                    ${
-                      applicant.submit_date
-                        ? `<div class="date-display">${new Date(
-                            applicant.submit_date
-                          ).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}</div>`
-                        : '<div class="text-gray-400 text-sm">Not submitted</div>'
-                    }
-                  </td>
-                  <td class="text-center">
-                    ${this.getOverallRatingDisplay(applicant.overall_rating)}
-                  </td>
-                  <td>
-                    <span class="${
-                      this.isRecentUpdate(applicant.seconds_since_update)
-                        ? "last-updated-recent"
-                        : "last-updated"
-                    }">
-                      ${this.formatLastChanged(applicant.seconds_since_update)}
-                    </span>
-                  </td>
-                  <td>
-                    <button class="btn-actions" data-user-code="${
-                      applicant.user_code
-                    }" data-user-name="${applicant.given_name} ${
-                  applicant.family_name
-                }">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zM12 13a1 1 0 110-2 1 1 0 010 2zM12 20a1 1 0 110-2 1 1 0 010 2z"></path>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              `
-              )
-              .join("")}
-          </tbody>
-        </table>
-      </div>
-    `;
-
-    container.innerHTML = table;
-  }
 
   formatLastChanged(secondsAgo) {
     const seconds = Math.floor(secondsAgo);
@@ -508,6 +405,14 @@ class ApplicantsManager {
       modal = this.createApplicantModal();
       document.body.appendChild(modal);
     }
+    //Close the existing dropdown menu if open
+    const existingMenu = document.querySelector('.actions-dropdown');
+    if (existingMenu) {
+      if (existingMenu._closeListener) {
+        document.removeEventListener('click', existingMenu._closeListener);
+      }
+      existingMenu.remove();
+    }
 
     // Update modal content
     document.getElementById("modalApplicantName").textContent = userName;
@@ -542,6 +447,8 @@ class ApplicantsManager {
 
     this.loadRatings(userCode);
 
+    this.loadPrerequisitesSummary(userCode);
+
     this.loadMyRating(userCode);
 
     // Update rating form for viewers
@@ -555,8 +462,11 @@ class ApplicantsManager {
 
     this.loadPrerequisites(userCode);
 
+    this.loadScholarship(userCode);
+
     this.loadStatusHistory(userCode);
   }
+  
 
   createApplicantModal() {
     const modal = document.createElement("div");
@@ -565,7 +475,7 @@ class ApplicantsManager {
       "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50";
 
     modal.innerHTML = `
-    <div class="relative top-5 mx-auto p-6 border w-11/12 max-w-4xl max-h-[90vh] shadow-lg rounded-lg bg-white mb-10 flex flex-col">
+    <div class="relative top-2 mx-auto p-6 border w-11/12 max-w-6xl max-h-[96vh] shadow-lg rounded-lg bg-white mb-2 flex flex-col">
      <!-- Modal Header -->
       <div class="flex items-center justify-between pb-4 border-b border-gray-200">
         <div>
@@ -607,9 +517,9 @@ class ApplicantsManager {
       </div>
 
       <!-- Tab Content -->
-      <div class="mt-6 flex flex-col min-h-[20rem] max-h-[calc(100vh-20rem)]">
+      <div class="mt-6 flex-1 flex flex-col overflow-hidden">
         <!-- Applicant Info Tab -->
-        <div id="applicant-info" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="applicant-info" class="tab-content hidden h-full overflow-y-auto">
           <div id="applicantInfoContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
@@ -619,7 +529,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Institution Info Tab -->
-        <div id="institution-info" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="institution-info" class="tab-content hidden h-full overflow-y-auto">
           <div id="institutionInfoContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
@@ -629,7 +539,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Test Scores Tab -->
-        <div id="test-scores" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="test-scores" class="tab-content hidden h-full overflow-y-auto">
           <div id="testScoresContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
@@ -639,7 +549,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Prerequisites Tab -->
-        <div id="prerequisite-courses" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="prerequisite-courses" class="tab-content hidden h-full overflow-y-auto">
           <div class="pr-2">
             <div class="mb-6">
               <!-- Feedback Message Area -->
@@ -719,6 +629,17 @@ class ApplicantsManager {
                   ></textarea>
                 </div>
 
+                <!-- Additional Comments -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Additional Comments (e.g., Reference Letter):</label>
+                  <textarea
+                    id="additionalComments"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
+                    rows="2"
+                    placeholder="Enter Additional Comments"
+                  ></textarea>
+                </div>
+
                 <!-- Save Button -->
                 <div class="flex gap-3 mt-6">
                   <button
@@ -734,23 +655,85 @@ class ApplicantsManager {
                     Clear
                   </button>
                 </div>
+
+                <!-- Status Change Section for Prerequisites Tab -->
+                <div id="prereqStatusChangeSection" class="mt-6">
+                  <h5 class="text-sm font-medium text-gray-700 mb-3">Change Status</h5>
+                  
+                  <div class="space-y-3">
+                    <div>
+                      <label class="block text-sm text-gray-600 mb-2">Select New Status</label>
+                      <select id="prereqStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="Not Reviewed">Not Reviewed</option>
+                        <option value="Reviewed by PPA">Reviewed by PPA</option>
+                        <option value="Waitlist">Waitlist</option>
+                        <option value="Declined">Declined</option>
+                        <option value="Send Offer to CoGS">Send Offer to CoGS</option>
+                        <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
+                        <option value="Offer Sent to Student">Offer Sent to Student</option>
+                        <option value="Offer Accepted">Offer Accepted</option>
+                        <option value="Offer Declined">Offer Declined</option>
+                      </select>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                      <button id="prereqUpdateStatusBtn" class="px-4 py-2 bg-[#002145] text-white rounded-md hover:bg-[#001a33] transition-colors text-sm font-medium flex items-center">
+                        <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        Update Status
+                      </button>
+                      <button id="prereqCancelStatusBtn" class="px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Comments & Ratings Tab -->
-        <div id="comments-ratings" class="tab-content flex-1 overflow-y-auto">
+        <div id="comments-ratings" class="tab-content h-full overflow-y-auto">
           <div class="pr-2">
 
+            <!-- Summary of Prerequisites Section -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200 mb-6">
+              <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                Summary of Prerequisites
+              </h4>
+              <div class="space-y-3 text-sm">
+                <div>
+                  <span class="font-semibold text-gray-700">Overall CGPA:</span>
+                  <span class="text-gray-900 ml-2" id="summaryGpa">-</span>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">CS Prerequisite:</span>
+                  <span class="text-gray-900 ml-2" id="summaryCs">-</span>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">Stat Prerequisite:</span>
+                  <span class="text-gray-900 ml-2" id="summaryStat">-</span>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">Math Prerequisite:</span>
+                  <span class="text-gray-900 ml-2" id="summaryMath">-</span>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">Additional Comments:</span>
+                  <span class="text-gray-900 ml-2" id="summaryAdditionalComments">-</span>
+                </div>
+              </div>
+            </div>
+
             <!-- Add/Edit Rating Section -->
-            <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg mb-6">
+            <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg border border-blue-200 mb-6">
               <h4 class="text-lg font-semibold text-gray-900 mb-4">Your Rating & Comment</h4>
               <div class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Rating (0.0 - 10.0)</label>
-                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter rating (e.g., 8.5)">
-                  <p class="text-xs text-gray-500 mt-1">Enter a rating between 0.0 and 10.0</p>
+                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter a rating between 0.0 and 10.0">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
@@ -759,6 +742,64 @@ class ApplicantsManager {
                 <div class="flex gap-3">
                   <button id="saveRatingBtn" class="btn-ubc">Save Rating</button>
                   <button id="clearRatingBtn" class="btn-ubc-outline">Clear</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Scholarship Section -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200 mb-6">
+              <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                Offer Scholarship
+              </h4>
+              <div class="flex items-center gap-6 mb-4">
+                <label class="flex items-center cursor-pointer">
+                  <input type="radio" name="scholarship" value="Yes" class="w-4 h-4 text-ubc-blue focus:ring-ubc-blue">
+                  <span class="ml-2 text-gray-700">Yes</span>
+                </label>
+                <label class="flex items-center cursor-pointer">
+                  <input type="radio" name="scholarship" value="No" class="w-4 h-4 text-ubc-blue focus:ring-ubc-blue">
+                  <span class="ml-2 text-gray-700">No</span>
+                </label>
+                <label class="flex items-center cursor-pointer">
+                  <input type="radio" name="scholarship" value="Undecided" class="w-4 h-4 text-ubc-blue focus:ring-ubc-blue" checked>
+                  <span class="ml-2 text-gray-700">Undecided</span>
+                </label>
+              </div>
+              <button id="saveScholarshipBtn" class="btn-ubc">
+                Save
+              </button>
+            </div>
+
+            <!-- Status Change Section for Comments & Ratings Tab -->
+            <div id="ratingsStatusChangeSection" class="mt-6 mb-8">
+              <h5 class="text-sm font-medium text-gray-700 mb-3">Change Status</h5>
+              
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-sm text-gray-600 mb-2">Select New Status</label>
+                  <select id="ratingsStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="Not Reviewed">Not Reviewed</option>
+                    <option value="Reviewed by PPA">Reviewed by PPA</option>
+                    <option value="Waitlist">Waitlist</option>
+                    <option value="Declined">Declined</option>
+                    <option value="Send Offer to CoGS">Send Offer to CoGS</option>
+                    <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
+                    <option value="Offer Sent to Student">Offer Sent to Student</option>
+                    <option value="Offer Accepted">Offer Accepted</option>
+                    <option value="Offer Declined">Offer Declined</option>
+                  </select>
+                </div>
+                
+                <div class="flex gap-3">
+                  <button id="ratingsUpdateStatusBtn" class="px-4 py-2 bg-[#002145] text-white rounded-md hover:bg-[#001a33] transition-colors text-sm font-medium flex items-center">
+                    <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    Update Status
+                  </button>
+                  <button id="ratingsCancelStatusBtn" class="px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
+                    Cancel
+                  </button>
                 </div>
               </div>
             </div>
@@ -777,7 +818,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Status Tab -->
-        <div id="status-tab" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="status-tab" class="tab-content hidden h-full overflow-y-auto">
           <div class="pr-2">
             <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
               <h4 class="text-lg font-semibold text-ubc-blue mb-6 flex items-center">
@@ -821,12 +862,14 @@ class ApplicantsManager {
                       <div id="statusDropdownContainer">
                         <select id="statusSelect" class="input-ubc w-full text-base">
                           <option value="Not Reviewed">Not Reviewed</option>
-                          <option value="Reviewed">Reviewed</option>
+                          <option value="Reviewed by PPA">Reviewed by PPA</option>
                           <option value="Waitlist">Waitlist</option>
                           <option value="Declined">Declined</option>
-                          <option value="Offer">Offer</option>
-                          <option value="CoGS">CoGS</option>
-                          <option value="Offer Sent">Offer Sent</option>
+                          <option value="Send Offer to CoGS">Send Offer to CoGS</option>
+                          <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
+                          <option value="Offer Sent to Student">Offer Sent to Student</option>
+                          <option value="Offer Accepted">Offer Accepted</option>
+                          <option value="Offer Declined">Offer Declined</option>
                         </select>
                       </div>
                     </div>
@@ -913,12 +956,34 @@ class ApplicantsManager {
       this.clearRatingForm();
     });
 
+    modal.querySelector("#saveScholarshipBtn").addEventListener("click", () => {
+      this.saveScholarship();
+    });
+
     modal.querySelector("#updateStatusBtn").addEventListener("click", () => {
       this.updateStatus();
     });
 
     modal.querySelector("#cancelStatusBtn").addEventListener("click", () => {
       this.loadAppStatus(modal.dataset.currentUserCode);
+    });
+
+    // Prerequisites tab status change buttons
+    modal.querySelector("#prereqUpdateStatusBtn")?.addEventListener("click", () => {
+      this.updateStatusFromTab('prereqStatusSelect');
+    });
+
+    modal.querySelector("#prereqCancelStatusBtn")?.addEventListener("click", () => {
+      this.loadApplicationStatus(modal.dataset.currentUserCode);
+    });
+
+    // Ratings tab status change buttons
+    modal.querySelector("#ratingsUpdateStatusBtn")?.addEventListener("click", () => {
+      this.updateStatusFromTab('ratingsStatusSelect');
+    });
+
+    modal.querySelector("#ratingsCancelStatusBtn")?.addEventListener("click", () => {
+      this.loadApplicationStatus(modal.dataset.currentUserCode);
     });
 
     // Close modal when clicking outside
@@ -1051,6 +1116,31 @@ class ApplicantsManager {
     }
   }
 
+  async loadPrerequisitesSummary(userCode) {
+    try {
+      const response = await fetch(`/api/applicant-application-info/${userCode}`);
+      const result = await response.json();
+
+      if (result.success && result.application_info) {
+        const appInfo = result.application_info;
+        document.getElementById("summaryGpa").textContent = appInfo.gpa || "Not Provided";
+        document.getElementById("summaryCs").textContent = appInfo.cs || "Not Provided";
+        document.getElementById("summaryStat").textContent = appInfo.stat || "Not Provided";
+        document.getElementById("summaryMath").textContent = appInfo.math || "Not Provided";
+        document.getElementById("summaryAdditionalComments").textContent = appInfo.additional_comments || "Not Provided";
+      } else {
+        // Set all to "Not Provided" if no data
+        document.getElementById("summaryGpa").textContent = "Not Provided";
+        document.getElementById("summaryCs").textContent = "Not Provided";
+        document.getElementById("summaryStat").textContent = "Not Provided";
+        document.getElementById("summaryMath").textContent = "Not Provided";
+        document.getElementById("summaryAdditionalComments").textContent = "Not Provided";
+      }
+    } catch (error) {
+      console.error("Error loading prerequisites summary:", error);
+    }
+  }
+
   async loadMyRating(userCode) {
     try {
       const response = await fetch(`/api/ratings/${userCode}/my-rating`);
@@ -1125,6 +1215,44 @@ class ApplicantsManager {
       }
     } catch (error) {
       this.showMessage(`Error saving rating: ${error.message}`, "error");
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalText;
+    }
+  }
+
+  async saveScholarship() {
+    const modal = document.getElementById("applicantModal");
+    const userCode = modal.dataset.currentUserCode;
+    if (!userCode) return;
+
+    const selectedScholarship = document.querySelector('input[name="scholarship"]:checked').value;
+
+    const saveBtn = document.getElementById("saveScholarshipBtn");
+    const originalText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+
+    try {
+      const response = await fetch(`/api/applicant-application-info/${userCode}/scholarship`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          scholarship: selectedScholarship,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        this.showMessage("Scholarship decision saved successfully", "success");
+      } else {
+        this.showMessage(result.message || "Failed to save scholarship decision", "error");
+      }
+    } catch (error) {
+      this.showMessage(`Error saving scholarship decision: ${error.message}`, "error");
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
@@ -2852,8 +2980,10 @@ class ApplicantsManager {
         // Update status badge styling
         this.updateStatusBadge(currentStatus);
 
-        // Update select dropdown
+        // Update ALL status select dropdowns (sync all three)
         document.getElementById("statusSelect").value = currentStatus;
+        document.getElementById("prereqStatusSelect").value = currentStatus;
+        document.getElementById("ratingsStatusSelect").value = currentStatus;
 
         // Hide preview initially
         document.getElementById("statusPreview").classList.add("hidden");
@@ -2873,6 +3003,10 @@ class ApplicantsManager {
     const statusButtons = document.getElementById("statusUpdateButtons");
     const statusSelect = document.getElementById("statusSelect");
     const statusChangeSection = document.getElementById("statusChangeSection");
+    
+    // Also get the new status sections in prereq and ratings tabs
+    const prereqStatusSection = document.getElementById("prereqStatusChangeSection");
+    const ratingsStatusSection = document.getElementById("ratingsStatusChangeSection");
 
     // Check user role from auth
     fetch("/api/auth/check-session")
@@ -2882,6 +3016,12 @@ class ApplicantsManager {
           // Only Admin can update status - show everything
           if (statusChangeSection) {
             statusChangeSection.style.display = "block";
+          }
+          if (prereqStatusSection) {
+            prereqStatusSection.style.display = "block";
+          }
+          if (ratingsStatusSection) {
+            ratingsStatusSection.style.display = "block";
           }
           if (statusButtons) {
             statusButtons.style.display = "flex";
@@ -2899,9 +3039,15 @@ class ApplicantsManager {
           `;
           }
         } else {
-          // Faculty and Viewers can see current status but not change it - hide the change section
+          // Faculty and Viewers can see current status but not change it
           if (statusChangeSection) {
             statusChangeSection.style.display = "none";
+          }
+          if (prereqStatusSection) {
+            prereqStatusSection.style.display = "none";
+          }
+          if (ratingsStatusSection) {
+            ratingsStatusSection.style.display = "none";
           }
 
           // Set title for Viewers
@@ -2960,6 +3106,9 @@ class ApplicantsManager {
         // Update tab label
         document.getElementById("statusTabLabel").textContent = newStatus;
 
+        // Sync all status selects
+        this.syncAllStatusSelects(newStatus);
+
         // Reload the entire status display
         this.loadApplicationStatus(userCode);
 
@@ -2974,6 +3123,83 @@ class ApplicantsManager {
       updateBtn.disabled = false;
       updateBtn.innerHTML = originalHTML;
     }
+  }
+
+  async updateStatusFromTab(selectId) {
+    const userCode =
+      document.getElementById("applicantModal").dataset.currentUserCode;
+    const selectElement = document.getElementById(selectId);
+    const newStatus = selectElement.value;
+    
+    // Find the corresponding update button
+    let updateBtn;
+    if (selectId === 'prereqStatusSelect') {
+      updateBtn = document.getElementById("prereqUpdateStatusBtn");
+    } else if (selectId === 'ratingsStatusSelect') {
+      updateBtn = document.getElementById("ratingsUpdateStatusBtn");
+    }
+
+    if (!userCode || !newStatus || !updateBtn) return;
+
+    const originalHTML = updateBtn.innerHTML;
+    updateBtn.disabled = true;
+    updateBtn.innerHTML = `
+    <svg class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+    </svg>
+    Updating...
+  `;
+
+    try {
+      const response = await fetch(
+        `/api/applicant-application-info/${userCode}/status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: newStatus,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        this.showMessage(result.message, "success");
+
+        // Update tab label
+        document.getElementById("statusTabLabel").textContent = newStatus;
+
+        // Sync all status selects
+        this.syncAllStatusSelects(newStatus);
+
+        // Reload the entire status display
+        this.loadApplicationStatus(userCode);
+
+        // Reload status history immediately
+        await this.loadStatusHistory(userCode);
+      } else {
+        this.showMessage(result.message, "error");
+      }
+    } catch (error) {
+      this.showMessage(`Error updating status: ${error.message}`, "error");
+    } finally {
+      updateBtn.disabled = false;
+      updateBtn.innerHTML = originalHTML;
+    }
+  }
+
+  syncAllStatusSelects(status) {
+    // Sync all three status selects
+    const statusSelect = document.getElementById("statusSelect");
+    const prereqStatusSelect = document.getElementById("prereqStatusSelect");
+    const ratingsStatusSelect = document.getElementById("ratingsStatusSelect");
+    
+    if (statusSelect) statusSelect.value = status;
+    if (prereqStatusSelect) prereqStatusSelect.value = status;
+    if (ratingsStatusSelect) ratingsStatusSelect.value = status;
   }
 
   async loadStatusHistory(userCode) {
@@ -3100,25 +3326,33 @@ class ApplicantsManager {
         badge.classList.add("bg-yellow-100", "text-yellow-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-yellow-400";
         break;
-      case "Offer":
+      case "Send Offer to CoGS":
         badge.classList.add("bg-green-100", "text-green-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-green-400";
         break;
-      case "CoGS":
+      case "Offer Sent to CoGS":
         badge.classList.add("bg-blue-100", "text-blue-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-blue-400";
         break;
-      case "Offer Sent":
+      case "Offer Sent to Student":
         badge.classList.add("bg-purple-100", "text-purple-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-purple-400";
         break;
-      case "Reviewed":
+      case "Reviewed by PPA":
         badge.classList.add("bg-indigo-100", "text-indigo-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-indigo-400";
         break;
       case "Declined":
         badge.classList.add("bg-red-100", "text-red-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-red-400";
+        break;
+      case "Offer Accepted":
+        badge.classList.add("bg-green-100", "text-green-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-green-400";
+        break;
+      case "Offer Declined":
+        badge.classList.add("bg-orange-100", "text-orange-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-orange-400";
         break;
       default:
         badge.classList.add("bg-gray-100", "text-gray-800");
@@ -3134,25 +3368,67 @@ class ApplicantsManager {
       const result = await response.json();
 
       if (result.success && result.application_info) {
-        const info = result.application_info;
-        document.getElementById("prerequisiteCs").value = info.cs || "";
-        document.getElementById("prerequisiteStat").value = info.stat || "";
-        document.getElementById("prerequisiteMath").value = info.math || "";
-
-        // Load the overall GPA
-        const gpaInput = document.getElementById("overallGpa");
-        if (info.gpa) {
-          // Load as string value
-          gpaInput.value = info.gpa;
-        } else {
-          gpaInput.value = "";
-        }
+        const appInfo = result.application_info;
+        document.getElementById("prerequisiteCs").value = appInfo.cs || "";
+        document.getElementById("prerequisiteStat").value = appInfo.stat || "";
+        document.getElementById("prerequisiteMath").value = appInfo.math || "";
+        document.getElementById("additionalComments").value = appInfo.additional_comments || "";
+        document.getElementById("overallGpa").value = appInfo.gpa || "";
       }
 
-      // Check user permissions and update form accordingly
       await this.updatePrerequisitesFormPermissions();
     } catch (error) {
       console.error("Error loading prerequisites:", error);
+    }
+  }
+
+  async loadScholarship(userCode) {
+    try {
+      const response = await fetch(`/api/applicant-application-info/${userCode}`);
+      const result = await response.json();
+
+      if (result.success && result.application_info) {
+        const scholarship = result.application_info.scholarship || "Undecided";
+        const radioButton = document.querySelector(`input[name="scholarship"][value="${scholarship}"]`);
+        if (radioButton) {
+          radioButton.checked = true;
+        }
+      } else {
+        // Default to Undecided
+        const undecidedRadio = document.querySelector('input[name="scholarship"][value="Undecided"]');
+        if (undecidedRadio) {
+          undecidedRadio.checked = true;
+        }
+      }
+
+      // Update permissions after loading
+      await this.updateScholarshipFormPermissions();
+    } catch (error) {
+      console.error("Error loading scholarship:", error);
+    }
+  }
+
+  async updateScholarshipFormPermissions() {
+    try {
+      const response = await fetch("/api/auth/check-session");
+      const result = await response.json();
+
+      const scholarshipRadios = document.querySelectorAll('input[name="scholarship"]');
+      const saveScholarshipBtn = document.getElementById("saveScholarshipBtn");
+
+      if (result.authenticated && result.user) {
+        if (result.user.role === "Admin") {
+          // Admin can edit - enable all controls
+          scholarshipRadios.forEach(radio => radio.disabled = false);
+          if (saveScholarshipBtn) saveScholarshipBtn.style.display = "inline-block";
+        } else {
+          // Faculty and Viewer can only view - disable all controls
+          scholarshipRadios.forEach(radio => radio.disabled = true);
+          if (saveScholarshipBtn) saveScholarshipBtn.style.display = "none";
+        }
+      }
+    } catch (error) {
+      console.error("Error checking user permissions:", error);
     }
   }
 
@@ -3172,6 +3448,7 @@ class ApplicantsManager {
       const csInput = document.getElementById("prerequisiteCs");
       const statInput = document.getElementById("prerequisiteStat");
       const mathInput = document.getElementById("prerequisiteMath");
+      const additionalCommentsInput = document.getElementById("additionalComments");
       const gpaInput = document.getElementById("overallGpa");
 
       if (result.authenticated && result.user?.role === "Admin") {
@@ -3217,6 +3494,12 @@ class ApplicantsManager {
           mathInput.disabled = true;
           if (!mathInput.value || mathInput.value.trim() === "") {
             mathInput.placeholder = "Not Provided";
+          }
+        }
+        if (additionalCommentsInput) {
+          additionalCommentsInput.disabled = true;
+          if (!additionalCommentsInput.value || additionalCommentsInput.value.trim() === "") {
+            additionalCommentsInput.placeholder = "Not Provided";
           }
         }
         if (gpaInput) {
@@ -3329,6 +3612,7 @@ class ApplicantsManager {
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
+      this.loadPrerequisitesSummary(userCode);
     }
   }
 
@@ -3340,6 +3624,7 @@ class ApplicantsManager {
     const cs = document.getElementById("prerequisiteCs").value;
     const stat = document.getElementById("prerequisiteStat").value;
     const math = document.getElementById("prerequisiteMath").value;
+    const additionalComments = document.getElementById("additionalComments").value;
 
     const saveBtn = document.getElementById("savePrerequisitesBtn");
     const originalText = saveBtn.textContent;
@@ -3366,7 +3651,7 @@ class ApplicantsManager {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ cs, stat, math, gpa }),
+          body: JSON.stringify({ cs, stat, math, gpa, additional_comments: additionalComments }),
         }
       );
 
@@ -3392,6 +3677,7 @@ class ApplicantsManager {
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
+      this.loadPrerequisitesSummary(modal.dataset.currentUserCode);
     }
   }
 
@@ -3400,6 +3686,7 @@ class ApplicantsManager {
     document.getElementById("prerequisiteCs").value = "";
     document.getElementById("prerequisiteStat").value = "";
     document.getElementById("prerequisiteMath").value = "";
+    document.getElementById("additionalComments").value = "";
 
     // Only clear GPA if user is Admin
     try {
@@ -4024,6 +4311,478 @@ class ApplicantsManager {
     }
   }
 
+//    ###CHANGED------------------------------------------------------------------------------------------------  
+async initializeExportButton() {
+    try {
+      const response = await fetch("/api/auth/check-session");
+      const result = await response.json();
+
+      if (result.authenticated && result.user) {
+        this.currentUser = result.user;
+        
+        // "Export All" button logic is removed as requested.
+        // We rely on the bulk selection export button which appears when items are selected.
+      }
+    } catch (error) {
+      console.error("Error checking user permissions:", error);
+    }
+  }
+
+  toggleAllApplicants(checked) {
+    const checkboxes = document.querySelectorAll('.applicant-checkbox');
+    checkboxes.forEach(cb => {
+      cb.checked = checked;
+      this.toggleApplicantSelection(cb.dataset.userCode, checked);
+    });
+  }
+
+  updateBulkExportButton() {
+    const bulkExportBtn = document.getElementById('bulkExportBtn');
+    const count = this.selectedApplicants.size;
+
+    if (bulkExportBtn) {
+      if (count > 0) {
+        bulkExportBtn.classList.remove('hidden');
+        bulkExportBtn.classList.add('flex');
+        bulkExportBtn.innerHTML = `
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Export Selected (${count})
+        `;
+      } else {
+        bulkExportBtn.classList.add('hidden');
+        bulkExportBtn.classList.remove('flex');
+      }
+    }
+  }
+
+  async exportSelectedApplicants() {
+    if (this.selectedApplicants.size === 0) {
+      this.showMessage('No applicants selected', 'error');
+      return;
+    }
+
+    // Show export options modal for bulk export
+    this.showBulkExportOptionsModal();
+  }
+
+  showBulkExportOptionsModal() {
+    let modal = document.getElementById('sharedExportOptionsModal');
+    if (!modal) {
+      modal = this.createSharedExportOptionsModal();
+      document.body.appendChild(modal);
+    }
+
+    // Update modal text
+    document.getElementById('exportModalTitle').textContent = 'Export Selected Applicants';
+    document.getElementById('exportModalDescription').textContent = 
+      `Exporting ${this.selectedApplicants.size} applicants. Select data columns to include:`;
+
+    // Remove old click handler and add new one
+    const confirmBtn = modal.querySelector('#confirmExportBtn');
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    
+    newConfirmBtn.addEventListener('click', () => {
+      this.executeBulkExport();
+    });
+
+    // Show modal
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  createSharedExportOptionsModal() {
+    const modal = document.createElement('div');
+    modal.id = 'sharedExportOptionsModal';
+    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50';
+
+    modal.innerHTML = `
+      <div class="relative top-20 mx-auto p-6 border w-11/12 max-w-md shadow-lg rounded-lg bg-white">
+        <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+          <h3 class="text-xl font-semibold text-gray-900" id="exportModalTitle">Export Options</h3>
+          <button class="export-modal-close text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="mt-4">
+          <p class="text-sm text-gray-600 mb-4" id="exportModalDescription">
+            Select data columns to include
+          </p>
+
+          <div class="space-y-3" id="exportSectionsContainer">
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input type="checkbox" class="export-section-checkbox w-4 h-4" value="personal" checked>
+              <span class="text-sm font-medium text-gray-700">Personal Info (Age, Gender, Citizenship...)</span>
+            </label>
+
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input type="checkbox" class="export-section-checkbox w-4 h-4" value="application" checked>
+              <span class="text-sm font-medium text-gray-700">Application Data (Status, Dates, Offer...)</span>
+            </label>
+
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input type="checkbox" class="export-section-checkbox w-4 h-4" value="education" checked>
+              <span class="text-sm font-medium text-gray-700">Education History (Degree, Year, Subject...)</span>
+            </label>
+          </div>
+
+          <div class="mt-6 flex gap-3">
+            <button id="confirmExportBtn" class="btn-ubc flex-1">
+              Export Selected
+            </button>
+            <button class="export-modal-close btn-ubc-outline">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add event listeners
+    modal.querySelectorAll('.export-modal-close').forEach(btn => {
+      btn.addEventListener('click', () => this.closeExportModal());
+    });
+
+    return modal;
+  }
+
+  showExportOptionsModal(userCode, userName) {
+    // Single export not requested to change, but using same modal
+    let modal = document.getElementById('sharedExportOptionsModal');
+    if (!modal) {
+      modal = this.createSharedExportOptionsModal();
+      document.body.appendChild(modal);
+    }
+
+    modal.dataset.userCode = userCode;
+    document.getElementById('exportModalTitle').textContent = 'Export Options';
+    document.getElementById('exportModalDescription').textContent = `Exporting data for: ${userName}`;
+
+    const confirmBtn = modal.querySelector('#confirmExportBtn');
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    
+    newConfirmBtn.addEventListener('click', () => {
+      this.exportSingleApplicant();
+    });
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  closeExportModal() {
+    const modal = document.getElementById('sharedExportOptionsModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  getSelectedExportSections() {
+    const checkboxes = document.querySelectorAll('.export-section-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+  }
+
+  async executeBulkExport() {
+    const sections = this.getSelectedExportSections();
+
+    if (sections.length === 0) {
+      this.showMessage('Please select at least one section to export', 'error');
+      return;
+    }
+
+    const confirmBtn = document.querySelector('#confirmExportBtn');
+    const originalHTML = confirmBtn.innerHTML;
+    
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = `
+      <svg class="w-5 h-5 animate-spin mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+    `;
+
+    try {
+      const response = await fetch('/api/export/selected', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          user_codes: Array.from(this.selectedApplicants),
+          sections: sections
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.download = `selected_applicants_${this.selectedApplicants.size}_${dateStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      this.showMessage(`Successfully exported ${this.selectedApplicants.size} applicants`, 'success');
+      
+      this.closeExportModal();
+      this.selectedApplicants.clear();
+      document.querySelectorAll('.applicant-checkbox').forEach(cb => cb.checked = false);
+      const selectAllCb = document.getElementById('selectAllCheckbox');
+      if(selectAllCb) selectAllCb.checked = false;
+      this.updateBulkExportButton();
+
+    } catch (error) {
+      console.error('Export error:', error);
+      this.showMessage(`Failed to export: ${error.message}`, 'error');
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = originalHTML;
+    }
+  }
+  async exportSingleApplicant() {
+    const modal = document.getElementById('sharedExportOptionsModal');
+    const userCode = modal.dataset.userCode;
+    const sections = this.getSelectedExportSections();
+
+    if (sections.length === 0) {
+      this.showMessage('Please select at least one section to export', 'error');
+      return;
+    }
+
+    const confirmBtn = modal.querySelector('#confirmExportBtn');
+    const originalHTML = confirmBtn.innerHTML;
+
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = `
+    <svg class="w-5 h-5 animate-spin mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+    </svg>
+  `;
+
+    try {
+      const response = await fetch(`/api/export/single/${userCode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ sections })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.download = `applicant_${userCode}_${sections.join('_')}_${dateStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      this.showMessage('Successfully exported applicant data', 'success');
+      this.closeExportModal();
+
+    } catch (error) {
+      console.error('Export error:', error);
+      this.showMessage(`Failed to export: ${error.message}`, 'error');
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = originalHTML;
+    }
+  }
+
+  // NOTE: Ensure you are calling this method, not 'showApplicants'
+  displayApplicants(applicants) {
+    const container = document.getElementById("applicantsContainer");
+
+    if (applicants.length === 0) {
+      const searchInput = document.getElementById("searchInput");
+      const isSearching = searchInput && searchInput.value.trim() !== "";
+
+      if (isSearching) {
+        container.innerHTML = `
+        <div class="no-data-state">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">No results found</h3>
+          <p>No applicants match your search criteria. Try adjusting your search terms.</p>
+        </div>`;
+      } else {
+        container.innerHTML = `
+        <div class="no-data-state">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">No applicants yet</h3>
+          <p>Upload a CSV file to see applicant data here.</p>
+        </div>`;
+      }
+      return;
+    }
+
+    const searchInput = document.getElementById("searchInput");
+    const isSearching = searchInput && searchInput.value.trim() !== "";
+    const resultText = isSearching
+      ? `<div class="mb-4 text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg">
+         Showing <span class="font-semibold">${applicants.length}</span> of <span class="font-semibold">${this.allApplicants.length}</span> applicants
+       </div>`
+      : "";
+
+    const table = `
+    ${resultText}
+    <div class="overflow-x-auto">
+      <table class="modern-table">
+        <thead>
+          <tr>
+            <th style="width: 3%;">
+              <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4" onchange="window.applicantsManager.toggleAllApplicants(this.checked)">
+            </th>
+            <th style="width: 25%;">Applicant</th>
+            <th style="width: 12%;">Student Number</th>
+            <th style="width: 14%;">Application Status</th>
+            <th style="width: 14%;">Submit Date</th>
+            <th style="width: 11%;">Overall Rating</th>
+            <th style="width: 11%;">Last Updated</th>
+            <th style="width: 10%;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${applicants
+            .map(
+              (applicant) => `
+              <tr>
+                <td class="text-center">
+                  <input type="checkbox" class="applicant-checkbox w-4 h-4" 
+                           data-user-code="${applicant.user_code}"
+                           onchange="window.applicantsManager.toggleApplicantSelection('${applicant.user_code}', this.checked)">
+                </td>
+                <td>
+                  <div class="applicant-card">
+                    <div class="applicant-avatar">
+                      ${this.getInitials(applicant.given_name, applicant.family_name)}
+                    </div>
+                    <div class="applicant-info">
+                      <h3>${applicant.given_name} ${applicant.family_name}</h3>
+                      <p>User Code: ${Math.floor(parseFloat(applicant.user_code))}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center">
+                  ${
+                    applicant.student_number && applicant.student_number !== "NaN"
+                      ? `<span class="text-sm font-mono text-gray-800">${Math.floor(parseFloat(applicant.student_number))}</span>`
+                      : '<span class="text-xs text-gray-400">N/A</span>'
+                  }
+                </td>
+                <td>
+                  ${this.getStatusBadge(applicant.status)}
+                </td>
+                <td>
+                  ${
+                    applicant.submit_date
+                      ? `<div class="date-display">${new Date(applicant.submit_date).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}</div>`
+                      : '<div class="text-gray-400 text-sm">Not submitted</div>'
+                  }
+                </td>
+                <td class="text-center">
+                  ${this.getOverallRatingDisplay(applicant.overall_rating)}
+                </td>
+                <td>
+                  <span class="${this.isRecentUpdate(applicant.seconds_since_update) ? "last-updated-recent" : "last-updated"}">
+                    ${this.formatLastChanged(applicant.seconds_since_update)}
+                  </span>
+                </td>
+                <td>
+                  <div class="relative">
+                    <button class="btn-actions" data-user-code="${applicant.user_code}" 
+                            data-user-name="${applicant.given_name} ${applicant.family_name}"
+                            onclick="window.applicantsManager.showActionsMenu(event, '${applicant.user_code}', '${applicant.given_name} ${applicant.family_name}')">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zM12 13a1 1 0 110-2 1 1 0 010 2zM12 20a1 1 0 110-2 1 1 0 010 2z"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+    container.innerHTML = table;
+    // If you have logic that re-checks checkboxes based on selectedApplicants set, call it here
+  }
+
+  showActionsMenu(event, userCode, userName) {
+    event.stopPropagation();
+
+    // Remove any existing menu
+    const existingMenu = document.querySelector('.actions-dropdown');
+    if (existingMenu) {
+      existingMenu.remove();
+    }
+  
+    // Create dropdown menu
+    const menu = document.createElement('div');
+    menu.className = 'actions-dropdown absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50';
+    menu.innerHTML = `
+    <button class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150 flex items-center gap-2 rounded-t-lg"
+            onclick="window.applicantsManager.showApplicantModal('${userCode}', '${userName}')">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+      </svg>
+      View Details
+    </button>
+    <button class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150 flex items-center gap-2 rounded-b-lg"
+            onclick="window.applicantsManager.showExportOptionsModal('${userCode}', '${userName}')">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>
+      Export Applicant
+    </button>
+  `;
+
+    // Position menu relative to button
+    const button = event.currentTarget;
+    const rect = button.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.top = `${rect.bottom + 5}px`;
+    menu.style.left = `${rect.left - 150}px`; // Offset to the left
+
+    document.body.appendChild(menu);
+
+    // Close menu when clicking outside
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target) && e.target !== button) {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+      }
+    };
+    //document.getElementById('applicantsContainer').classList.toggle("showing-dropdown");
+    setTimeout(() => document.addEventListener('click', closeMenu), 10);
+  }
+  
   initializeClearDataButton() {
   const clearBtn = document.getElementById('clearAllDataBtn');
   if (clearBtn) {
