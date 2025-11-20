@@ -44,6 +44,6 @@ Thumbs.db
 *.log
 
 # Others
-node_modules/
+node_modules
 static/css/output.css
 *.pyc
