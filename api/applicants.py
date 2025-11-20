@@ -521,6 +521,7 @@ def update_applicant_prerequisites(user_code):
     cs = str(data.get("cs", "")).strip()[:1000]  # Limit to 1000 chars
     stat = str(data.get("stat", "")).strip()[:1000]
     math = str(data.get("math", "")).strip()[:1000]
+    additional_comments = str(data.get("additional_comments", "")).strip()[:2000]
 
     # Handle GPA - accept as string input
     gpa = data.get("gpa", "")
@@ -530,7 +531,7 @@ def update_applicant_prerequisites(user_code):
     else:
         gpa = None
 
-    success, message = update_applicant_prerequisites(user_code, cs, stat, math, gpa)
+    success, message = update_applicant_prerequisites(user_code, cs, stat, math, gpa, additional_comments)
 
     if success:
         return jsonify({"success": True, "message": message})
@@ -945,3 +946,73 @@ def clear_all_data():
             "success": False,
             "message": message
         }), 500
+
+@applicants_api.route("/applicant-application-info/<user_code>/scholarship", methods=["PUT"])
+def update_applicant_scholarship(user_code):
+    """
+    Update applicant scholarship decision.
+
+    Updates the scholarship offer decision for a specific applicant.
+    Only Admin users can update scholarship decisions.
+
+    @requires: Admin authentication (Faculty and Viewer access denied)
+    @method: PUT
+    @param user_code: Unique identifier for the applicant (URL parameter)
+    @param_type user_code: str
+    @param scholarship: Scholarship decision (JSON body: "Yes", "No", or "Undecided")
+    @param_type scholarship: str
+
+    @return: JSON response with operation result
+    @return_type: flask.Response
+    @status_codes:
+        - 200: Scholarship decision updated successfully
+        - 400: Invalid scholarship value or request data
+        - 401: Authentication required
+        - 403: Access denied (non-Admin user)
+        - 404: Applicant not found
+        - 500: Database error
+
+    @validation: Scholarship must be "Yes", "No", or "Undecided"
+    @db_tables: application_info
+    @upsert: Updates existing record or creates new one
+
+    @example:
+        PUT /api/applicant-application-info/12345/scholarship
+        Content-Type: application/json
+
+        Request:
+        {
+            "scholarship": "Yes"
+        }
+
+        Response:
+        {
+            "success": true,
+            "message": "Scholarship decision updated successfully"
+        }
+    """
+    if not current_user.is_authenticated:
+        return jsonify({"success": False, "message": "Authentication required"}), 401
+
+    # Only Admin can update scholarship
+    if not current_user.is_admin:
+        return jsonify({"success": False, "message": "Only Admin users can update scholarship decisions"}), 403
+
+    from models.applicants import update_applicant_scholarship
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "Invalid request data"}), 400
+
+    scholarship = data.get("scholarship", "Undecided")
+    
+    # Validate scholarship value
+    if scholarship not in ["Yes", "No", "Undecided"]:
+        return jsonify({"success": False, "message": "Invalid scholarship value"}), 400
+
+    success, message = update_applicant_scholarship(user_code, scholarship)
+
+    if success:
+        return jsonify({"success": True, "message": message})
+    else:
+        return jsonify({"success": False, "message": message}), 400

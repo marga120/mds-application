@@ -1507,7 +1507,7 @@ def get_applicant_application_info_by_code(user_code):
             """
             SELECT 
                 user_code, sent, full_name, canadian, english,
-                cs, stat, math, gpa, highest_degree, degree_area,
+                cs, stat, math, additional_comments, gpa, highest_degree, degree_area,
                 mds_v, mds_cl, scholarship,
                 english_status, english_description, english_comment
             FROM application_info 
@@ -1592,7 +1592,7 @@ def update_applicant_application_status(user_code, status):
         return False, f"Database error: {str(e)}"
 
 
-def update_applicant_prerequisites(user_code, cs, stat, math, gpa=None):
+def update_applicant_prerequisites(user_code, cs, stat, math, gpa=None, additional_comments=None):
     """
     Update prerequisite course and GPA information for an applicant.
 
@@ -1647,20 +1647,20 @@ def update_applicant_prerequisites(user_code, cs, stat, math, gpa=None):
         cursor.execute(
             """
             UPDATE application_info 
-            SET cs = %s, stat = %s, math = %s, gpa = %s
+            SET cs = %s, stat = %s, math = %s, gpa = %s, additional_comments = %s
             WHERE user_code = %s
         """,
-            (cs, stat, math, gpa, user_code),
+            (cs, stat, math, gpa, additional_comments, user_code),
         )
 
         if cursor.rowcount == 0:
             # If no rows updated, create new record
             cursor.execute(
                 """
-                INSERT INTO application_info (user_code, cs, stat, math, gpa) 
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO application_info (user_code, cs, stat, math, gpa, additional_comments) 
+                VALUES (%s, %s, %s, %s, %s,%s)
             """,
-                (user_code, cs, stat, math, gpa),
+                (user_code, cs, stat, math, gpa,additional_comments),
             )
 
         conn.commit()
@@ -1668,6 +1668,76 @@ def update_applicant_prerequisites(user_code, cs, stat, math, gpa=None):
         conn.close()
 
         return True, "Prerequisites updated successfully"
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return False, f"Database error: {str(e)}"
+    
+def update_applicant_scholarship(user_code, scholarship):
+    """
+    Update scholarship decision for an applicant.
+
+    Updates the scholarship offer decision in the application_info table.
+    Creates a new record if one doesn't exist for the applicant.
+
+    @param user_code: Unique identifier for the applicant
+    @param_type user_code: str
+    @param scholarship: Scholarship decision ("Yes", "No", or "Undecided")
+    @param_type scholarship: str
+
+    @return: Tuple of (success, message)
+    @return_type: tuple[bool, str]
+
+    @validation: Validates that user_code exists in applicant_info
+    @db_tables: application_info, applicant_info
+    @upsert: Updates existing record or creates new one
+
+    @example:
+        success, msg = update_applicant_scholarship("12345", "Yes")
+    """
+    conn = get_db_connection()
+    if not conn:
+        return False, "Database connection failed"
+
+    try:
+        cursor = conn.cursor()
+
+        # Validate user_code exists in applicant_info first
+        cursor.execute(
+            "SELECT user_code FROM applicant_info WHERE user_code = %s", (user_code,)
+        )
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return False, "Applicant not found"
+
+        # Update scholarship
+        cursor.execute(
+            """
+            UPDATE application_info 
+            SET scholarship = %s
+            WHERE user_code = %s
+            """,
+            (scholarship, user_code),
+        )
+
+        if cursor.rowcount == 0:
+            # If no rows updated, create new record with default values
+            cursor.execute(
+                """
+                INSERT INTO application_info (user_code, scholarship) 
+                VALUES (%s, %s)
+                """,
+                (user_code, scholarship),
+            )
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return True, "Scholarship decision updated successfully"
 
     except Exception as e:
         if conn:

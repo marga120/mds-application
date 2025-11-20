@@ -121,19 +121,20 @@ CREATE TABLE IF NOT EXISTS application_info (
     cs TEXT,
     stat TEXT,
     math TEXT,
+    additional_comments TEXT,
     gpa VARCHAR(50),
     highest_degree VARCHAR(50),
     degree_area VARCHAR(50),
     mds_v BOOLEAN,
     mds_cl BOOLEAN,
-    scholarship BOOLEAN
+    scholarship VARCHAR(20) DEFAULT 'Undecided' CHECK (scholarship IN ('Yes', 'No', 'Undecided'))
 );
 
 CREATE TABLE IF NOT EXISTS ratings(
 	user_id INTEGER REFERENCES "user"(id),
 	user_code VARCHAR(10) REFERENCES applicant_info(user_code),
 	rating DECIMAL(3,1) CHECK (rating >= 0.0 AND rating <= 10.0),
-	user_comment VARCHAR(300),
+	user_comment VARCHAR(2000),
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (user_id, user_code)
