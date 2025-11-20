@@ -475,7 +475,7 @@ class ApplicantsManager {
       "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50";
 
     modal.innerHTML = `
-    <div class="relative top-5 mx-auto p-6 border w-11/12 max-w-4xl max-h-[90vh] shadow-lg rounded-lg bg-white mb-10 flex flex-col">
+    <div class="relative top-2 mx-auto p-6 border w-11/12 max-w-6xl max-h-[96vh] shadow-lg rounded-lg bg-white mb-2 flex flex-col">
      <!-- Modal Header -->
       <div class="flex items-center justify-between pb-4 border-b border-gray-200">
         <div>
@@ -517,9 +517,9 @@ class ApplicantsManager {
       </div>
 
       <!-- Tab Content -->
-      <div class="mt-6 flex flex-col min-h-[20rem] max-h-[calc(100vh-20rem)]">
+      <div class="mt-6 flex-1 flex flex-col overflow-hidden">
         <!-- Applicant Info Tab -->
-        <div id="applicant-info" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="applicant-info" class="tab-content hidden h-full overflow-y-auto">
           <div id="applicantInfoContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
@@ -529,7 +529,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Institution Info Tab -->
-        <div id="institution-info" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="institution-info" class="tab-content hidden h-full overflow-y-auto">
           <div id="institutionInfoContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
@@ -539,7 +539,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Test Scores Tab -->
-        <div id="test-scores" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="test-scores" class="tab-content hidden h-full overflow-y-auto">
           <div id="testScoresContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
@@ -549,7 +549,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Prerequisites Tab -->
-        <div id="prerequisite-courses" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="prerequisite-courses" class="tab-content hidden h-full overflow-y-auto">
           <div class="pr-2">
             <div class="mb-6">
               <!-- Feedback Message Area -->
@@ -695,7 +695,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Comments & Ratings Tab -->
-        <div id="comments-ratings" class="tab-content flex-1 overflow-y-auto">
+        <div id="comments-ratings" class="tab-content h-full overflow-y-auto">
           <div class="pr-2">
 
             <!-- Summary of Prerequisites Section -->
@@ -733,8 +733,7 @@ class ApplicantsManager {
               <div class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Rating (0.0 - 10.0)</label>
-                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter rating (e.g., 8.5)">
-                  <p class="text-xs text-gray-500 mt-1">Enter a rating between 0.0 and 10.0</p>
+                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter a rating between 0.0 and 10.0">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
@@ -819,7 +818,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Status Tab -->
-        <div id="status-tab" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="status-tab" class="tab-content hidden h-full overflow-y-auto">
           <div class="pr-2">
             <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
               <h4 class="text-lg font-semibold text-ubc-blue mb-6 flex items-center">
