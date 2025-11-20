@@ -405,6 +405,14 @@ class ApplicantsManager {
       modal = this.createApplicantModal();
       document.body.appendChild(modal);
     }
+    //Close the existing dropdown menu if open
+    const existingMenu = document.querySelector('.actions-dropdown');
+    if (existingMenu) {
+      if (existingMenu._closeListener) {
+        document.removeEventListener('click', existingMenu._closeListener);
+      }
+      existingMenu.remove();
+    }
 
     // Update modal content
     document.getElementById("modalApplicantName").textContent = userName;
@@ -4546,7 +4554,7 @@ async initializeExportButton() {
     if (existingMenu) {
       existingMenu.remove();
     }
-
+  
     // Create dropdown menu
     const menu = document.createElement('div');
     menu.className = 'actions-dropdown absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50';
@@ -4584,9 +4592,9 @@ async initializeExportButton() {
         document.removeEventListener('click', closeMenu);
       }
     };
+    //document.getElementById('applicantsContainer').classList.toggle("showing-dropdown");
     setTimeout(() => document.addEventListener('click', closeMenu), 10);
   }
-  
   
   initializeClearDataButton() {
   const clearBtn = document.getElementById('clearAllDataBtn');
