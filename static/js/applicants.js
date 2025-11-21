@@ -625,6 +625,17 @@ class ApplicantsManager {
                   ></textarea>
                 </div>
 
+                <!-- Additional Comments -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Additional Comments (e.g., Reference Letter):</label>
+                  <textarea
+                    id="additionalComments"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
+                    rows="2"
+                    placeholder="Enter Additional Comments"
+                  ></textarea>
+                </div>
+
                 <!-- Save Button -->
                 <div class="flex gap-3 mt-6">
                   <button
@@ -3234,22 +3245,14 @@ class ApplicantsManager {
       const result = await response.json();
 
       if (result.success && result.application_info) {
-        const info = result.application_info;
-        document.getElementById("prerequisiteCs").value = info.cs || "";
-        document.getElementById("prerequisiteStat").value = info.stat || "";
-        document.getElementById("prerequisiteMath").value = info.math || "";
-
-        // Load the overall GPA
-        const gpaInput = document.getElementById("overallGpa");
-        if (info.gpa) {
-          // Load as string value
-          gpaInput.value = info.gpa;
-        } else {
-          gpaInput.value = "";
-        }
+        const appInfo = result.application_info;
+        document.getElementById("prerequisiteCs").value = appInfo.cs || "";
+        document.getElementById("prerequisiteStat").value = appInfo.stat || "";
+        document.getElementById("prerequisiteMath").value = appInfo.math || "";
+        document.getElementById("additionalComments").value = appInfo.additional_comments || "";
+        document.getElementById("overallGpa").value = appInfo.gpa || "";
       }
 
-      // Check user permissions and update form accordingly
       await this.updatePrerequisitesFormPermissions();
     } catch (error) {
       console.error("Error loading prerequisites:", error);
@@ -3272,6 +3275,7 @@ class ApplicantsManager {
       const csInput = document.getElementById("prerequisiteCs");
       const statInput = document.getElementById("prerequisiteStat");
       const mathInput = document.getElementById("prerequisiteMath");
+      const additionalCommentsInput = document.getElementById("additionalComments");
       const gpaInput = document.getElementById("overallGpa");
 
       if (result.authenticated && result.user?.role === "Admin") {
@@ -3317,6 +3321,12 @@ class ApplicantsManager {
           mathInput.disabled = true;
           if (!mathInput.value || mathInput.value.trim() === "") {
             mathInput.placeholder = "Not Provided";
+          }
+        }
+        if (additionalCommentsInput) {
+          additionalCommentsInput.disabled = true;
+          if (!additionalCommentsInput.value || additionalCommentsInput.value.trim() === "") {
+            additionalCommentsInput.placeholder = "Not Provided";
           }
         }
         if (gpaInput) {
@@ -3440,6 +3450,7 @@ class ApplicantsManager {
     const cs = document.getElementById("prerequisiteCs").value;
     const stat = document.getElementById("prerequisiteStat").value;
     const math = document.getElementById("prerequisiteMath").value;
+    const additionalComments = document.getElementById("additionalComments").value;
 
     const saveBtn = document.getElementById("savePrerequisitesBtn");
     const originalText = saveBtn.textContent;
@@ -3466,7 +3477,7 @@ class ApplicantsManager {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ cs, stat, math, gpa }),
+          body: JSON.stringify({ cs, stat, math, gpa, additional_comments: additionalComments }),
         }
       );
 
@@ -3500,6 +3511,7 @@ class ApplicantsManager {
     document.getElementById("prerequisiteCs").value = "";
     document.getElementById("prerequisiteStat").value = "";
     document.getElementById("prerequisiteMath").value = "";
+    document.getElementById("additionalComments").value = "";
 
     // Only clear GPA if user is Admin
     try {

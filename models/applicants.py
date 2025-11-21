@@ -1507,7 +1507,7 @@ def get_applicant_application_info_by_code(user_code):
             """
             SELECT 
                 user_code, sent, full_name, canadian, english,
-                cs, stat, math, gpa, highest_degree, degree_area,
+                cs, stat, math, additional_comments, gpa, highest_degree, degree_area,
                 mds_v, mds_cl, scholarship,
                 english_status, english_description, english_comment
             FROM application_info 
@@ -1592,7 +1592,7 @@ def update_applicant_application_status(user_code, status):
         return False, f"Database error: {str(e)}"
 
 
-def update_applicant_prerequisites(user_code, cs, stat, math, gpa=None):
+def update_applicant_prerequisites(user_code, cs, stat, math, gpa=None, additional_comments=None):
     """
     Update prerequisite course and GPA information for an applicant.
 
@@ -1647,20 +1647,20 @@ def update_applicant_prerequisites(user_code, cs, stat, math, gpa=None):
         cursor.execute(
             """
             UPDATE application_info 
-            SET cs = %s, stat = %s, math = %s, gpa = %s
+            SET cs = %s, stat = %s, math = %s, gpa = %s, additional_comments = %s
             WHERE user_code = %s
         """,
-            (cs, stat, math, gpa, user_code),
+            (cs, stat, math, gpa, additional_comments, user_code),
         )
 
         if cursor.rowcount == 0:
             # If no rows updated, create new record
             cursor.execute(
                 """
-                INSERT INTO application_info (user_code, cs, stat, math, gpa) 
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO application_info (user_code, cs, stat, math, gpa, additional_comments) 
+                VALUES (%s, %s, %s, %s, %s,%s)
             """,
-                (user_code, cs, stat, math, gpa),
+                (user_code, cs, stat, math, gpa,additional_comments),
             )
 
         conn.commit()
