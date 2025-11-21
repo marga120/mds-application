@@ -447,6 +447,8 @@ class ApplicantsManager {
 
     this.loadRatings(userCode);
 
+    this.loadPrerequisitesSummary(userCode);
+
     this.loadMyRating(userCode);
 
     // Update rating form for viewers
@@ -460,6 +462,8 @@ class ApplicantsManager {
 
     this.loadPrerequisites(userCode);
 
+    this.loadScholarship(userCode);
+
     this.loadStatusHistory(userCode);
   }
   
@@ -471,7 +475,7 @@ class ApplicantsManager {
       "fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50";
 
     modal.innerHTML = `
-    <div class="relative top-5 mx-auto p-6 border w-11/12 max-w-4xl max-h-[90vh] shadow-lg rounded-lg bg-white mb-10 flex flex-col">
+    <div class="relative top-2 mx-auto p-6 border w-11/12 max-w-6xl max-h-[96vh] shadow-lg rounded-lg bg-white mb-2 flex flex-col">
      <!-- Modal Header -->
       <div class="flex items-center justify-between pb-4 border-b border-gray-200">
         <div>
@@ -513,9 +517,9 @@ class ApplicantsManager {
       </div>
 
       <!-- Tab Content -->
-      <div class="mt-6 flex flex-col min-h-[20rem] max-h-[calc(100vh-20rem)]">
+      <div class="mt-6 flex-1 flex flex-col overflow-hidden">
         <!-- Applicant Info Tab -->
-        <div id="applicant-info" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="applicant-info" class="tab-content hidden h-full overflow-y-auto">
           <div id="applicantInfoContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
@@ -525,7 +529,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Institution Info Tab -->
-        <div id="institution-info" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="institution-info" class="tab-content hidden h-full overflow-y-auto">
           <div id="institutionInfoContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
@@ -535,7 +539,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Test Scores Tab -->
-        <div id="test-scores" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="test-scores" class="tab-content hidden h-full overflow-y-auto">
           <div id="testScoresContainer" class="space-y-6 min-h-0">
             <div class="text-center py-8 text-gray-500">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
@@ -545,7 +549,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Prerequisites Tab -->
-        <div id="prerequisite-courses" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="prerequisite-courses" class="tab-content hidden h-full overflow-y-auto">
           <div class="pr-2">
             <div class="mb-6">
               <!-- Feedback Message Area -->
@@ -691,17 +695,45 @@ class ApplicantsManager {
         </div>
 
         <!-- Comments & Ratings Tab -->
-        <div id="comments-ratings" class="tab-content flex-1 overflow-y-auto">
+        <div id="comments-ratings" class="tab-content h-full overflow-y-auto">
           <div class="pr-2">
 
+            <!-- Summary of Prerequisites Section -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200 mb-6">
+              <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                Summary of Prerequisites
+              </h4>
+              <div class="space-y-3 text-sm">
+                <div>
+                  <span class="font-semibold text-gray-700">Overall CGPA:</span>
+                  <span class="text-gray-900 ml-2" id="summaryGpa">-</span>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">CS Prerequisite:</span>
+                  <span class="text-gray-900 ml-2" id="summaryCs">-</span>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">Stat Prerequisite:</span>
+                  <span class="text-gray-900 ml-2" id="summaryStat">-</span>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">Math Prerequisite:</span>
+                  <span class="text-gray-900 ml-2" id="summaryMath">-</span>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">Additional Comments:</span>
+                  <span class="text-gray-900 ml-2" id="summaryAdditionalComments">-</span>
+                </div>
+              </div>
+            </div>
+
             <!-- Add/Edit Rating Section -->
-            <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg mb-6">
+            <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg border border-blue-200 mb-6">
               <h4 class="text-lg font-semibold text-gray-900 mb-4">Your Rating & Comment</h4>
               <div class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Rating (0.0 - 10.0)</label>
-                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter rating (e.g., 8.5)">
-                  <p class="text-xs text-gray-500 mt-1">Enter a rating between 0.0 and 10.0</p>
+                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter a rating between 0.0 and 10.0">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
@@ -713,7 +745,31 @@ class ApplicantsManager {
                 </div>
               </div>
             </div>
-            
+
+            <!-- Scholarship Section -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200 mb-6">
+              <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+                Offer Scholarship
+              </h4>
+              <div class="flex items-center gap-6 mb-4">
+                <label class="flex items-center cursor-pointer">
+                  <input type="radio" name="scholarship" value="Yes" class="w-4 h-4 text-ubc-blue focus:ring-ubc-blue">
+                  <span class="ml-2 text-gray-700">Yes</span>
+                </label>
+                <label class="flex items-center cursor-pointer">
+                  <input type="radio" name="scholarship" value="No" class="w-4 h-4 text-ubc-blue focus:ring-ubc-blue">
+                  <span class="ml-2 text-gray-700">No</span>
+                </label>
+                <label class="flex items-center cursor-pointer">
+                  <input type="radio" name="scholarship" value="Undecided" class="w-4 h-4 text-ubc-blue focus:ring-ubc-blue" checked>
+                  <span class="ml-2 text-gray-700">Undecided</span>
+                </label>
+              </div>
+              <button id="saveScholarshipBtn" class="btn-ubc">
+                Save
+              </button>
+            </div>
+
             <!-- Status Change Section for Comments & Ratings Tab -->
             <div id="ratingsStatusChangeSection" class="mt-6 mb-8">
               <h5 class="text-sm font-medium text-gray-700 mb-3">Change Status</h5>
@@ -762,7 +818,7 @@ class ApplicantsManager {
         </div>
 
         <!-- Status Tab -->
-        <div id="status-tab" class="tab-content hidden flex-1 overflow-y-auto">
+        <div id="status-tab" class="tab-content hidden h-full overflow-y-auto">
           <div class="pr-2">
             <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
               <h4 class="text-lg font-semibold text-ubc-blue mb-6 flex items-center">
@@ -898,6 +954,10 @@ class ApplicantsManager {
 
     modal.querySelector("#clearRatingBtn").addEventListener("click", () => {
       this.clearRatingForm();
+    });
+
+    modal.querySelector("#saveScholarshipBtn").addEventListener("click", () => {
+      this.saveScholarship();
     });
 
     modal.querySelector("#updateStatusBtn").addEventListener("click", () => {
@@ -1056,6 +1116,31 @@ class ApplicantsManager {
     }
   }
 
+  async loadPrerequisitesSummary(userCode) {
+    try {
+      const response = await fetch(`/api/applicant-application-info/${userCode}`);
+      const result = await response.json();
+
+      if (result.success && result.application_info) {
+        const appInfo = result.application_info;
+        document.getElementById("summaryGpa").textContent = appInfo.gpa || "Not Provided";
+        document.getElementById("summaryCs").textContent = appInfo.cs || "Not Provided";
+        document.getElementById("summaryStat").textContent = appInfo.stat || "Not Provided";
+        document.getElementById("summaryMath").textContent = appInfo.math || "Not Provided";
+        document.getElementById("summaryAdditionalComments").textContent = appInfo.additional_comments || "Not Provided";
+      } else {
+        // Set all to "Not Provided" if no data
+        document.getElementById("summaryGpa").textContent = "Not Provided";
+        document.getElementById("summaryCs").textContent = "Not Provided";
+        document.getElementById("summaryStat").textContent = "Not Provided";
+        document.getElementById("summaryMath").textContent = "Not Provided";
+        document.getElementById("summaryAdditionalComments").textContent = "Not Provided";
+      }
+    } catch (error) {
+      console.error("Error loading prerequisites summary:", error);
+    }
+  }
+
   async loadMyRating(userCode) {
     try {
       const response = await fetch(`/api/ratings/${userCode}/my-rating`);
@@ -1130,6 +1215,44 @@ class ApplicantsManager {
       }
     } catch (error) {
       this.showMessage(`Error saving rating: ${error.message}`, "error");
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalText;
+    }
+  }
+
+  async saveScholarship() {
+    const modal = document.getElementById("applicantModal");
+    const userCode = modal.dataset.currentUserCode;
+    if (!userCode) return;
+
+    const selectedScholarship = document.querySelector('input[name="scholarship"]:checked').value;
+
+    const saveBtn = document.getElementById("saveScholarshipBtn");
+    const originalText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+
+    try {
+      const response = await fetch(`/api/applicant-application-info/${userCode}/scholarship`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          scholarship: selectedScholarship,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        this.showMessage("Scholarship decision saved successfully", "success");
+      } else {
+        this.showMessage(result.message || "Failed to save scholarship decision", "error");
+      }
+    } catch (error) {
+      this.showMessage(`Error saving scholarship decision: ${error.message}`, "error");
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
@@ -3259,6 +3382,56 @@ class ApplicantsManager {
     }
   }
 
+  async loadScholarship(userCode) {
+    try {
+      const response = await fetch(`/api/applicant-application-info/${userCode}`);
+      const result = await response.json();
+
+      if (result.success && result.application_info) {
+        const scholarship = result.application_info.scholarship || "Undecided";
+        const radioButton = document.querySelector(`input[name="scholarship"][value="${scholarship}"]`);
+        if (radioButton) {
+          radioButton.checked = true;
+        }
+      } else {
+        // Default to Undecided
+        const undecidedRadio = document.querySelector('input[name="scholarship"][value="Undecided"]');
+        if (undecidedRadio) {
+          undecidedRadio.checked = true;
+        }
+      }
+
+      // Update permissions after loading
+      await this.updateScholarshipFormPermissions();
+    } catch (error) {
+      console.error("Error loading scholarship:", error);
+    }
+  }
+
+  async updateScholarshipFormPermissions() {
+    try {
+      const response = await fetch("/api/auth/check-session");
+      const result = await response.json();
+
+      const scholarshipRadios = document.querySelectorAll('input[name="scholarship"]');
+      const saveScholarshipBtn = document.getElementById("saveScholarshipBtn");
+
+      if (result.authenticated && result.user) {
+        if (result.user.role === "Admin") {
+          // Admin can edit - enable all controls
+          scholarshipRadios.forEach(radio => radio.disabled = false);
+          if (saveScholarshipBtn) saveScholarshipBtn.style.display = "inline-block";
+        } else {
+          // Faculty and Viewer can only view - disable all controls
+          scholarshipRadios.forEach(radio => radio.disabled = true);
+          if (saveScholarshipBtn) saveScholarshipBtn.style.display = "none";
+        }
+      }
+    } catch (error) {
+      console.error("Error checking user permissions:", error);
+    }
+  }
+
   async updatePrerequisitesFormPermissions() {
     try {
       const response = await fetch("/api/auth/check-session");
@@ -3439,6 +3612,7 @@ class ApplicantsManager {
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
+      this.loadPrerequisitesSummary(userCode);
     }
   }
 
@@ -3503,6 +3677,7 @@ class ApplicantsManager {
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
+      this.loadPrerequisitesSummary(modal.dataset.currentUserCode);
     }
   }
 
