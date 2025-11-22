@@ -10,6 +10,7 @@ class AuthManager {
   constructor() {
     this.checkAuthentication();
     this.initializeLogout();
+    this.initializeResetPassword();
   }
 
   async checkAuthentication() {
@@ -111,6 +112,10 @@ class AuthManager {
             </svg>
           </button>
           <div id="userDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+            <button id="resetPasswordBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+              Reset Password
+            </button>
+            <div class="border-t border-gray-100"></div>
             <button id="logoutBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
               Logout
             </button>
@@ -304,4 +309,105 @@ class AuthManager {
       window.location.href = "/login";
     }
   }
+
+
+  initializeResetPassword() {
+    // Open modal
+    document.addEventListener("click", (e) => {
+      if (e.target.id === "resetPasswordBtn") {
+        document.getElementById("resetPasswordModal").classList.remove("hidden");
+        // Close the user dropdown
+        const userDropdownMenu = document.getElementById("userDropdownMenu");
+        if (userDropdownMenu) {
+          userDropdownMenu.classList.add("hidden");
+        }
+      }
+    });
+
+    // Close modal buttons
+    const closeButtons = ["closeResetPasswordModal", "cancelResetPassword"];
+    closeButtons.forEach((id) => {
+      document.addEventListener("click", (e) => {
+        if (e.target.id === id) {
+          this.closeResetPasswordModal();
+        }
+      });
+    });
+
+    // Handle form submission
+    const form = document.getElementById("resetPasswordForm");
+    if (form) {
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        this.handleResetPassword();
+      });
+    }
+  }
+
+  closeResetPasswordModal() {
+    document.getElementById("resetPasswordModal").classList.add("hidden");
+    document.getElementById("resetPasswordForm").reset();
+    document.getElementById("resetPasswordError").classList.add("hidden");
+    document.getElementById("resetPasswordSuccess").classList.add("hidden");
+  }
+
+  async handleResetPassword() {
+    const currentPassword = document.getElementById("currentPassword").value;
+    const newPassword = document.getElementById("newPassword").value;
+    const confirmPassword = document.getElementById("confirmPassword").value;
+    const errorDiv = document.getElementById("resetPasswordError");
+    const successDiv = document.getElementById("resetPasswordSuccess");
+
+    // Hide previous messages
+    errorDiv.classList.add("hidden");
+    successDiv.classList.add("hidden");
+
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+      errorDiv.textContent = "New passwords do not match";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    // Validate password length
+    if (newPassword.length < 8) {
+      errorDiv.textContent = "Password must be at least 8 characters";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        successDiv.textContent = "Password reset successfully!";
+        successDiv.classList.remove("hidden");
+        
+        // Close modal after 2 seconds
+        setTimeout(() => {
+          this.closeResetPasswordModal();
+        }, 2000);
+      } else {
+        errorDiv.textContent = result.message || "Failed to reset password";
+        errorDiv.classList.remove("hidden");
+      }
+    } catch (error) {
+      console.error("Reset password error:", error);
+      errorDiv.textContent = "An error occurred. Please try again.";
+      errorDiv.classList.remove("hidden");
+    }
+  }
+
 }
