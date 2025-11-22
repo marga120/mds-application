@@ -3,7 +3,8 @@ from flask_login import login_user, logout_user, login_required, current_user
 from models.users import authenticate_user, get_user_by_email, create_user
 from datetime import datetime
 from utils.activity_logger import log_activity
-
+import bcrypt
+from utils.database import get_db_connection
 auth_api = Blueprint("auth_api", __name__)
 
 
@@ -381,3 +382,65 @@ def check_session():
         )
     else:
         return jsonify({"authenticated": False})
+@auth_api.route("/reset-password", methods=["POST"])
+@login_required
+def reset_password():
+    """Reset user password"""
+    data = request.get_json()
+    current_password = data.get("current_password")
+    new_password = data.get("new_password")
+    
+    if not current_password or not new_password:
+        return jsonify({"success": False, "message": "Missing required fields"}), 400
+    
+    if len(new_password) < 8:
+        return jsonify({"success": False, "message": "Password must be at least 8 characters"}), 400
+    
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        
+        # Get current user's password hash from database
+        cursor.execute('SELECT password FROM "user" WHERE id = %s', (current_user.id,))
+        result = cursor.fetchone()
+        
+        if not result:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "message": "User not found"}), 404
+        
+        stored_password_hash = result[0]
+        
+        # Verify current password
+        if not bcrypt.checkpw(current_password.encode('utf-8'), stored_password_hash.encode('utf-8')):
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "message": "Current password is incorrect"}), 401
+        
+        # Hash new password
+        hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        
+        # Update password in database
+        cursor.execute(
+            'UPDATE "user" SET password = %s, updated_at = %s WHERE id = %s',
+            (hashed_password, datetime.now(), current_user.id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        # Log the activity
+        log_activity(
+            action_type="password_reset",
+            target_entity="user",
+            target_id=str(current_user.id),
+            additional_metadata={"user_email": current_user.email}
+        )
+        
+        return jsonify({"success": True, "message": "Password reset successfully"})
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return jsonify({"success": False, "message": f"Database error: {str(e)}"}), 500
