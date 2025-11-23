@@ -385,7 +385,58 @@ def check_session():
 @auth_api.route("/reset-password", methods=["POST"])
 @login_required
 def reset_password():
-    """Reset user password"""
+    """
+    Reset authenticated user's password.
+
+    Allows users to change their password by providing their current password
+    and a new password. verifies the current password before updating to the
+    new password.all password changes are logged for security auditing.
+
+    @requires: Any authenticated user (Admin, Faculty, or Viewer)
+    @method: POST
+    @param current_password: User's current password for verification (JSON body)
+    @param_type current_password: str
+    @param new_password: New password to set (JSON body, min 8 chars)
+    @param_type new_password: str
+
+    @return: JSON response with password reset result
+    @return_type: flask.Response
+    @status_codes:
+        - 200: Password reset successfully
+        - 400: Missing required fields or invalid password length
+        - 401: Current password is incorrect
+        - 404: User not found in database
+        - 500: Database error
+
+    @validation:
+        - Both current and new passwords required
+        - New password minimum 8 characters
+        - Current password must match stored hash
+
+    @security: 
+        - Password verified using bcrypt
+        - New password hashed with bcrypt and salt before storage
+        - Activity logged for audit trail
+
+    @db_tables: user
+    @logs: Activity log entry created for password_reset action
+
+    @example:
+        POST /api/auth/reset-password
+        Content-Type: application/json
+
+        Request:
+        {
+            "current_password": "oldPassword123",
+            "new_password": "newSecurePass456"
+        }
+
+        Response:
+        {
+            "success": true,
+            "message": "Password reset successfully"
+        }
+    """
     data = request.get_json()
     current_password = data.get("current_password")
     new_password = data.get("new_password")
