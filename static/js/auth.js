@@ -312,44 +312,50 @@ class AuthManager {
 
 
   initializeResetPassword() {
-    // Open modal
-    document.addEventListener("click", (e) => {
-      if (e.target.id === "resetPasswordBtn") {
-        document.getElementById("resetPasswordModal").classList.remove("hidden");
-        // Close the user dropdown
-        const userDropdownMenu = document.getElementById("userDropdownMenu");
-        if (userDropdownMenu) {
-          userDropdownMenu.classList.add("hidden");
-        }
+  // Open modal
+  document.addEventListener("click", (e) => {
+    if (e.target.id === "resetPasswordBtn") {
+      const modal = document.getElementById("resetPasswordModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      
+      // Close the user dropdown
+      const userDropdownMenu = document.getElementById("userDropdownMenu");
+      if (userDropdownMenu) {
+        userDropdownMenu.classList.add("hidden");
       }
-    });
-
-    // Close modal buttons
-    const closeButtons = ["closeResetPasswordModal", "cancelResetPassword"];
-    closeButtons.forEach((id) => {
-      document.addEventListener("click", (e) => {
-        if (e.target.id === id) {
-          this.closeResetPasswordModal();
-        }
-      });
-    });
-
-    // Handle form submission
-    const form = document.getElementById("resetPasswordForm");
-    if (form) {
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        this.handleResetPassword();
-      });
     }
-  }
+  });
 
-  closeResetPasswordModal() {
-    document.getElementById("resetPasswordModal").classList.add("hidden");
-    document.getElementById("resetPasswordForm").reset();
-    document.getElementById("resetPasswordError").classList.add("hidden");
-    document.getElementById("resetPasswordSuccess").classList.add("hidden");
+  //Close modal if x/cancel
+  document.addEventListener("click", (e) => {
+    const closeButton = e.target.closest("#closeResetPasswordModal");
+    const cancelButton = e.target.closest("#cancelResetPassword");
+    
+    if (closeButton || cancelButton) {
+      this.closeResetPasswordModal();
+    }
+  });
+
+  // Handle form submission
+  const form = document.getElementById("resetPasswordForm");
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      this.handleResetPassword();
+    });
   }
+}
+//close pass modal
+closeResetPasswordModal() {
+  const modal = document.getElementById("resetPasswordModal");
+  modal.classList.add("hidden");
+  modal.classList.remove("flex");
+  
+  document.getElementById("resetPasswordForm").reset();
+  document.getElementById("resetPasswordError").classList.add("hidden");
+  document.getElementById("resetPasswordSuccess").classList.add("hidden");
+}
 
   async handleResetPassword() {
     const currentPassword = document.getElementById("currentPassword").value;
