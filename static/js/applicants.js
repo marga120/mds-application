@@ -666,6 +666,8 @@ class ApplicantsManager {
                       <select id="prereqStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                         <option value="Not Reviewed">Not Reviewed</option>
                         <option value="Reviewed by PPA">Reviewed by PPA</option>
+                        <option value="Need Jeff's Review">Need Jeff's Review</option>
+                        <option value="Need Khalad's Review">Need Khalad's Review</option>
                         <option value="Waitlist">Waitlist</option>
                         <option value="Declined">Declined</option>
                         <option value="Send Offer to CoGS">Send Offer to CoGS</option>
@@ -780,6 +782,8 @@ class ApplicantsManager {
                   <select id="ratingsStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                     <option value="Not Reviewed">Not Reviewed</option>
                     <option value="Reviewed by PPA">Reviewed by PPA</option>
+                    <option value="Need Jeff's Review">Need Jeff's Review</option>
+                    <option value="Need Khalad's Review">Need Khalad's Review</option>
                     <option value="Waitlist">Waitlist</option>
                     <option value="Declined">Declined</option>
                     <option value="Send Offer to CoGS">Send Offer to CoGS</option>
@@ -863,6 +867,8 @@ class ApplicantsManager {
                         <select id="statusSelect" class="input-ubc w-full text-base">
                           <option value="Not Reviewed">Not Reviewed</option>
                           <option value="Reviewed by PPA">Reviewed by PPA</option>
+                          <option value="Need Jeff's Review">Need Jeff's Review</option>
+                          <option value="Need Khalad's Review">Need Khalad's Review</option>
                           <option value="Waitlist">Waitlist</option>
                           <option value="Declined">Declined</option>
                           <option value="Send Offer to CoGS">Send Offer to CoGS</option>
@@ -3341,6 +3347,14 @@ class ApplicantsManager {
       case "Reviewed by PPA":
         badge.classList.add("bg-indigo-100", "text-indigo-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-indigo-400";
+        break;
+      case "Need Jeff's Review":
+        badge.classList.add("bg-purple-100", "text-purple-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-purple-400";
+        break;
+      case "Need Khalad's Review":
+        badge.classList.add("bg-pink-100", "text-pink-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-pink-400";
         break;
       case "Declined":
         badge.classList.add("bg-red-100", "text-red-800");

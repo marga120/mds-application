@@ -413,6 +413,8 @@ def update_applicant_status(user_code):
     valid_statuses = [
         "Not Reviewed",
         "Reviewed by PPA",
+        "Need Jeff's Review",
+        "Need Khalad's Review",
         "Waitlist",
         "Declined",
         "Send Offer to CoGS",
