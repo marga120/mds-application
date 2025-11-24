@@ -41,31 +41,21 @@ class ApplicantsManager {
     });
   }
 
-  // Only add event listeners if elements exist (they won't exist now that upload is in modal)
-  if (fileInput) {
-    fileInput.addEventListener("change", (e) => {
-      this.handleFileSelect(e.target.files[0]);
-    });
-  }
+  fileInput.addEventListener("change", (e) => {
+    this.handleFileSelect(e.target.files[0]);
+  });
 
-  if (uploadBtn) {
-    uploadBtn.addEventListener("click", () => {
-      this.uploadFile();
-    });
-  }
+  uploadBtn.addEventListener("click", () => {
+    this.uploadFile();
+  });
 
-  if (searchInput) {
-    searchInput.addEventListener("input", () => {
-      this.filterApplicants();
-    });
-  }
+  searchInput.addEventListener("input", () => {
+    this.filterApplicants();
+  });
 
-  if (searchFilter) {
-    searchFilter.addEventListener("change", () => {
-      this.filterApplicants();
-    });
-  }
-
+  searchFilter.addEventListener("change", () => {
+    this.filterApplicants();
+  });
 }
   // Add checkbox selection tracking
   toggleApplicantSelection(userCode, checked) {
