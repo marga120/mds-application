@@ -633,63 +633,165 @@ setupUploadModal() {
       uploadBtn.textContent = 'Upload CSV';
     }
   });
-}
-
-setupClearModal() {
-  const clearMenuItem = document.getElementById('clearDataMenuItem');
-  const modal = document.getElementById('clearDataModal');
-  const closeButtons = modal.querySelectorAll('.close-clear-modal');
-  const confirmBtn = document.getElementById('confirmClearDataBtn');
-  const clearStatus = document.getElementById('clearStatusModal');
-  
-  clearMenuItem.addEventListener('click', (e) => {
-    e.preventDefault();
-    modal.classList.remove('hidden');
-  });
-  
-  closeButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      modal.classList.add('hidden');
-      clearStatus.classList.add('hidden');
+  }
+  initializeResetPassword() {
+    // Open modal
+    document.addEventListener("click", (e) => {
+      if (e.target.id === "resetPasswordBtn") {
+        const modal = document.getElementById("resetPasswordModal");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+        
+        // Close the user dropdown
+        const userDropdownMenu = document.getElementById("userDropdownMenu");
+        if (userDropdownMenu) {
+          userDropdownMenu.classList.add("hidden");
+        }
+      }
     });
-  });
-  
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.classList.add('hidden');
-    }
-  });
-  
-  confirmBtn.addEventListener('click', async () => {
-    confirmBtn.disabled = true;
-    confirmBtn.textContent = 'Deleting...';
-    
-    try {
-      const response = await fetch('/api/clear-all-data', {
-        method: 'DELETE'
+
+    // Close modal ONLY with X button or Cancel button
+    document.addEventListener("click", (e) => {
+      // Check if the clicked element or its parent is the close button or cancel button
+      const closeButton = e.target.closest("#closeResetPasswordModal");
+      const cancelButton = e.target.closest("#cancelResetPassword");
+      
+      if (closeButton || cancelButton) {
+        this.closeResetPasswordModal();
+      }
+    });
+
+    // Handle form submission
+    const form = document.getElementById("resetPasswordForm");
+    if (form) {
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        this.handleResetPassword();
       });
+    }
+  }
+  closeResetPasswordModal() {
+    const modal = document.getElementById("resetPasswordModal");
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+    
+    document.getElementById("resetPasswordForm").reset();
+    document.getElementById("resetPasswordError").classList.add("hidden");
+    document.getElementById("resetPasswordSuccess").classList.add("hidden");
+  }
+  setupClearModal() {
+    const clearMenuItem = document.getElementById('clearDataMenuItem');
+    const modal = document.getElementById('clearDataModal');
+    const closeButtons = modal.querySelectorAll('.close-clear-modal');
+    const confirmBtn = document.getElementById('confirmClearDataBtn');
+    const clearStatus = document.getElementById('clearStatusModal');
+    
+    clearMenuItem.addEventListener('click', (e) => {
+      e.preventDefault();
+      modal.classList.remove('hidden');
+    });
+    
+    closeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        modal.classList.add('hidden');
+        clearStatus.classList.add('hidden');
+      });
+    });
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.add('hidden');
+      }
+    });
+    
+    confirmBtn.addEventListener('click', async () => {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Deleting...';
       
-      const result = await response.json();
-      
-      if (result.success) {
-        clearStatus.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
-        clearStatus.textContent = 'All data deleted successfully! Reloading...';
-        clearStatus.classList.remove('hidden');
-        setTimeout(() => window.location.reload(), 1500);
-      } else {
+      try {
+        const response = await fetch('/api/clear-all-data', {
+          method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          clearStatus.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
+          clearStatus.textContent = 'All data deleted successfully! Reloading...';
+          clearStatus.classList.remove('hidden');
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          clearStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
+          clearStatus.textContent = result.message || 'Failed to clear data';
+          clearStatus.classList.remove('hidden');
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'Yes, Delete All Data';
+        }
+      } catch (error) {
         clearStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-        clearStatus.textContent = result.message || 'Failed to clear data';
+        clearStatus.textContent = 'Error clearing data';
         clearStatus.classList.remove('hidden');
         confirmBtn.disabled = false;
         confirmBtn.textContent = 'Yes, Delete All Data';
       }
-    } catch (error) {
-      clearStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-      clearStatus.textContent = 'Error clearing data';
-      clearStatus.classList.remove('hidden');
-      confirmBtn.disabled = false;
-      confirmBtn.textContent = 'Yes, Delete All Data';
+    });
+  }
+  async handleResetPassword() {
+    const currentPassword = document.getElementById("currentPassword").value;
+    const newPassword = document.getElementById("newPassword").value;
+    const confirmPassword = document.getElementById("confirmPassword").value;
+    const errorDiv = document.getElementById("resetPasswordError");
+    const successDiv = document.getElementById("resetPasswordSuccess");
+
+    // Hide previous messages
+    errorDiv.classList.add("hidden");
+    successDiv.classList.add("hidden");
+
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+      errorDiv.textContent = "New passwords do not match";
+      errorDiv.classList.remove("hidden");
+      return;
     }
-  });
-}
+
+    // Validate password length
+    if (newPassword.length < 8) {
+      errorDiv.textContent = "Password must be at least 8 characters";
+      errorDiv.classList.remove("hidden");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        successDiv.textContent = "Password reset successfully!";
+        successDiv.classList.remove("hidden");
+        
+        // Close modal after 2 seconds
+        setTimeout(() => {
+          this.closeResetPasswordModal();
+        }, 2000);
+      } else {
+        errorDiv.textContent = result.message || "Failed to reset password";
+        errorDiv.classList.remove("hidden");
+      }
+    } catch (error) {
+      console.error("Reset password error:", error);
+      errorDiv.textContent = "An error occurred. Please try again.";
+      errorDiv.classList.remove("hidden");
+    }
+  }
 }
