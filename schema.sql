@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS applicant_status(
 -- canadian determined by country_citizenship and dual_citizenship if they have 'Canada' as value
 CREATE TABLE IF NOT EXISTS application_info (
     user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
-    sent VARCHAR(100) DEFAULT 'Not Reviewed' CHECK (sent IN ('Not Reviewed', 'Reviewed by PPA', 'Waitlist', 'Declined', 'Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined')),
+    sent VARCHAR(100) DEFAULT 'Not Reviewed' CHECK (sent IN ('Not Reviewed', 'Reviewed by PPA', 'Need Jeff''s Review', 'Need Khalad''s Review', 'Waitlist', 'Declined', 'Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined')),
     full_name VARCHAR(100),
     canadian BOOLEAN,
     english BOOLEAN,
