@@ -64,52 +64,28 @@ class AuthManager {
       `;
     }
 
-    // Add data dropdown (only for Admin users)
-    const dataDropdownArea = document.getElementById("dataDropdownArea");
-    if (dataDropdownArea) {
+    // Add logs dropdown (only for Admin users)
+    const logsDropdownArea = document.getElementById("logsDropdownArea");
+    if (logsDropdownArea) {
       if (user.role === "Admin") {
-        dataDropdownArea.innerHTML = `
+        logsDropdownArea.innerHTML = `
           <div class="relative">
-            <button id="dataDropdownBtn" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20">
-              Data
+            <button id="logsDropdownBtn" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20">
+              Logs
               <svg class="w-3 h-3 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
             </button>
-            <div id="dataDropdownMenu" class="hidden absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-              <button id="uploadCsvMenuItem" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-md flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                </svg>
-                Upload CSV
-              </button>
-              <a href="/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
+            <div id="logsDropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+              <a href="/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
                 View Logs
               </a>
-              <button id="clearDataMenuItem" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-md flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                </svg>
-                Clear All Data
-              </button>
             </div>
           </div>
         `;
-        
-        // Create modals for upload and clear data
-        this.createDataModals();
       } else {
-        // Clear data dropdown for non-admin users
-        dataDropdownArea.innerHTML = "";
-        
-        // Remove any existing modals for non-admin users
-        const uploadModal = document.getElementById('uploadCsvModal');
-        const clearModal = document.getElementById('clearDataModal');
-        if (uploadModal) uploadModal.remove();
-        if (clearModal) clearModal.remove();
+        // Clear logs dropdown for non-admin users
+        logsDropdownArea.innerHTML = "";
       }
     }
 
@@ -240,14 +216,14 @@ class AuthManager {
       });
     }
 
-    // Add data dropdown functionality
-    const dataDropdownBtn = document.getElementById("dataDropdownBtn");
-    const dataDropdownMenu = document.getElementById("dataDropdownMenu");
+    // Add logs dropdown functionality
+    const logsDropdownBtn = document.getElementById("logsDropdownBtn");
+    const logsDropdownMenu = document.getElementById("logsDropdownMenu");
 
-    if (dataDropdownBtn && dataDropdownMenu) {
-      dataDropdownBtn.addEventListener("click", (e) => {
+    if (logsDropdownBtn && logsDropdownMenu) {
+      logsDropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const isHidden = dataDropdownMenu.classList.contains("hidden");
+        const isHidden = logsDropdownMenu.classList.contains("hidden");
 
         // Close other dropdowns
         if (userDropdownMenu) {
@@ -259,13 +235,13 @@ class AuthManager {
           sessionsDropdownMenu.classList.remove("show");
         }
 
-        // Toggle data dropdown with animation
+        // Toggle logs dropdown with animation
         if (isHidden) {
-          dataDropdownMenu.classList.remove("hidden");
-          setTimeout(() => dataDropdownMenu.classList.add("show"), 10);
+          logsDropdownMenu.classList.remove("hidden");
+          setTimeout(() => logsDropdownMenu.classList.add("show"), 10);
         } else {
-          dataDropdownMenu.classList.remove("show");
-          setTimeout(() => dataDropdownMenu.classList.add("hidden"), 200);
+          logsDropdownMenu.classList.remove("show");
+          setTimeout(() => logsDropdownMenu.classList.add("hidden"), 200);
         }
       });
     }
@@ -280,11 +256,11 @@ class AuthManager {
         sessionsDropdownBtn &&
         (sessionsDropdownBtn.contains(e.target) ||
           (sessionsDropdownMenu && sessionsDropdownMenu.contains(e.target)));
-      // Add data dropdown check
-      const isDataDropdown =
-        dataDropdownBtn &&
-        (dataDropdownBtn.contains(e.target) ||
-          (dataDropdownMenu && dataDropdownMenu.contains(e.target)));
+      // Add logs dropdown check
+      const isLogsDropdown =
+        logsDropdownBtn &&
+        (logsDropdownBtn.contains(e.target) ||
+          (logsDropdownMenu && logsDropdownMenu.contains(e.target)));
 
       if (!isUserDropdown && userDropdownMenu) {
         userDropdownMenu.classList.add("hidden");
@@ -294,9 +270,10 @@ class AuthManager {
         sessionsDropdownMenu.classList.add("hidden");
         sessionsDropdownMenu.classList.remove("show");
       }
-      if (!isDataDropdown && dataDropdownMenu) {
-        dataDropdownMenu.classList.add("hidden");
-        dataDropdownMenu.classList.remove("show");
+      // Close logs dropdown when clicking outside
+      if (!isLogsDropdown && logsDropdownMenu) {
+        logsDropdownMenu.classList.add("hidden");
+        logsDropdownMenu.classList.remove("show");
       }
     });
   }
@@ -327,260 +304,4 @@ class AuthManager {
       window.location.href = "/login";
     }
   }
-
-  createDataModals() {
-  // Create Upload CSV Modal
-  const uploadModalHTML = `
-    <div id="uploadCsvModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-      <div class="relative top-20 mx-auto p-8 border w-11/12 max-w-2xl shadow-lg rounded-lg bg-white">
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-2xl font-semibold text-gray-900">Upload CSV File</h3>
-          <button class="close-upload-modal text-gray-400 hover:text-gray-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-        
-        <div class="mb-6">
-          <p class="text-gray-600 mb-4">Drag and drop your CSV file here or click to select</p>
-          <div id="dropZoneModal" class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-400 transition-colors cursor-pointer">
-            <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-            </svg>
-            <button type="button" class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-              Choose CSV File
-            </button>
-            <p class="mt-2 text-sm text-gray-500" id="fileNameModal">No file chosen</p>
-          </div>
-          <input type="file" id="csvFileInputModal" accept=".csv" class="hidden">
-        </div>
-        
-        <div class="flex justify-end gap-3">
-          <button class="close-upload-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
-            Cancel
-          </button>
-          <button id="uploadCsvBtnModal" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
-            Upload CSV
-          </button>
-        </div>
-        
-        <div id="uploadStatusModal" class="mt-4 hidden"></div>
-      </div>
-    </div>
-  `;
-  
-  // Create Clear Data Modal
-  const clearModalHTML = `
-    <div id="clearDataModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-      <div class="relative top-20 mx-auto p-8 border w-11/12 max-w-md shadow-lg rounded-lg bg-white">
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-2xl font-semibold text-red-600 flex items-center">
-            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-            </svg>
-            Warning
-          </h3>
-          <button class="close-clear-modal text-gray-400 hover:text-gray-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-        
-        <div class="mb-6">
-          <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-            <p class="text-red-800 font-semibold mb-2">This action cannot be undone!</p>
-            <p class="text-red-700 text-sm">This will permanently delete ALL applicant data from the database.</p>
-          </div>
-          
-          <p class="text-gray-700 mb-4">Are you absolutely sure you want to clear all data?</p>
-          
-          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p class="text-yellow-800 text-sm">This will delete data from all applicant-related tables.</p>
-          </div>
-        </div>
-        
-        <div class="flex justify-end gap-3">
-          <button class="close-clear-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
-            Cancel
-          </button>
-          <button id="confirmClearDataBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-            Yes, Delete All Data
-          </button>
-        </div>
-        
-        <div id="clearStatusModal" class="mt-4 hidden"></div>
-      </div>
-    </div>
-  `;
-  
-  document.body.insertAdjacentHTML('beforeend', uploadModalHTML);
-  document.body.insertAdjacentHTML('beforeend', clearModalHTML);
-  
-  this.setupUploadModal();
-  this.setupClearModal();
-}
-
-setupUploadModal() {
-  const uploadMenuItem = document.getElementById('uploadCsvMenuItem');
-  const modal = document.getElementById('uploadCsvModal');
-  const closeButtons = modal.querySelectorAll('.close-upload-modal');
-  const dropZone = document.getElementById('dropZoneModal');
-  const fileInput = document.getElementById('csvFileInputModal');
-  const uploadBtn = document.getElementById('uploadCsvBtnModal');
-  const fileName = document.getElementById('fileNameModal');
-  const uploadStatus = document.getElementById('uploadStatusModal');
-  
-  let selectedFile = null;
-  
-  uploadMenuItem.addEventListener('click', (e) => {
-    e.preventDefault();
-    modal.classList.remove('hidden');
-  });
-  
-  closeButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      modal.classList.add('hidden');
-      selectedFile = null;
-      fileName.textContent = 'No file chosen';
-      fileInput.value = '';
-      uploadBtn.disabled = true;
-      uploadStatus.classList.add('hidden');
-    });
-  });
-  
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.classList.add('hidden');
-    }
-  });
-  
-  dropZone.addEventListener('click', () => fileInput.click());
-  
-  fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file && file.name.endsWith('.csv')) {
-      selectedFile = file;
-      fileName.textContent = file.name;
-      uploadBtn.disabled = false;
-    }
-  });
-  
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('border-blue-400', 'bg-blue-50');
-  });
-  
-  dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('border-blue-400', 'bg-blue-50');
-  });
-  
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('border-blue-400', 'bg-blue-50');
-    const file = e.dataTransfer.files[0];
-    if (file && file.name.endsWith('.csv')) {
-      selectedFile = file;
-      fileName.textContent = file.name;
-      uploadBtn.disabled = false;
-    }
-  });
-  
-  uploadBtn.addEventListener('click', async () => {
-    if (!selectedFile) return;
-    
-    uploadBtn.disabled = true;
-    uploadBtn.textContent = 'Uploading...';
-    
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        uploadStatus.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
-        uploadStatus.textContent = 'CSV uploaded successfully! Reloading...';
-        uploadStatus.classList.remove('hidden');
-        setTimeout(() => window.location.reload(), 1500);
-      } else {
-        uploadStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-        uploadStatus.textContent = result.message || 'Upload failed';
-        uploadStatus.classList.remove('hidden');
-        uploadBtn.disabled = false;
-        uploadBtn.textContent = 'Upload CSV';
-      }
-    } catch (error) {
-      uploadStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-      uploadStatus.textContent = 'Error uploading file';
-      uploadStatus.classList.remove('hidden');
-      uploadBtn.disabled = false;
-      uploadBtn.textContent = 'Upload CSV';
-    }
-  });
-}
-
-setupClearModal() {
-  const clearMenuItem = document.getElementById('clearDataMenuItem');
-  const modal = document.getElementById('clearDataModal');
-  const closeButtons = modal.querySelectorAll('.close-clear-modal');
-  const confirmBtn = document.getElementById('confirmClearDataBtn');
-  const clearStatus = document.getElementById('clearStatusModal');
-  
-  clearMenuItem.addEventListener('click', (e) => {
-    e.preventDefault();
-    modal.classList.remove('hidden');
-  });
-  
-  closeButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      modal.classList.add('hidden');
-      clearStatus.classList.add('hidden');
-    });
-  });
-  
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.classList.add('hidden');
-    }
-  });
-  
-  confirmBtn.addEventListener('click', async () => {
-    confirmBtn.disabled = true;
-    confirmBtn.textContent = 'Deleting...';
-    
-    try {
-      const response = await fetch('/api/clear-all-data', {
-        method: 'DELETE'
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        clearStatus.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
-        clearStatus.textContent = 'All data deleted successfully! Reloading...';
-        clearStatus.classList.remove('hidden');
-        setTimeout(() => window.location.reload(), 1500);
-      } else {
-        clearStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-        clearStatus.textContent = result.message || 'Failed to clear data';
-        clearStatus.classList.remove('hidden');
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = 'Yes, Delete All Data';
-      }
-    } catch (error) {
-      clearStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-      clearStatus.textContent = 'Error clearing data';
-      clearStatus.classList.remove('hidden');
-      confirmBtn.disabled = false;
-      confirmBtn.textContent = 'Yes, Delete All Data';
-    }
-  });
-}
 }
