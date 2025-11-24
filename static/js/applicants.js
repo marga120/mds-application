@@ -3584,6 +3584,11 @@ class ApplicantsManager {
           ? result.application_info.math || ""
           : "";
 
+      const additional_comments =
+        result.success && result.application_info
+          ? result.application_info.additional_comments || ""
+          : "";
+
       // Save GPA along with existing course values
       const saveResponse = await fetch(
         `/api/applicant-application-info/${userCode}/prerequisites`,
@@ -3592,7 +3597,7 @@ class ApplicantsManager {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ cs, stat, math, gpa }),
+          body: JSON.stringify({ cs, stat, math, gpa, additional_comments}),
         }
       );
 
