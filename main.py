@@ -105,6 +105,11 @@ def logs_page():
 def unauthorized(error):
     return redirect(url_for("login_page"))
 
+@app.route('/account')
+@login_required
+def account():
+    return render_template('account.html')
+
 
 if __name__ == "__main__":
     # Only initialize database if not in reloader process

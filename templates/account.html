@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings - MDS Application</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+</head>
+<body class="bg-gray-50">
+    {% include 'header.html' %}
+    
+    <div id="mainContainer" class="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8 transition-all duration-500">
+        <div class="mb-6 text-center lg:text-left">
+            <h1 class="text-3xl font-bold text-gray-900">Account Settings</h1>
+            <p class="mt-2 text-gray-600">Manage your profile and system preferences</p>
+        </div>
+
+        <div id="contentGrid" class="grid grid-cols-1 gap-6">
+            
+            <div class="space-y-6">
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Profile</h2>
+                    <div class="space-y-3">
+                        <div class="flex justify-between border-b pb-2">
+                            <span class="text-sm font-medium text-gray-500">Name</span> 
+                            <span class="text-gray-900 font-medium" id="displayName">-</span>
+                        </div>
+                        <div class="flex justify-between border-b pb-2">
+                            <span class="text-sm font-medium text-gray-500">Email</span> 
+                            <span class="text-gray-900 font-medium" id="displayEmail">-</span>
+                        </div>
+                        <div class="flex justify-between pb-2">
+                            <span class="text-sm font-medium text-gray-500">Role</span> 
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800" id="displayRole">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-lg font-medium text-gray-900 mb-4">Update Email</h2>
+                    <form id="updateEmailForm" class="space-y-4">
+                        <div id="emailMessage" class="hidden p-3 rounded text-sm"></div>
+                        <input type="email" id="newEmail" placeholder="New Email Address" required class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+                        <input type="password" id="emailPassword" placeholder="Confirm with Password" required class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+                        <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">Update Email</button>
+                    </form>
+                </div>
+
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-lg font-medium text-gray-900 mb-4">Change Password</h2>
+                    <form id="changePasswordForm" class="space-y-4">
+                        <div id="passwordMessage" class="hidden p-3 rounded text-sm"></div>
+                        <input type="password" id="currentPasswordAccount" placeholder="Current Password" required class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+                        <input type="password" id="newPasswordAccount" placeholder="New Password (min 8 chars)" required minlength="8" class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+                        <input type="password" id="confirmPasswordAccount" placeholder="Confirm New Password" required minlength="8" class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+                        <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">Change Password</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="adminSection" class="hidden space-y-6">
+                <div class="bg-white shadow rounded-lg p-6 h-full">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900">User Management</h2>
+                            <p class="text-sm text-gray-500">Database Search</p>
+                        </div>
+                        <button onclick="document.getElementById('createUserModal').classList.remove('hidden')" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 text-sm w-full sm:w-auto justify-center transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            Create User
+                        </button>
+                    </div>
+
+                    <div class="mb-4 relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                        <input type="text" id="userSearchInput" placeholder="Search by name or email..." class="pl-10 block w-full border-gray-300 rounded-md border py-2 px-3 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                    </div>
+
+                    <div class="overflow-x-auto border rounded-md">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody" class="bg-white divide-y divide-gray-200">
+                                <tr><td colspan="3" class="px-4 py-4 text-center text-sm text-gray-500">Loading users...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="createUserModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center transition-opacity">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4 transform transition-all">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Create New User</h3>
+            <form id="createUserForm" class="space-y-4">
+                <div id="createMessage" class="hidden p-3 rounded text-sm"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" name="first_name" placeholder="First Name" required class="w-full px-3 py-2 border rounded-md">
+                    <input type="text" name="last_name" placeholder="Last Name" required class="w-full px-3 py-2 border rounded-md">
+                </div>
+                <input type="email" name="email" placeholder="Email Address" required class="w-full px-3 py-2 border rounded-md">
+                <input type="password" name="password" placeholder="Password" required minlength="8" class="w-full px-3 py-2 border rounded-md">
+                <select name="role_user_id" class="w-full px-3 py-2 border rounded-md bg-white">
+                    <option value="3">Viewer</option>
+                    <option value="2">Editor</option>
+                    <option value="1">Admin</option>
+                </select>
+                <div class="flex gap-3 pt-4 border-t mt-4">
+                    <button type="button" onclick="document.getElementById('createUserModal').classList.add('hidden')" class="flex-1 px-4 py-2 border text-gray-700 rounded-md hover:bg-gray-50 transition-colors">Cancel</button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="deleteConfirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center transition-opacity">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm mx-4 transform transition-all">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">Delete User?</h3>
+                <p class="text-sm text-gray-500 mb-6">Are you sure you want to delete <span id="deleteUserName" class="font-bold">this user</span>? This action cannot be undone.</p>
+                <div class="flex gap-3">
+                    <button type="button" id="cancelDeleteBtn" class="flex-1 px-4 py-2 border text-gray-700 rounded-md hover:bg-gray-50 transition-colors">Cancel</button>
+                    <button type="button" id="confirmDeleteBtn" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/account.js') }}"></script>
+</body>
+</html>
