@@ -441,6 +441,7 @@ closeResetPasswordModal() {
       errorDiv.classList.remove("hidden");
     }
   }
+
   createDataModals() {
   // Create Upload CSV Modal
   const uploadModalHTML = `
