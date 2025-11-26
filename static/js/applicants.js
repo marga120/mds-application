@@ -411,13 +411,18 @@ class ApplicantsManager {
               .toString()
               .toLowerCase()
               .includes(searchTerm)) ||
-          (applicant.status && this.matchesStatus(applicant.status, searchTerm))
+          (applicant.status && this.matchesStatus(applicant.status, searchTerm)) ||
+          (applicant.review_status && applicant.review_status.toLowerCase().includes(searchTerm))
         );
       } else if (filterBy === "status") {
         return (
           applicant.status && this.matchesStatus(applicant.status, searchTerm)
         );
-      } else {
+      } else if (filterBy === "review_status") {
+        return (
+          applicant.review_status && applicant.review_status.toLowerCase().includes(searchTerm)
+        );
+      }else {
         const fieldValue = applicant[filterBy];
         return (
           fieldValue && fieldValue.toString().toLowerCase().includes(searchTerm)
@@ -4744,7 +4749,7 @@ async initializeExportButton() {
             <th style="width: 20%;" class="text-center">Applicant</th>
             <th style="width: 14%;" class="text-center">Application Status</th>
             <th style="width: 14%;" class="text-center">Submit Date</th>
-            <th style="width: 12%;" class="text-center">Status</th>
+            <th style="width: 12%;" class="text-center">Review Status</th>
             <th style="width: 11%;" class="text-center">Overall Rating</th>
             <th style="width: 11%;" class="text-center">Last Updated</th>
             <th style="width: 10%;" class="text-center">Actions</th>
