@@ -141,3 +141,11 @@ tr:hover {
     font-size: 0.9em;
     color: #666;
 }
+
+.modern-table th {
+  user-select: none;
+}
+
+.modern-table th[onclick]:hover {
+  background-color: #f0f4f8;
+}

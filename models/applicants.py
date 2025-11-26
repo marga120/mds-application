@@ -975,13 +975,25 @@ def get_all_applicant_status():
                 ss.detail_status,
                 ss.updated_at,
                 EXTRACT(EPOCH FROM (NOW() - ss.updated_at)) as seconds_since_update,
-                ROUND(AVG(r.rating), 1) as overall_rating
+                ROUND(AVG(r.rating), 1) as overall_rating,
+                ai.sent as review_status,
+                latest_log.created_at as review_status_updated_at
             FROM applicant_status ss
             LEFT JOIN applicant_info si ON ss.user_code = si.user_code
             LEFT JOIN ratings r ON ss.user_code = r.user_code
+            LEFT JOIN application_info ai ON ss.user_code = ai.user_code
+            LEFT JOIN LATERAL(
+                SELECT created_at
+                FROM activity_log
+                WHERE action_type = 'status_change'
+                AND target_id = ss.user_code
+                ORDER BY created_at DESC
+                LIMIT 1
+            ) latest_log ON true
             GROUP BY ss.user_code, si.family_name, si.given_name, si.email, 
                      ss.student_number, ss.app_start, ss.submit_date, 
-                     ss.status_code, ss.status, ss.detail_status, ss.updated_at
+                     ss.status_code, ss.status, ss.detail_status, ss.updated_at,
+                     ai.sent, latest_log.created_at
             ORDER BY ss.submit_date DESC, si.family_name
         """
         )
@@ -2088,17 +2100,20 @@ def get_selected_applicants_for_export(user_codes, sections=None):
             ])
 
         # 4. Admin / Offer Status (Application)
-        if inc_app:
-            select_parts.extend([
-                # Admission Review: Yes if not 'Not Reviewed'
-                "CASE WHEN app.sent != 'Not Reviewed' THEN 'Yes' ELSE 'No' END as \"Admission Review\"",
-                # Offer Sent: Y/N
-                "CASE WHEN app.sent IN ('Offer', 'Offer Sent', 'Accepted', 'Declined') THEN 'Y' ELSE 'N' END as \"Offer Sent\"",
-                # Offer Status: The actual status if it's an offer
-                "CASE WHEN app.sent IN ('Offer', 'Offer Sent', 'Accepted', 'Declined') THEN app.sent ELSE '' END as \"Offer Status\"",
-                # Scholarship: Yes/No (assuming boolean)
-                "CASE WHEN app.scholarship IS TRUE THEN 'Yes' ELSE 'N' END as \"Scholarship Offered\""
-            ])
+        select_parts.extend([
+            # Admission Review
+            "CASE WHEN app.sent != 'Not Reviewed' THEN 'Yes' ELSE 'No' END AS \"Admission Review\"",
+
+            # Offer Sent - Updated to match schema values
+            "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN 'Y' ELSE 'N' END AS \"Offer Sent\"",
+
+            # Offer Status - Updated to match schema values
+            "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN app.sent ELSE '' END AS \"Offer Status\"",
+
+            # Scholarship - VARCHAR(20) with CHECK constraint
+            "COALESCE(app.scholarship, 'Undecided') AS \"Scholarship Offered\""
+        ])
+
 
         # 5. Education History (Institutions/Education)
         if inc_edu:
