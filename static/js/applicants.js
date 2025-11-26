@@ -11,6 +11,8 @@ class ApplicantsManager {
   constructor() {
     this.allApplicants = [];
     this.sessionName = "";
+    this.sortColumn = null;
+    this.sortDirection = 'asc'; 
     this.initializeEventListeners();
     this.loadSessionName();
     this.loadApplicants();
@@ -236,6 +238,57 @@ class ApplicantsManager {
     }
   }
 
+  sortApplicants(column) {
+    // Toggle sort direction if clicking the same column
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+
+    // Sort the filtered applicants (or all if no filter)
+    const applicantsToDisplay = this.getFilteredApplicants();
+    const sorted = [...applicantsToDisplay].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (column) {
+        case 'applicant':
+          aValue = `${a.family_name} ${a.given_name}`.toLowerCase();
+          bValue = `${b.family_name} ${b.given_name}`.toLowerCase();
+          break;
+        case 'status':
+          aValue = (a.status || '').toLowerCase();
+          bValue = (b.status || '').toLowerCase();
+          break;
+        case 'submit_date':
+          aValue = a.submit_date ? new Date(a.submit_date).getTime() : 0;
+          bValue = b.submit_date ? new Date(b.submit_date).getTime() : 0;
+          break;
+         case 'review_status':
+          aValue = (a.review_status || '').toLowerCase();
+          bValue = (b.review_status || '').toLowerCase();
+          break;
+        case 'overall_rating':
+          aValue = parseFloat(a.overall_rating) || 0;
+          bValue = parseFloat(b.overall_rating) || 0;
+          break;
+        case 'last_updated':
+          aValue = a.seconds_since_update || 0;
+          bValue = b.seconds_since_update || 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return this.sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return this.sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    this.displayApplicants(sorted);
+  }
+
 
   formatLastChanged(secondsAgo) {
     const seconds = Math.floor(secondsAgo);
@@ -387,50 +440,93 @@ class ApplicantsManager {
   }
 
   filterApplicants() {
-    const searchTerm = document
-      .getElementById("searchInput")
-      .value.toLowerCase()
-      .trim();
-    const filterBy = document.getElementById("searchFilter").value;
+    const filtered = this.getFilteredApplicants();
+    
+    // If there's an active sort, apply it
+    if (this.sortColumn) {
+      const sorted = [...filtered].sort((a, b) => {
+        let aValue, bValue;
 
-    if (searchTerm === "") {
-      this.displayApplicants(this.allApplicants);
-      return;
+        switch (this.sortColumn) {
+          case 'applicant':
+            aValue = `${a.family_name} ${a.given_name}`.toLowerCase();
+            bValue = `${b.family_name} ${b.given_name}`.toLowerCase();
+            break;
+          case 'student_number':
+            aValue = parseFloat(a.student_number) || 0;
+            bValue = parseFloat(b.student_number) || 0;
+            break;
+          case 'status':
+            aValue = (a.status || '').toLowerCase();
+            bValue = (b.status || '').toLowerCase();
+            break;
+          case 'submit_date':
+            aValue = a.submit_date ? new Date(a.submit_date).getTime() : 0;
+            bValue = b.submit_date ? new Date(b.submit_date).getTime() : 0;
+            break;
+          case 'review_status':
+            aValue = (a.review_status || '').toLowerCase();
+            bValue = (b.review_status || '').toLowerCase();
+          break;
+          case 'overall_rating':
+            aValue = parseFloat(a.overall_rating) || 0;
+            bValue = parseFloat(b.overall_rating) || 0;
+            break;
+          case 'last_updated':
+            aValue = a.seconds_since_update || 0;
+            bValue = b.seconds_since_update || 0;
+            break;
+          default:
+            return 0;
+        }
+
+        if (aValue < bValue) return this.sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return this.sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+      this.displayApplicants(sorted);
+    } else {
+      this.displayApplicants(filtered);
     }
+  }
+  getFilteredApplicants() {
+    const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+    const filter = document.getElementById("searchFilter").value;
 
-    const filteredApplicants = this.allApplicants.filter((applicant) => {
-      if (filterBy === "all") {
+    if (!searchTerm) return this.allApplicants;
+
+    return this.allApplicants.filter((applicant) => {
+      if (filter === "all") {
         return (
-          (applicant.given_name &&
-            applicant.given_name.toLowerCase().includes(searchTerm)) ||
-          (applicant.family_name &&
-            applicant.family_name.toLowerCase().includes(searchTerm)) ||
-          applicant.user_code.toLowerCase().includes(searchTerm) ||
-          (applicant.student_number &&
-            applicant.student_number
-              .toString()
-              .toLowerCase()
-              .includes(searchTerm)) ||
-          (applicant.status && this.matchesStatus(applicant.status, searchTerm)) ||
-          (applicant.review_status && applicant.review_status.toLowerCase().includes(searchTerm))
+          applicant.given_name?.toLowerCase().includes(searchTerm) ||
+          applicant.family_name?.toLowerCase().includes(searchTerm) ||
+          applicant.user_code?.toString().includes(searchTerm) ||
+          applicant.student_number?.toString().includes(searchTerm) ||
+          applicant.status?.toLowerCase().includes(searchTerm)
         );
-      } else if (filterBy === "status") {
-        return (
-          applicant.status && this.matchesStatus(applicant.status, searchTerm)
-        );
-      } else if (filterBy === "review_status") {
-        return (
-          applicant.review_status && applicant.review_status.toLowerCase().includes(searchTerm)
-        );
-      }else {
-        const fieldValue = applicant[filterBy];
-        return (
-          fieldValue && fieldValue.toString().toLowerCase().includes(searchTerm)
-        );
+      } else {
+        return applicant[filter]?.toLowerCase().includes(searchTerm);
       }
     });
+  }
 
-    this.displayApplicants(filteredApplicants);
+  getSortIcon(column) {
+    if (this.sortColumn !== column) {
+      // Inactive column - light gray/white
+      return `<svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+              </svg>`;
+    }
+    if (this.sortDirection === 'asc') {
+      // Active ascending - white
+      return `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+              </svg>`;
+    }
+    // Active descending - white
+    return `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>`;
   }
 
   showMessage(text, type) {
@@ -4752,13 +4848,43 @@ async initializeExportButton() {
             <th style="width: 3%;">
               <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4" onchange="window.applicantsManager.toggleAllApplicants(this.checked)">
             </th>
-            <th style="width: 20%;" class="text-center">Applicant</th>
-            <th style="width: 14%;" class="text-center">Application Status</th>
-            <th style="width: 14%;" class="text-center">Submit Date</th>
-            <th style="width: 12%;" class="text-center">Review Status</th>
-            <th style="width: 11%;" class="text-center">Overall Rating</th>
-            <th style="width: 11%;" class="text-center">Last Updated</th>
-            <th style="width: 10%;" class="text-center">Actions</th>
+            <th style="width: 25%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('applicant')">
+              <div class="flex items-center justify-between">
+                <span>Applicant</span>
+                ${this.getSortIcon('applicant')}
+              </div>
+            </th>
+            <th style="width: 14%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('status')">
+              <div class="flex items-center justify-center gap-2">
+                <span>Application Status</span>
+                ${this.getSortIcon('status')}
+              </div>
+            </th>
+            <th style="width: 14%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('submit_date')">
+              <div class="flex items-center justify-center gap-2">
+                <span>Submit Date</span>
+                ${this.getSortIcon('submit_date')}
+              </div>
+            </th>
+            <th style="width: 12%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('review_status')">
+              <div class="flex items-center justify-center gap-2">
+                <span>Review Status</span>
+                ${this.getSortIcon('review_status')}
+              </div>
+            </th>
+            <th style="width: 11%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('overall_rating')">
+              <div class="flex items-center justify-center gap-2">
+                <span>Overall Rating</span>
+                ${this.getSortIcon('overall_rating')}
+              </div>
+            </th>
+            <th style="width: 11%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('last_updated')">
+              <div class="flex items-center justify-center gap-2">
+                <span>Last Updated</span>
+                ${this.getSortIcon('last_updated')}
+              </div>
+            </th>
+            <th style="width: 10%;">Actions</th>
           </tr>
         </thead>
         <tbody>
