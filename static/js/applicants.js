@@ -56,6 +56,21 @@ class ApplicantsManager {
   searchFilter.addEventListener("change", () => {
     this.filterApplicants();
   });
+
+  // Modal close buttons
+  const closeUploadModal = document.getElementById("closeUploadModal");
+  if (closeUploadModal) {
+    closeUploadModal.addEventListener("click", () => {
+      this.closeUploadModal();
+    });
+  }
+
+  const cancelUploadBtn = document.getElementById("cancelUploadBtn");
+  if (cancelUploadBtn) {
+    cancelUploadBtn.addEventListener("click", () => {
+      this.closeUploadModal();
+    });
+  }
 }
   // Add checkbox selection tracking
   toggleApplicantSelection(userCode, checked) {
@@ -171,6 +186,10 @@ class ApplicantsManager {
                     <strong>Records:</strong> ${result.records_processed}
                 `;
         timestampElement.style.display = "block";
+
+        setTimeout(() => {
+          this.closeUploadModal();
+        }, 2000);
 
         this.loadSessionName();
         this.loadApplicants();
@@ -4880,5 +4899,23 @@ showClearDataMessage(text, type) {
   setTimeout(() => {
     messageDiv.classList.add('hidden');
   }, 5000);
+}
+
+openUploadModal() {
+  document.getElementById('uploadModal').classList.remove('hidden');
+}
+
+closeUploadModal() {
+  document.getElementById('uploadModal').classList.add('hidden');
+  // Reset file input
+  const fileInput = document.getElementById('fileInput');
+  const fileStatus = document.getElementById('fileStatus');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const message = document.getElementById('message');
+  
+  if (fileInput) fileInput.value = '';
+  if (fileStatus) fileStatus.textContent = 'No file chosen';
+  if (uploadBtn) uploadBtn.disabled = true;
+  if (message) message.classList.add('hidden');
 }
 }

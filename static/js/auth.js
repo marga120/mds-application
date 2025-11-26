@@ -64,19 +64,26 @@ class AuthManager {
       `;
     }
 
-    // Add logs dropdown (only for Admin users)
-    const logsDropdownArea = document.getElementById("logsDropdownArea");
-    if (logsDropdownArea) {
+    // Add Data dropdown (only for Admin users)
+    const dataDropdownArea = document.getElementById("logsDropdownArea");
+    if (dataDropdownArea) {
       if (user.role === "Admin") {
-        logsDropdownArea.innerHTML = `
+        dataDropdownArea.innerHTML = `
           <div class="relative">
-            <button id="logsDropdownBtn" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20">
-              Logs
+            <button id="dataDropdownBtn" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20">
+              Data
               <svg class="w-3 h-3 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
             </button>
-            <div id="logsDropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+            <div id="dataDropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+              <button id="uploadCsvMenuBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+                Upload CSV
+              </button>
+              <button id="clearDataMenuBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+                Clear All Data
+              </button>
+              <div class="border-t border-gray-100"></div>
               <a href="/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
                 View Logs
               </a>
@@ -84,8 +91,8 @@ class AuthManager {
           </div>
         `;
       } else {
-        // Clear logs dropdown for non-admin users
-        logsDropdownArea.innerHTML = "";
+        // Clear data dropdown for non-admin users
+        dataDropdownArea.innerHTML = "";
       }
     }
 
@@ -198,11 +205,11 @@ class AuthManager {
           userDropdownMenu.classList.remove("show");
         }
 
-        // Close logs dropdown if open
-        const logsDropdownMenu = document.getElementById("logsDropdownMenu");
-        if (logsDropdownMenu) {
-          logsDropdownMenu.classList.add("hidden");
-          logsDropdownMenu.classList.remove("show");
+        // Close data dropdown if open
+        const dataDropdownMenu = document.getElementById("dataDropdownMenu");
+        if (dataDropdownMenu) {
+          dataDropdownMenu.classList.add("hidden");
+          dataDropdownMenu.classList.remove("show");
         }
 
         // Toggle sessions dropdown with animation
@@ -216,14 +223,14 @@ class AuthManager {
       });
     }
 
-    // Add logs dropdown functionality
-    const logsDropdownBtn = document.getElementById("logsDropdownBtn");
-    const logsDropdownMenu = document.getElementById("logsDropdownMenu");
+    // Add data dropdown functionality
+    const dataDropdownBtn = document.getElementById("dataDropdownBtn");
+    const dataDropdownMenu = document.getElementById("dataDropdownMenu");
 
-    if (logsDropdownBtn && logsDropdownMenu) {
-      logsDropdownBtn.addEventListener("click", (e) => {
+    if (dataDropdownBtn && dataDropdownMenu) {
+      dataDropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const isHidden = logsDropdownMenu.classList.contains("hidden");
+        const isHidden = dataDropdownMenu.classList.contains("hidden");
 
         // Close other dropdowns
         if (userDropdownMenu) {
@@ -235,13 +242,46 @@ class AuthManager {
           sessionsDropdownMenu.classList.remove("show");
         }
 
-        // Toggle logs dropdown with animation
+        // Toggle data dropdown with animation
         if (isHidden) {
-          logsDropdownMenu.classList.remove("hidden");
-          setTimeout(() => logsDropdownMenu.classList.add("show"), 10);
+          dataDropdownMenu.classList.remove("hidden");
+          setTimeout(() => dataDropdownMenu.classList.add("show"), 10);
         } else {
-          logsDropdownMenu.classList.remove("show");
-          setTimeout(() => logsDropdownMenu.classList.add("hidden"), 200);
+          dataDropdownMenu.classList.remove("show");
+          setTimeout(() => dataDropdownMenu.classList.add("hidden"), 200);
+        }
+      });
+    }
+
+    // Add event listeners for Upload CSV and Clear Data from dropdown
+    const uploadCsvMenuBtn = document.getElementById('uploadCsvMenuBtn');
+    if (uploadCsvMenuBtn) {
+      uploadCsvMenuBtn.addEventListener('click', () => {
+        // Close dropdown
+        const dataDropdownMenu = document.getElementById("dataDropdownMenu");
+        if (dataDropdownMenu) {
+          dataDropdownMenu.classList.remove("show");
+          setTimeout(() => dataDropdownMenu.classList.add("hidden"), 200);
+        }
+        // Open upload modal
+        if (window.applicantsManager) {
+          window.applicantsManager.openUploadModal();
+        }
+      });
+    }
+
+    const clearDataMenuBtn = document.getElementById('clearDataMenuBtn');
+    if (clearDataMenuBtn) {
+      clearDataMenuBtn.addEventListener('click', () => {
+        // Close dropdown
+        const dataDropdownMenu = document.getElementById("dataDropdownMenu");
+        if (dataDropdownMenu) {
+          dataDropdownMenu.classList.remove("show");
+          setTimeout(() => dataDropdownMenu.classList.add("hidden"), 200);
+        }
+        // Open clear data modal
+        if (window.applicantsManager) {
+          window.applicantsManager.confirmClearAllData();
         }
       });
     }
@@ -256,11 +296,11 @@ class AuthManager {
         sessionsDropdownBtn &&
         (sessionsDropdownBtn.contains(e.target) ||
           (sessionsDropdownMenu && sessionsDropdownMenu.contains(e.target)));
-      // Add logs dropdown check
-      const isLogsDropdown =
-        logsDropdownBtn &&
-        (logsDropdownBtn.contains(e.target) ||
-          (logsDropdownMenu && logsDropdownMenu.contains(e.target)));
+      // Add data dropdown check
+      const isDataDropdown =
+        dataDropdownBtn &&
+        (dataDropdownBtn.contains(e.target) ||
+          (dataDropdownMenu && dataDropdownMenu.contains(e.target)));
 
       if (!isUserDropdown && userDropdownMenu) {
         userDropdownMenu.classList.add("hidden");
@@ -270,10 +310,10 @@ class AuthManager {
         sessionsDropdownMenu.classList.add("hidden");
         sessionsDropdownMenu.classList.remove("show");
       }
-      // Close logs dropdown when clicking outside
-      if (!isLogsDropdown && logsDropdownMenu) {
-        logsDropdownMenu.classList.add("hidden");
-        logsDropdownMenu.classList.remove("show");
+      // Close data dropdown when clicking outside
+      if (!isDataDropdown && dataDropdownMenu) {
+        dataDropdownMenu.classList.add("hidden");
+        dataDropdownMenu.classList.remove("show");
       }
     });
   }
