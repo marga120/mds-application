@@ -281,6 +281,56 @@ class ApplicantsManager {
     }
   }
 
+  getReviewStatusBadge(status) {
+    const badge = document.createElement('span');
+    const dot = document.createElement('span');
+    
+    badge.className = "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium";
+    
+    // Add status-specific styling matching updateStatusBadge colors
+    switch (status) {
+      case "Not Reviewed":
+        badge.classList.add("bg-gray-100", "text-gray-800");
+        break;
+      case "Waitlist":
+        badge.classList.add("bg-yellow-100", "text-yellow-800");
+        break;
+      case "Send Offer to CoGS":
+        badge.classList.add("bg-green-100", "text-green-800");
+        break;
+      case "Offer Sent to CoGS":
+        badge.classList.add("bg-blue-100", "text-blue-800");
+        break;
+      case "Offer Sent to Student":
+        badge.classList.add("bg-purple-100", "text-purple-800");
+        break;
+      case "Reviewed by PPA":
+        badge.classList.add("bg-indigo-100", "text-indigo-800");
+        break;
+      case "Need Jeff's Review":
+        badge.classList.add("bg-purple-100", "text-purple-800");
+        break;
+      case "Need Khalad's Review":
+        badge.classList.add("bg-pink-100", "text-pink-800");
+        break;
+      case "Declined":
+        badge.classList.add("bg-red-100", "text-red-800");
+        break;
+      case "Offer Accepted":
+        badge.classList.add("bg-green-100", "text-green-800");
+        break;
+      case "Offer Declined":
+        badge.classList.add("bg-orange-100", "text-orange-800");
+        break;
+      default:
+        badge.classList.add("bg-gray-100", "text-gray-800");
+    }
+    
+    badge.appendChild(document.createTextNode(status));
+    
+    return badge.outerHTML;
+  }
+
   getOverallRatingDisplay(rating) {
     if (!rating || rating === null) {
       return '<div class="text-gray-400 text-sm">No rating</div>';
@@ -3140,6 +3190,7 @@ class ApplicantsManager {
 
         // Reload status history immediately
         await this.loadStatusHistory(userCode);
+        await this.loadApplicants();
       } else {
         this.showMessage(result.message, "error");
       }
@@ -3206,6 +3257,7 @@ class ApplicantsManager {
 
         // Reload status history immediately
         await this.loadStatusHistory(userCode);
+        await this.loadApplicants();
       } else {
         this.showMessage(result.message, "error");
       }
@@ -4689,13 +4741,13 @@ async initializeExportButton() {
             <th style="width: 3%;">
               <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4" onchange="window.applicantsManager.toggleAllApplicants(this.checked)">
             </th>
-            <th style="width: 25%;">Applicant</th>
-            <th style="width: 12%;">Student Number</th>
-            <th style="width: 14%;">Application Status</th>
-            <th style="width: 14%;">Submit Date</th>
-            <th style="width: 11%;">Overall Rating</th>
-            <th style="width: 11%;">Last Updated</th>
-            <th style="width: 10%;">Actions</th>
+            <th style="width: 20%;" class="text-center">Applicant</th>
+            <th style="width: 14%;" class="text-center">Application Status</th>
+            <th style="width: 14%;" class="text-center">Submit Date</th>
+            <th style="width: 12%;" class="text-center">Status</th>
+            <th style="width: 11%;" class="text-center">Overall Rating</th>
+            <th style="width: 11%;" class="text-center">Last Updated</th>
+            <th style="width: 10%;" class="text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -4716,15 +4768,13 @@ async initializeExportButton() {
                     <div class="applicant-info">
                       <h3>${applicant.given_name} ${applicant.family_name}</h3>
                       <p>User Code: ${Math.floor(parseFloat(applicant.user_code))}</p>
+                      <p>Student #: ${
+                        applicant.student_number && applicant.student_number !== "NaN"
+                          ? Math.floor(parseFloat(applicant.student_number))
+                          : "N/A"
+                      }</p>
                     </div>
                   </div>
-                </td>
-                <td class="text-center">
-                  ${
-                    applicant.student_number && applicant.student_number !== "NaN"
-                      ? `<span class="text-sm font-mono text-gray-800">${Math.floor(parseFloat(applicant.student_number))}</span>`
-                      : '<span class="text-xs text-gray-400">N/A</span>'
-                  }
                 </td>
                 <td>
                   ${this.getStatusBadge(applicant.status)}
@@ -4739,6 +4789,18 @@ async initializeExportButton() {
                         })}</div>`
                       : '<div class="text-gray-400 text-sm">Not submitted</div>'
                   }
+                </td>
+                <td class="text-center">
+                  <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;">
+                    ${this.getReviewStatusBadge(applicant.review_status || "Not Reviewed")}
+                    ${
+                      applicant.review_status_updated_at
+                        ? `<span class="text-xs text-gray-500">Updated: ${new Date(
+                            applicant.review_status_updated_at
+                          ).toLocaleDateString()}</span>`
+                        : ""
+                    }
+                  </div>
                 </td>
                 <td class="text-center">
                   ${this.getOverallRatingDisplay(applicant.overall_rating)}
