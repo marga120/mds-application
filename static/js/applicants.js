@@ -1234,7 +1234,8 @@ class ApplicantsManager {
 
       if (result.success) {
         this.showMessage(result.message, "success");
-        this.loadRatings(userCode); // Reload all ratings
+        await this.loadRatings(userCode); // Reload all ratings
+        await this.loadApplicants();
       } else {
         this.showMessage(result.message, "error");
       }
