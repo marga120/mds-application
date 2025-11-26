@@ -2101,22 +2101,19 @@ def get_selected_applicants_for_export(user_codes, sections=None):
 
         # 4. Admin / Offer Status (Application)
         select_parts.extend([
-            # Admission Review: Yes if not 'Not Reviewed'
-            "CASE WHEN sent != 'Not Reviewed' THEN 'Yes' ELSE 'No' END AS \"Admission Review\"",
+            # Admission Review
+            "CASE WHEN app.sent != 'Not Reviewed' THEN 'Yes' ELSE 'No' END AS \"Admission Review\"",
 
-            # Offer Sent: Y/N
-            "CASE WHEN sent IN ('Offer', 'Offer Sent', 'Accepted', 'Declined') THEN 'Y' ELSE 'N' END AS \"Offer Sent\"",
+            # Offer Sent - Updated to match schema values
+            "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN 'Y' ELSE 'N' END AS \"Offer Sent\"",
 
-            # Offer Status: The actual status if it's an offer
-            "CASE WHEN sent IN ('Offer', 'Offer Sent', 'Accepted', 'Declined') THEN sent ELSE '' END AS \"Offer Status\"",
+            # Offer Status - Updated to match schema values
+            "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN app.sent ELSE '' END AS \"Offer Status\"",
 
-            # Scholarship Offered
-            "CASE "
-            "WHEN scholarship = TRUE THEN 'Yes' "
-            "WHEN scholarship IS NULL THEN 'Undecided' "
-            "ELSE 'No' "
-            "END AS \"Scholarship Offered\""
+            # Scholarship - VARCHAR(20) with CHECK constraint
+            "COALESCE(app.scholarship, 'Undecided') AS \"Scholarship Offered\""
         ])
+
 
         # 5. Education History (Institutions/Education)
         if inc_edu:

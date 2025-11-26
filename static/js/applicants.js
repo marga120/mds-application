@@ -4549,7 +4549,13 @@ async initializeExportButton() {
   }
 
   showExportOptionsModal(userCode, userName) {
-    // Single export not requested to change, but using same modal
+    // Close the actions dropdown first
+    const existingActionsMenu = document.querySelector('.actions-dropdown');
+    if (existingActionsMenu) {
+      existingActionsMenu.remove();
+    }
+
+    // Rest of your existing code...
     let modal = document.getElementById('sharedExportOptionsModal');
     if (!modal) {
       modal = this.createSharedExportOptionsModal();
