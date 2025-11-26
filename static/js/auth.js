@@ -65,8 +65,8 @@ class AuthManager {
       `;
     }
 
-    // Add data dropdown (only for Admin users)
-    const dataDropdownArea = document.getElementById("dataDropdownArea");
+    // Add Data dropdown (only for Admin users)
+    const dataDropdownArea = document.getElementById("logsDropdownArea");
     if (dataDropdownArea) {
       if (user.role === "Admin") {
         dataDropdownArea.innerHTML = `
@@ -77,40 +77,23 @@ class AuthManager {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
             </button>
-            <div id="dataDropdownMenu" class="hidden absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-              <button id="uploadCsvMenuItem" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-md flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                </svg>
+            <div id="dataDropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+              <button id="uploadCsvMenuBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
                 Upload CSV
               </button>
-              <a href="/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                View Logs
-              </a>
-              <button id="clearDataMenuItem" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-md flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                </svg>
+              <button id="clearDataMenuBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
                 Clear All Data
               </button>
+              <div class="border-t border-gray-100"></div>
+              <a href="/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+                View Logs
+              </a>
             </div>
           </div>
         `;
-        
-        // Create modals for upload and clear data
-        this.createDataModals();
       } else {
         // Clear data dropdown for non-admin users
         dataDropdownArea.innerHTML = "";
-        
-        // Remove any existing modals for non-admin users
-        const uploadModal = document.getElementById('uploadCsvModal');
-        const clearModal = document.getElementById('clearDataModal');
-        if (uploadModal) uploadModal.remove();
-        if (clearModal) clearModal.remove();
       }
     }
 
@@ -231,11 +214,11 @@ class AuthManager {
           userDropdownMenu.classList.remove("show");
         }
 
-        // Close logs dropdown if open
-        const logsDropdownMenu = document.getElementById("logsDropdownMenu");
-        if (logsDropdownMenu) {
-          logsDropdownMenu.classList.add("hidden");
-          logsDropdownMenu.classList.remove("show");
+        // Close data dropdown if open
+        const dataDropdownMenu = document.getElementById("dataDropdownMenu");
+        if (dataDropdownMenu) {
+          dataDropdownMenu.classList.add("hidden");
+          dataDropdownMenu.classList.remove("show");
         }
 
         // Toggle sessions dropdown with animation
@@ -279,6 +262,39 @@ class AuthManager {
       });
     }
 
+    // Add event listeners for Upload CSV and Clear Data from dropdown
+    const uploadCsvMenuBtn = document.getElementById('uploadCsvMenuBtn');
+    if (uploadCsvMenuBtn) {
+      uploadCsvMenuBtn.addEventListener('click', () => {
+        // Close dropdown
+        const dataDropdownMenu = document.getElementById("dataDropdownMenu");
+        if (dataDropdownMenu) {
+          dataDropdownMenu.classList.remove("show");
+          setTimeout(() => dataDropdownMenu.classList.add("hidden"), 200);
+        }
+        // Open upload modal
+        if (window.applicantsManager) {
+          window.applicantsManager.openUploadModal();
+        }
+      });
+    }
+
+    const clearDataMenuBtn = document.getElementById('clearDataMenuBtn');
+    if (clearDataMenuBtn) {
+      clearDataMenuBtn.addEventListener('click', () => {
+        // Close dropdown
+        const dataDropdownMenu = document.getElementById("dataDropdownMenu");
+        if (dataDropdownMenu) {
+          dataDropdownMenu.classList.remove("show");
+          setTimeout(() => dataDropdownMenu.classList.add("hidden"), 200);
+        }
+        // Open clear data modal
+        if (window.applicantsManager) {
+          window.applicantsManager.confirmClearAllData();
+        }
+      });
+    }
+
     // Close dropdowns when clicking outside
     document.addEventListener("click", (e) => {
       const isUserDropdown =
@@ -303,6 +319,7 @@ class AuthManager {
         sessionsDropdownMenu.classList.add("hidden");
         sessionsDropdownMenu.classList.remove("show");
       }
+      // Close data dropdown when clicking outside
       if (!isDataDropdown && dataDropdownMenu) {
         dataDropdownMenu.classList.add("hidden");
         dataDropdownMenu.classList.remove("show");

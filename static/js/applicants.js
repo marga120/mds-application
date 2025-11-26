@@ -11,6 +11,8 @@ class ApplicantsManager {
   constructor() {
     this.allApplicants = [];
     this.sessionName = "";
+    this.sortColumn = null;
+    this.sortDirection = 'asc'; 
     this.initializeEventListeners();
     this.loadSessionName();
     this.loadApplicants();
@@ -41,31 +43,36 @@ class ApplicantsManager {
     });
   }
 
-  // Only add event listeners if elements exist (they won't exist now that upload is in modal)
-  if (fileInput) {
-    fileInput.addEventListener("change", (e) => {
-      this.handleFileSelect(e.target.files[0]);
+  fileInput.addEventListener("change", (e) => {
+    this.handleFileSelect(e.target.files[0]);
+  });
+
+  uploadBtn.addEventListener("click", () => {
+    this.uploadFile();
+  });
+
+  searchInput.addEventListener("input", () => {
+    this.filterApplicants();
+  });
+
+  searchFilter.addEventListener("change", () => {
+    this.filterApplicants();
+  });
+
+  // Modal close buttons
+  const closeUploadModal = document.getElementById("closeUploadModal");
+  if (closeUploadModal) {
+    closeUploadModal.addEventListener("click", () => {
+      this.closeUploadModal();
     });
   }
 
-  if (uploadBtn) {
-    uploadBtn.addEventListener("click", () => {
-      this.uploadFile();
+  const cancelUploadBtn = document.getElementById("cancelUploadBtn");
+  if (cancelUploadBtn) {
+    cancelUploadBtn.addEventListener("click", () => {
+      this.closeUploadModal();
     });
   }
-
-  if (searchInput) {
-    searchInput.addEventListener("input", () => {
-      this.filterApplicants();
-    });
-  }
-
-  if (searchFilter) {
-    searchFilter.addEventListener("change", () => {
-      this.filterApplicants();
-    });
-  }
-
 }
   // Add checkbox selection tracking
   toggleApplicantSelection(userCode, checked) {
@@ -182,6 +189,10 @@ class ApplicantsManager {
                 `;
         timestampElement.style.display = "block";
 
+        setTimeout(() => {
+          this.closeUploadModal();
+        }, 2000);
+
         this.loadSessionName();
         this.loadApplicants();
         document.getElementById("fileInput").value = "";
@@ -227,6 +238,57 @@ class ApplicantsManager {
     }
   }
 
+  sortApplicants(column) {
+    // Toggle sort direction if clicking the same column
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+
+    // Sort the filtered applicants (or all if no filter)
+    const applicantsToDisplay = this.getFilteredApplicants();
+    const sorted = [...applicantsToDisplay].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (column) {
+        case 'applicant':
+          aValue = `${a.family_name} ${a.given_name}`.toLowerCase();
+          bValue = `${b.family_name} ${b.given_name}`.toLowerCase();
+          break;
+        case 'status':
+          aValue = (a.status || '').toLowerCase();
+          bValue = (b.status || '').toLowerCase();
+          break;
+        case 'submit_date':
+          aValue = a.submit_date ? new Date(a.submit_date).getTime() : 0;
+          bValue = b.submit_date ? new Date(b.submit_date).getTime() : 0;
+          break;
+         case 'review_status':
+          aValue = (a.review_status || '').toLowerCase();
+          bValue = (b.review_status || '').toLowerCase();
+          break;
+        case 'overall_rating':
+          aValue = parseFloat(a.overall_rating) || 0;
+          bValue = parseFloat(b.overall_rating) || 0;
+          break;
+        case 'last_updated':
+          aValue = a.seconds_since_update || 0;
+          bValue = b.seconds_since_update || 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return this.sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return this.sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    this.displayApplicants(sorted);
+  }
+
 
   formatLastChanged(secondsAgo) {
     const seconds = Math.floor(secondsAgo);
@@ -270,6 +332,56 @@ class ApplicantsManager {
     } else {
       return `<span class="status-badge status-unsubmitted">${status}</span>`;
     }
+  }
+
+  getReviewStatusBadge(status) {
+    const badge = document.createElement('span');
+    const dot = document.createElement('span');
+    
+    badge.className = "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium";
+    
+    // Add status-specific styling matching updateStatusBadge colors
+    switch (status) {
+      case "Not Reviewed":
+        badge.classList.add("bg-gray-100", "text-gray-800");
+        break;
+      case "Waitlist":
+        badge.classList.add("bg-yellow-100", "text-yellow-800");
+        break;
+      case "Send Offer to CoGS":
+        badge.classList.add("bg-green-100", "text-green-800");
+        break;
+      case "Offer Sent to CoGS":
+        badge.classList.add("bg-blue-100", "text-blue-800");
+        break;
+      case "Offer Sent to Student":
+        badge.classList.add("bg-purple-100", "text-purple-800");
+        break;
+      case "Reviewed by PPA":
+        badge.classList.add("bg-indigo-100", "text-indigo-800");
+        break;
+      case "Need Jeff's Review":
+        badge.classList.add("bg-purple-100", "text-purple-800");
+        break;
+      case "Need Khalad's Review":
+        badge.classList.add("bg-pink-100", "text-pink-800");
+        break;
+      case "Declined":
+        badge.classList.add("bg-red-100", "text-red-800");
+        break;
+      case "Offer Accepted":
+        badge.classList.add("bg-green-100", "text-green-800");
+        break;
+      case "Offer Declined":
+        badge.classList.add("bg-orange-100", "text-orange-800");
+        break;
+      default:
+        badge.classList.add("bg-gray-100", "text-gray-800");
+    }
+    
+    badge.appendChild(document.createTextNode(status));
+    
+    return badge.outerHTML;
   }
 
   getOverallRatingDisplay(rating) {
@@ -328,45 +440,94 @@ class ApplicantsManager {
   }
 
   filterApplicants() {
-    const searchTerm = document
-      .getElementById("searchInput")
-      .value.toLowerCase()
-      .trim();
-    const filterBy = document.getElementById("searchFilter").value;
+    const filtered = this.getFilteredApplicants();
+    
+    // If there's an active sort, apply it
+    if (this.sortColumn) {
+      const sorted = [...filtered].sort((a, b) => {
+        let aValue, bValue;
 
-    if (searchTerm === "") {
-      this.displayApplicants(this.allApplicants);
-      return;
+        switch (this.sortColumn) {
+          case 'applicant':
+            aValue = `${a.family_name} ${a.given_name}`.toLowerCase();
+            bValue = `${b.family_name} ${b.given_name}`.toLowerCase();
+            break;
+          case 'student_number':
+            aValue = parseFloat(a.student_number) || 0;
+            bValue = parseFloat(b.student_number) || 0;
+            break;
+          case 'status':
+            aValue = (a.status || '').toLowerCase();
+            bValue = (b.status || '').toLowerCase();
+            break;
+          case 'submit_date':
+            aValue = a.submit_date ? new Date(a.submit_date).getTime() : 0;
+            bValue = b.submit_date ? new Date(b.submit_date).getTime() : 0;
+            break;
+          case 'review_status':
+            aValue = (a.review_status || '').toLowerCase();
+            bValue = (b.review_status || '').toLowerCase();
+          break;
+          case 'overall_rating':
+            aValue = parseFloat(a.overall_rating) || 0;
+            bValue = parseFloat(b.overall_rating) || 0;
+            break;
+          case 'last_updated':
+            aValue = a.seconds_since_update || 0;
+            bValue = b.seconds_since_update || 0;
+            break;
+          default:
+            return 0;
+        }
+
+        if (aValue < bValue) return this.sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return this.sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+      this.displayApplicants(sorted);
+    } else {
+      this.displayApplicants(filtered);
     }
+  }
+  getFilteredApplicants() {
+    const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+    const filter = document.getElementById("searchFilter").value;
 
-    const filteredApplicants = this.allApplicants.filter((applicant) => {
-      if (filterBy === "all") {
+    if (!searchTerm) return this.allApplicants;
+
+    return this.allApplicants.filter((applicant) => {
+      if (filter === "all") {
         return (
-          (applicant.given_name &&
-            applicant.given_name.toLowerCase().includes(searchTerm)) ||
-          (applicant.family_name &&
-            applicant.family_name.toLowerCase().includes(searchTerm)) ||
-          applicant.user_code.toLowerCase().includes(searchTerm) ||
-          (applicant.student_number &&
-            applicant.student_number
-              .toString()
-              .toLowerCase()
-              .includes(searchTerm)) ||
-          (applicant.status && this.matchesStatus(applicant.status, searchTerm))
-        );
-      } else if (filterBy === "status") {
-        return (
-          applicant.status && this.matchesStatus(applicant.status, searchTerm)
+          applicant.given_name?.toLowerCase().includes(searchTerm) ||
+          applicant.family_name?.toLowerCase().includes(searchTerm) ||
+          applicant.user_code?.toString().includes(searchTerm) ||
+          applicant.student_number?.toString().includes(searchTerm) ||
+          applicant.status?.toLowerCase().includes(searchTerm) ||
+          applicant.review_status?.toLowerCase().includes(searchTerm)
         );
       } else {
-        const fieldValue = applicant[filterBy];
-        return (
-          fieldValue && fieldValue.toString().toLowerCase().includes(searchTerm)
-        );
+        return applicant[filter]?.toLowerCase().includes(searchTerm);
       }
     });
+  }
 
-    this.displayApplicants(filteredApplicants);
+  getSortIcon(column) {
+    if (this.sortColumn !== column) {
+      // Inactive column - light gray/white
+      return `<svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+              </svg>`;
+    }
+    if (this.sortDirection === 'asc') {
+      // Active ascending - white
+      return `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+              </svg>`;
+    }
+    // Active descending - white
+    return `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>`;
   }
 
   showMessage(text, type) {
@@ -1225,7 +1386,8 @@ class ApplicantsManager {
 
       if (result.success) {
         this.showMessage(result.message, "success");
-        this.loadRatings(userCode); // Reload all ratings
+        await this.loadRatings(userCode); // Reload all ratings
+        await this.loadApplicants();
       } else {
         this.showMessage(result.message, "error");
       }
@@ -3130,6 +3292,7 @@ class ApplicantsManager {
 
         // Reload status history immediately
         await this.loadStatusHistory(userCode);
+        await this.loadApplicants();
       } else {
         this.showMessage(result.message, "error");
       }
@@ -3196,6 +3359,7 @@ class ApplicantsManager {
 
         // Reload status history immediately
         await this.loadStatusHistory(userCode);
+        await this.loadApplicants();
       } else {
         this.showMessage(result.message, "error");
       }
@@ -4482,7 +4646,13 @@ async initializeExportButton() {
   }
 
   showExportOptionsModal(userCode, userName) {
-    // Single export not requested to change, but using same modal
+    // Close the actions dropdown first
+    const existingActionsMenu = document.querySelector('.actions-dropdown');
+    if (existingActionsMenu) {
+      existingActionsMenu.remove();
+    }
+
+    // Rest of your existing code...
     let modal = document.getElementById('sharedExportOptionsModal');
     if (!modal) {
       modal = this.createSharedExportOptionsModal();
@@ -4679,12 +4849,42 @@ async initializeExportButton() {
             <th style="width: 3%;">
               <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4" onchange="window.applicantsManager.toggleAllApplicants(this.checked)">
             </th>
-            <th style="width: 25%;">Applicant</th>
-            <th style="width: 12%;">Student Number</th>
-            <th style="width: 14%;">Application Status</th>
-            <th style="width: 14%;">Submit Date</th>
-            <th style="width: 11%;">Overall Rating</th>
-            <th style="width: 11%;">Last Updated</th>
+            <th style="width: 25%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('applicant')">
+              <div class="flex items-center justify-between">
+                <span>Applicant</span>
+                ${this.getSortIcon('applicant')}
+              </div>
+            </th>
+            <th style="width: 14%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('status')">
+              <div class="flex items-center justify-center gap-2">
+                <span>Application Status</span>
+                ${this.getSortIcon('status')}
+              </div>
+            </th>
+            <th style="width: 14%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('submit_date')">
+              <div class="flex items-center justify-center gap-2">
+                <span>Submit Date</span>
+                ${this.getSortIcon('submit_date')}
+              </div>
+            </th>
+            <th style="width: 12%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('review_status')">
+              <div class="flex items-center justify-center gap-2">
+                <span>Review Status</span>
+                ${this.getSortIcon('review_status')}
+              </div>
+            </th>
+            <th style="width: 11%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('overall_rating')">
+              <div class="flex items-center justify-center gap-2">
+                <span>Overall Rating</span>
+                ${this.getSortIcon('overall_rating')}
+              </div>
+            </th>
+            <th style="width: 11%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('last_updated')">
+              <div class="flex items-center justify-center gap-2">
+                <span>Last Updated</span>
+                ${this.getSortIcon('last_updated')}
+              </div>
+            </th>
             <th style="width: 10%;">Actions</th>
           </tr>
         </thead>
@@ -4706,15 +4906,13 @@ async initializeExportButton() {
                     <div class="applicant-info">
                       <h3>${applicant.given_name} ${applicant.family_name}</h3>
                       <p>User Code: ${Math.floor(parseFloat(applicant.user_code))}</p>
+                      <p>Student #: ${
+                        applicant.student_number && applicant.student_number !== "NaN"
+                          ? Math.floor(parseFloat(applicant.student_number))
+                          : "N/A"
+                      }</p>
                     </div>
                   </div>
-                </td>
-                <td class="text-center">
-                  ${
-                    applicant.student_number && applicant.student_number !== "NaN"
-                      ? `<span class="text-sm font-mono text-gray-800">${Math.floor(parseFloat(applicant.student_number))}</span>`
-                      : '<span class="text-xs text-gray-400">N/A</span>'
-                  }
                 </td>
                 <td>
                   ${this.getStatusBadge(applicant.status)}
@@ -4729,6 +4927,18 @@ async initializeExportButton() {
                         })}</div>`
                       : '<div class="text-gray-400 text-sm">Not submitted</div>'
                   }
+                </td>
+                <td class="text-center">
+                  <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;">
+                    ${this.getReviewStatusBadge(applicant.review_status || "Not Reviewed")}
+                    ${
+                      applicant.review_status_updated_at
+                        ? `<span class="text-xs text-gray-500">Updated: ${new Date(
+                            applicant.review_status_updated_at
+                          ).toLocaleDateString()}</span>`
+                        : ""
+                    }
+                  </div>
                 </td>
                 <td class="text-center">
                   ${this.getOverallRatingDisplay(applicant.overall_rating)}
@@ -4890,5 +5100,23 @@ showClearDataMessage(text, type) {
   setTimeout(() => {
     messageDiv.classList.add('hidden');
   }, 5000);
+}
+
+openUploadModal() {
+  document.getElementById('uploadModal').classList.remove('hidden');
+}
+
+closeUploadModal() {
+  document.getElementById('uploadModal').classList.add('hidden');
+  // Reset file input
+  const fileInput = document.getElementById('fileInput');
+  const fileStatus = document.getElementById('fileStatus');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const message = document.getElementById('message');
+  
+  if (fileInput) fileInput.value = '';
+  if (fileStatus) fileStatus.textContent = 'No file chosen';
+  if (uploadBtn) uploadBtn.disabled = true;
+  if (message) message.classList.add('hidden');
 }
 }
