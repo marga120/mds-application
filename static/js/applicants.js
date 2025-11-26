@@ -502,7 +502,8 @@ class ApplicantsManager {
           applicant.family_name?.toLowerCase().includes(searchTerm) ||
           applicant.user_code?.toString().includes(searchTerm) ||
           applicant.student_number?.toString().includes(searchTerm) ||
-          applicant.status?.toLowerCase().includes(searchTerm)
+          applicant.status?.toLowerCase().includes(searchTerm) ||
+          applicant.review_status?.toLowerCase().includes(searchTerm)
         );
       } else {
         return applicant[filter]?.toLowerCase().includes(searchTerm);
