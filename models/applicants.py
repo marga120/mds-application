@@ -2110,7 +2110,7 @@ def get_selected_applicants_for_export(user_codes, sections=None):
             # Offer Status - Updated to match schema values
             "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN app.sent ELSE '' END AS \"Offer Status\"",
 
-            # Scholarship - VARCHAR(20) with CHECK constraint
+            # Scholarship - VARCHAR(20) 
             "COALESCE(app.scholarship, 'Undecided') AS \"Scholarship Offered\""
         ])
 
