@@ -2,6 +2,9 @@ class AccountManager {
   constructor() {
     this.currentUser = null;
     this.searchTimeout = null;
+    this.usersCache = [];
+    this.sortField = null; // 'name' or 'role'
+    this.sortDir = 'asc'; // 'asc' or 'desc'
     this.userToDelete = null; // Store ID for modal
     this.loadUserInfo();
     this.initializeEventListeners();
@@ -52,6 +55,12 @@ class AccountManager {
     // Admin: Create User
     document.getElementById("createUserForm").addEventListener("submit", (e) => { e.preventDefault(); this.handleCreateUser(e); });
 
+    // Admin: Edit User
+    const editUserForm = document.getElementById("editUserForm");
+    if (editUserForm) {
+        editUserForm.addEventListener("submit", (e) => { e.preventDefault(); this.handleEditUser(e); });
+    }
+
     // Admin: Search (Debounced)
     const searchInput = document.getElementById("userSearchInput");
     if (searchInput) {
@@ -86,7 +95,9 @@ class AccountManager {
         const response = await fetch(url);
         const result = await response.json();
         if (result.success) {
-            this.renderUserTable(result.users);
+            // cache users so we can sort client-side without re-fetching
+            this.usersCache = result.users || [];
+            this.renderUserTable();
         }
     } catch (error) {
         console.error("Error loading users:", error);
@@ -95,20 +106,36 @@ class AccountManager {
 
   renderUserTable(users) {
     const tbody = document.getElementById("userTableBody");
-    
-    if (users.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-4 text-center text-sm text-gray-500">No users found.</td></tr>`;
+    // prefer explicit users param, otherwise use cached values
+    let list = Array.isArray(users) ? users.slice() : this.usersCache.slice();
+
+    if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-4 text-center text-sm text-gray-500">No users found.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = users.map(user => {
+    // client-side sorting
+    if (this.sortField) {
+        const dir = this.sortDir === 'asc' ? 1 : -1;
+        if (this.sortField === 'name') {
+            list.sort((a, b) => a.full_name.localeCompare(b.full_name) * dir);
+        } else if (this.sortField === 'role') {
+            // map role_id to readable order/name
+            const roleName = (rid) => rid === 1 ? 'Admin' : (rid === 2 ? 'Editor' : 'Viewer');
+            list.sort((a, b) => roleName(a.role_id).localeCompare(roleName(b.role_id)) * dir);
+        }
+    }
+
+    tbody.innerHTML = list.map(user => {
         const isSelf = user.id === this.currentUser.id;
         
         // Pass name to the delete handler for the modal text
         const deleteBtn = isSelf 
             ? `<span class="text-gray-400 text-xs italic">Current User</span>`
             : `<button onclick="accountManager.openDeleteModal(${user.id}, '${user.full_name}')" class="text-red-600 hover:text-red-900 text-sm font-medium bg-red-50 px-3 py-1 rounded border border-red-200 hover:bg-red-100 transition-colors">Delete</button>`;
-
+        const editBtn = isSelf
+            ? `<span class="text-gray-400 text-xs italic">Current User</span>`
+            : `<button onclick="accountManager.openEditModal(${user.id}, '${user.full_name}')" class="text-blue-600 hover:text-blue-900 text-sm font-medium bg-blue-50 px-3 py-1 rounded border border-blue-200 hover:bg-blue-100 transition-colors">Edit</a>`;
         const roleColor = user.role_id === 1 ? 'bg-purple-100 text-purple-800' : 
                           (user.role_id === 2 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800');
         const roleName = user.role_id === 1 ? 'Admin' : (user.role_id === 2 ? 'Editor' : 'Viewer');
@@ -127,11 +154,79 @@ class AccountManager {
                 <td class="px-4 py-3 whitespace-nowrap text-right">
                     ${deleteBtn}
                 </td>
+                <td class="px-4 py-3 whitespace-nowrap text-right">
+                    ${editBtn}
+                </td>
+                
             </tr>
         `;
-    }).join('');
+        }).join('');
   }
 
+    toggleSort(field) {
+        if (this.sortField === field) {
+                // toggle direction
+                this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+                this.sortField = field;
+                this.sortDir = 'asc';
+        }
+
+        // update UI indicators
+        const nameIcon = document.getElementById('sortNameIcon');
+        const roleIcon = document.getElementById('sortRoleIcon');
+        if (nameIcon) nameIcon.textContent = this.sortField === 'name' ? (this.sortDir === 'asc' ? '↑' : '↓') : '⇅';
+        if (roleIcon) roleIcon.textContent = this.sortField === 'role' ? (this.sortDir === 'asc' ? '↑' : '↓') : '⇅';
+
+        // re-render with new sort
+        this.renderUserTable();
+    }
+  // --- EDIT MODAL LOGIC ---
+  openEditModal(userId, userName) {
+      this.userToEdit = userId;
+      document.getElementById("editUserId").value = userId;
+      document.getElementById("editEmail").value = "";
+      document.getElementById("editPassword").value = "";
+      document.getElementById("editMessage").classList.add("hidden");
+      document.getElementById("editModal").classList.remove("hidden");
+  }
+
+  async handleEditUser(e) {
+      const form = e.target;
+      const userId = document.getElementById("editUserId").value;
+      const email = document.getElementById("editEmail").value;
+      const password = document.getElementById("editPassword").value;
+      const msgDiv = document.getElementById("editMessage");
+
+      if (!email && !password) {
+          this.showMessage(msgDiv, "Please enter at least an email or new password", "error");
+          return;
+      }
+
+      try {
+          const body = { user_id: userId };
+          if (email) body.email = email;
+          if (password) body.password = password;
+
+          const response = await fetch("/api/auth/edit-user", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body)
+          });
+          const result = await response.json();
+
+          if (result.success) {
+              document.getElementById("editModal").classList.add("hidden");
+              const currentSearch = document.getElementById("userSearchInput").value;
+              this.loadSystemUsers(currentSearch);
+          } else {
+              this.showMessage(msgDiv, result.message || "Failed to update user", "error");
+          }
+      } catch (error) {
+          console.error("Error:", error);
+          this.showMessage(msgDiv, "An error occurred", "error");
+      }
+  }
   // --- DELETE MODAL LOGIC ---
   openDeleteModal(userId, userName) {
       this.userToDelete = userId;

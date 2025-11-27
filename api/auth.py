@@ -294,6 +294,86 @@ def update_email():
         if conn: conn.close()
         return jsonify({"success": False, "message": str(e)}), 500
 
+@auth_api.route("/edit-user", methods=["POST"])
+@login_required
+def edit_user():
+    """
+    Edit a user's email and/or password.
+    @requires: Admin (role_user_id == 1)
+    """
+    if current_user.role_user_id != 1:
+        return jsonify({"success": False, "message": "Unauthorized access"}), 403
+
+    data = request.get_json()
+    user_id = data.get("user_id")
+    new_email = data.get("email")
+    new_password = data.get("password")
+
+    if not user_id:
+        return jsonify({"success": False, "message": "user_id is required"}), 400
+
+    if not new_email and not new_password:
+        return jsonify({"success": False, "message": "At least one field (email or password) must be provided"}), 400
+
+    if new_password and len(new_password) < 8:
+        return jsonify({"success": False, "message": "Password must be at least 8 characters"}), 400
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+
+        # Check if user exists
+        cursor.execute('SELECT id FROM "user" WHERE id = %s', (user_id,))
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "message": "User not found"}), 404
+
+        # Check if new email is already in use (if provided)
+        if new_email:
+            cursor.execute('SELECT id FROM "user" WHERE email = %s AND id != %s', (new_email, user_id))
+            if cursor.fetchone():
+                cursor.close()
+                conn.close()
+                return jsonify({"success": False, "message": "Email already in use"}), 400
+
+        # Build update query
+        updates = []
+        params = []
+
+        if new_email:
+            updates.append('email = %s')
+            params.append(new_email)
+
+        if new_password:
+            hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            updates.append('password = %s')
+            params.append(hashed_password)
+
+        updates.append('updated_at = %s')
+        params.append(datetime.now())
+        params.append(user_id)
+
+        sql = f'UPDATE "user" SET {", ".join(updates)} WHERE id = %s'
+        cursor.execute(sql, tuple(params))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        log_activity(
+            action_type="user_edited",
+            target_entity="user",
+            target_id=str(user_id),
+            additional_metadata={"edited_by": current_user.email, "fields": list(updates)}
+        )
+
+        return jsonify({"success": True, "message": "User updated successfully"})
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return jsonify({"success": False, "message": str(e)}), 500
+
 @auth_api.route("/reset-password", methods=["POST"])
 @login_required
 def reset_password():
