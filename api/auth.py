@@ -446,3 +446,167 @@ def check_session():
         })
     else:
         return jsonify({"authenticated": False})
+
+# For grabbing users for editing.
+
+@auth_api.route("/user/<int:user_id>", methods=["GET"])
+@login_required
+def get_user_by_id(user_id):
+    """Get a single user by ID for editing - Admin only"""
+    if current_user.role_user_id != 1:
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT u.id, u.first_name, u.last_name, u.email, u.role_user_id, u.created_at, r.role_name
+            FROM "user" u
+            JOIN role_user r ON u.role_user_id = r.id
+            WHERE u.id = %s
+        ''', (user_id,))
+        
+        user = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not user:
+            return jsonify({"success": False, "message": "User not found"}), 404
+        
+        return jsonify({
+            "success": True,
+            "user": {
+                "id": user[0],
+                "first_name": user[1],
+                "last_name": user[2],
+                "email": user[3],
+                "role_user_id": user[4],
+                "created_at": user[5].isoformat() if user[5] else None,
+                "role": user[6]
+            }
+        })
+    except Exception as e:
+        if conn: conn.close()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@auth_api.route("/register", methods=["POST"])
+@login_required
+def register_user():
+    """Create a new user - Admin only (uses /register endpoint for users.js)"""
+    if current_user.role_user_id != 1:
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    data = request.get_json()
+    first_name = data.get('first_name', '').strip()
+    last_name = data.get('last_name', '').strip()
+    email = data.get('email', '').strip()
+    password = data.get('password', '')
+    role_id = data.get('role_user_id', 3)
+
+    if not all([first_name, last_name, email, password]):
+        return jsonify({"success": False, "message": "All fields are required"}), 400
+
+    if len(password) < 8:
+        return jsonify({"success": False, "message": "Password must be at least 8 characters"}), 400
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT id FROM "user" WHERE email = %s', (email,))
+        if cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "message": "Email already exists"}), 400
+
+        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+        cursor.execute(
+            'INSERT INTO "user" (first_name, last_name, email, password, role_user_id, created_at) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id',
+            (first_name, last_name, email, hashed, role_id, datetime.now())
+        )
+        new_id = cursor.fetchone()[0]
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        log_activity(
+            action_type="user_created",
+            target_entity="user",
+            target_id=str(new_id),
+            additional_metadata={"created_by": current_user.email}
+        )
+
+        return jsonify({"success": True, "message": "User created successfully"})
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@auth_api.route("/user/<int:user_id>", methods=["PUT"])
+@login_required  
+def update_user(user_id):
+    """Update user information - Admin only"""
+    if current_user.role_user_id != 1:
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    data = request.get_json()
+    first_name = data.get('first_name', '').strip()
+    last_name = data.get('last_name', '').strip()
+    email = data.get('email', '').strip()
+    password = data.get('password', '')
+    role_id = data.get('role_user_id')
+
+    if not all([first_name, last_name, email, role_id]):
+        return jsonify({"success": False, "message": "First name, last name, email, and role are required"}), 400
+
+    if password and len(password) < 8:
+        return jsonify({"success": False, "message": "Password must be at least 8 characters"}), 400
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT id FROM "user" WHERE id = %s', (user_id,))
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "message": "User not found"}), 404
+
+        cursor.execute('SELECT id FROM "user" WHERE email = %s AND id != %s', (email, user_id))
+        if cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "message": "Email already in use"}), 400
+
+        if password:
+            hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            sql = 'UPDATE "user" SET first_name = %s, last_name = %s, email = %s, password = %s, role_user_id = %s, updated_at = %s WHERE id = %s'
+            params = (first_name, last_name, email, hashed, role_id, datetime.now(), user_id)
+        else:
+            sql = 'UPDATE "user" SET first_name = %s, last_name = %s, email = %s, role_user_id = %s, updated_at = %s WHERE id = %s'
+            params = (first_name, last_name, email, role_id, datetime.now(), user_id)
+
+        cursor.execute(sql, params)
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        log_activity(
+            action_type="user_updated",
+            target_entity="user",
+            target_id=str(user_id),
+            additional_metadata={"updated_by": current_user.email}
+        )
+
+        return jsonify({"success": True, "message": "User updated successfully"})
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return jsonify({"success": False, "message": str(e)}), 500
