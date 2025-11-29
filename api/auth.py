@@ -198,7 +198,7 @@ def create_user():
         if conn: conn.close()
         return jsonify({"success": False, "message": str(e)}), 500
 
-@auth_api.route("/delete-user/<int:user_id>", methods=["DELETE"])
+@auth_api.route("/delete-user/<int:user_id>", methods=["DELETE"],strict_slashes=False)
 @login_required
 def delete_user(user_id):
     """
@@ -215,23 +215,14 @@ def delete_user(user_id):
     try:
         cursor = conn.cursor()
 
-        # --- FIX: DELETE DEPENDENT RECORDS FIRST (Foreign Key Constraint) ---
-        cursor.execute('DELETE FROM activity_log WHERE user_id = %s', (user_id,))
-        # If you have other tables like 'sessions' or 'audit_logs', delete them here too
-        
-        # --- DELETE USER ---
-        cursor.execute('DELETE FROM "user" WHERE id = %s', (user_id,))
-        
-        if cursor.rowcount == 0:
-            conn.rollback()
+        # First check if user exists
+        cursor.execute('SELECT id FROM "user" WHERE id = %s', (user_id,))
+        if not cursor.fetchone():
             cursor.close()
             conn.close()
             return jsonify({"success": False, "message": "User not found"}), 404
 
-        conn.commit()
-        cursor.close()
-        conn.close()
-
+        # Log activity BEFORE deletion (while user still exists)
         log_activity(
             action_type="user_deleted",
             target_entity="user",
@@ -239,16 +230,22 @@ def delete_user(user_id):
             additional_metadata={"deleted_by": current_user.email}
         )
 
+        # Delete user - CASCADE will automatically delete from:
+        # - activity_log (user_id references user.id ON DELETE CASCADE)
+        # - ratings (user_id references user.id ON DELETE CASCADE)
+        cursor.execute('DELETE FROM "user" WHERE id = %s', (user_id,))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
         return jsonify({"success": True, "message": "User deleted successfully"})
     except Exception as e:
-        if conn: 
+        if conn:
             conn.rollback()
             conn.close()
         return jsonify({"success": False, "message": f"Database error: {str(e)}"}), 500
-
-# ==========================================
-# ACCOUNT SETTINGS ROUTES
-# ==========================================
+#ACCOUNT SETTINGS ROUTES
 
 @auth_api.route("/update-email", methods=["POST"])
 @login_required
@@ -461,7 +458,7 @@ def get_user_by_id(user_id):
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT u.id, u.first_name, u.last_name, u.email, u.role_user_id, u.created_at, r.role_name
+            SELECT u.id, u.first_name, u.last_name, u.email, u.role_user_id, u.created_at, r.name
             FROM "user" u
             JOIN role_user r ON u.role_user_id = r.id
             WHERE u.id = %s
@@ -554,7 +551,8 @@ def update_user(user_id):
     """Update user information - Admin only"""
     if current_user.role_user_id != 1:
         return jsonify({"success": False, "message": "Unauthorized"}), 403
-
+    if current_user.id == user_id:
+        return jsonify({"success": False, "message": "You cannot edit your own account here, use Account Settings"}), 400
     data = request.get_json()
     first_name = data.get('first_name', '').strip()
     last_name = data.get('last_name', '').strip()

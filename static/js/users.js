@@ -8,12 +8,26 @@
 class UsersManager {
   constructor() {
     this.currentUserId = null;
+    this.loggedInUserId = null;
     this.usersCache = [];
     this.searchTimeout = null;
     this.sortField = null; // 'name', 'email', or 'role'
     this.sortDir = 'asc'; // 'asc' or 'desc'
+    this.loadCurrentUser();
     this.loadUsers();
     this.initializeEventListeners();
+  }
+
+  async loadCurrentUser() {
+    try {
+      const response = await fetch('/api/auth/user');
+      const result = await response.json();
+      if (result.success && result.user) {
+        this.loggedInUserId = result.user.id;
+      }
+    } catch (error) {
+      console.error('Error loading current user:', error);
+    }
   }
 
   initializeEventListeners() {
@@ -176,7 +190,6 @@ class UsersManager {
         return this.sortDir === 'asc' ? comparison : -comparison;
       });
     }
-
     tbody.innerHTML = sortedUsers.map(user => `
       <tr class="hover:bg-gray-50">
         <td class="px-6 py-4 whitespace-nowrap">
@@ -201,10 +214,14 @@ class UsersManager {
           ${new Date(user.created_at).toLocaleDateString()}
         </td>
         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-          <button onclick="window.usersManager.editUser(${user.id})" class="text-blue-600 hover:text-blue-900 mr-3">
+          <button onclick="window.usersManager.editUser(${user.id})"
+            class="text-blue-600 hover:text-blue-900 mr-3 ${user.id === this.loggedInUserId ? 'opacity-50 cursor-not-allowed' : ''}"
+            ${user.id === this.loggedInUserId ? 'disabled' : ''}>
             Edit
           </button>
-          <button onclick="window.usersManager.showDeleteModal(${user.id})" class="text-red-600 hover:text-red-900">
+          <button onclick="window.usersManager.showDeleteModal(${user.id})"
+            class="text-red-600 hover:text-red-900 ${user.id === this.loggedInUserId ? 'opacity-50 cursor-not-allowed' : ''}"
+            ${user.id === this.loggedInUserId ? 'disabled' : ''}>
             Delete
           </button>
         </td>
@@ -273,6 +290,13 @@ class UsersManager {
     document.getElementById("userModal").classList.add("hidden");
     document.getElementById("userForm").reset();
     this.currentUserId = null;
+
+    // Reset button state
+    const saveBtn = document.getElementById("saveUserBtn");
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save User";
+    }
   }
 
   async loadUserData(userId) {
@@ -373,7 +397,7 @@ class UsersManager {
     confirmBtn.textContent = "Deleting...";
 
     try {
-      const response = await fetch(`/api/auth/user/${this.currentUserId}`, {
+      const response = await fetch(`/api/auth/delete-user/${this.currentUserId}`, {
         method: "DELETE"
       });
 
