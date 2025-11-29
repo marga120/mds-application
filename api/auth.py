@@ -230,9 +230,14 @@ def delete_user(user_id):
             additional_metadata={"deleted_by": current_user.email}
         )
 
-        # Delete user - CASCADE will automatically delete from:
-        # - activity_log (user_id references user.id ON DELETE CASCADE)
-        # - ratings (user_id references user.id ON DELETE CASCADE)
+        # Delete all related data first to avoid foreign key violations
+        # 1. Delete ratings created by this user
+        cursor.execute('DELETE FROM ratings WHERE user_id = %s', (user_id,))
+
+        # 2. Set activity_log user_id to NULL (preserve audit trail)
+        cursor.execute('UPDATE activity_log SET user_id = NULL WHERE user_id = %s', (user_id,))
+
+        # 3. Now safe to delete the user
         cursor.execute('DELETE FROM "user" WHERE id = %s', (user_id,))
 
         conn.commit()
