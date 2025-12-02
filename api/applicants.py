@@ -860,9 +860,26 @@ def export_selected_applicants():
         writer = csv.DictWriter(output, fieldnames=headers)
         writer.writeheader()
         
-        # Helper to clean None values -> Empty String for CSV
+        # Helper to clean None/NaN values -> Empty String for CSV
         def clean_row(row):
-            return {k: (v if v is not None else '') for k, v in row.items()}
+            cleaned = {}
+            for k, v in row.items():
+                # Handle None
+                if v is None:
+                    cleaned[k] = ''
+                # Handle string 'nan', 'NaN', 'none', 'null', 'None', 'NULL'
+                elif isinstance(v, str) and v.lower() in ['nan', 'none', 'null', '']:
+                    cleaned[k] = ''
+                # Handle float NaN (from pandas or numpy)
+                elif isinstance(v, float):
+                    import math
+                    if math.isnan(v):
+                        cleaned[k] = ''
+                    else:
+                        cleaned[k] = v
+                else:
+                    cleaned[k] = v
+            return cleaned
 
         for applicant in applicants:
             writer.writerow(clean_row(applicant))
