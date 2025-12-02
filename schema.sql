@@ -170,22 +170,22 @@ CREATE TABLE IF NOT EXISTS institution_info(
 CREATE TABLE IF NOT EXISTS toefl(
     user_code VARCHAR(10) REFERENCES applicant_info(user_code),
     toefl_number INT,
-    registration_num VARCHAR(20),
+    registration_num VARCHAR(255),
     date_written DATE,
-    total_score VARCHAR(5),
-    listening VARCHAR(2),
-    structure_written VARCHAR(2),
-    reading VARCHAR(2),
-    speaking VARCHAR(2),
-    mybest_total VARCHAR(3),
+    total_score VARCHAR(255),
+    listening VARCHAR(255),
+    structure_written VARCHAR(255),
+    reading VARCHAR(255),
+    speaking VARCHAR(255),
+    mybest_total VARCHAR(255),
     mybest_date DATE,
-    mybest_listening VARCHAR(2),
+    mybest_listening VARCHAR(255),
     mybest_listening_date DATE,
-    mybest_writing VARCHAR(2),
+    mybest_writing VARCHAR(255),
     mybest_writing_date DATE,
-    mybest_reading VARCHAR(2),
+    mybest_reading VARCHAR(255),
     mybest_reading_date DATE,
-    mybest_speaking VARCHAR(2),
+    mybest_speaking VARCHAR(255),
     mybest_speaking_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -195,13 +195,13 @@ CREATE TABLE IF NOT EXISTS toefl(
 CREATE TABLE IF NOT EXISTS ielts(
     user_code VARCHAR(10) REFERENCES applicant_info(user_code),
     ielts_number INT,
-    candidate_num VARCHAR(20),
+    candidate_num VARCHAR(255),
     date_written DATE,
-    total_band_score VARCHAR(3),
-    listening VARCHAR(3),
-    reading VARCHAR(3),
-    writing VARCHAR(3),
-    speaking VARCHAR(3),
+    total_band_score VARCHAR(255),
+    listening VARCHAR(255),
+    reading VARCHAR(255),
+    writing VARCHAR(255),
+    speaking VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_code, ielts_number)
@@ -209,83 +209,83 @@ CREATE TABLE IF NOT EXISTS ielts(
 
 CREATE TABLE IF NOT EXISTS melab(
     user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
-    ref_num VARCHAR(20),
+    ref_num VARCHAR(255),
     date_written DATE,
-    total VARCHAR(2),
+    total VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS pte(
     user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
-    ref_num VARCHAR(20),
+    ref_num VARCHAR(255),
     date_written DATE,
-    total VARCHAR(2),
+    total VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS cael(
     user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
-    ref_num VARCHAR(20),
+    ref_num VARCHAR(255),
     date_written DATE,
-    reading VARCHAR(2),
-    listening VARCHAR(2),
-    writing VARCHAR(2),
-    speaking VARCHAR(2),
+    reading VARCHAR(255),
+    listening VARCHAR(2255),
+    writing VARCHAR(255),
+    speaking VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS celpip(
     user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
-    ref_num VARCHAR(20),
+    ref_num VARCHAR(255),
     date_written DATE,
-    listening VARCHAR(2),
-    speaking VARCHAR(2),
-    reading_writing VARCHAR(2),
+    listening VARCHAR(255),
+    speaking VARCHAR(255),
+    reading_writing VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS alt_elpp(
     user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
-    ref_num VARCHAR(20),
+    ref_num VARCHAR(255),
     date_written DATE,
-    total VARCHAR(20),
-    test_type VARCHAR(50),
+    total VARCHAR(255),
+    test_type VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS gre(
     user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
-    reg_num VARCHAR(20),
+    reg_num VARCHAR(255),
     date_written DATE,
-    verbal VARCHAR(3),
-    verbal_below VARCHAR(3),
-    quantitative VARCHAR(3),
-    quantitative_below VARCHAR(3),
-    writing VARCHAR(2),
-    writing_below VARCHAR(3),
-    subject_tests VARCHAR(20),
-    subject_reg_num VARCHAR(20),
+    verbal VARCHAR(255),
+    verbal_below VARCHAR(255),
+    quantitative VARCHAR(255),
+    quantitative_below VARCHAR(255),
+    writing VARCHAR(255),
+    writing_below VARCHAR(255),
+    subject_tests VARCHAR(255),
+    subject_reg_num VARCHAR(255),
     subject_date DATE, 
-    subject_scaled_score VARCHAR(3),
-    subject_below VARCHAR(3),
+    subject_scaled_score VARCHAR(255),
+    subject_below VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS gmat(
     user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
-    ref_num VARCHAR(20),
+    ref_num VARCHAR(255),
     date_written DATE,
-    total VARCHAR(3),
-    integrated_reasoning VARCHAR(2),
-    quantitative VARCHAR(2),
-    verbal VARCHAR(2),
-    writing VARCHAR(2),
+    total VARCHAR(255),
+    integrated_reasoning VARCHAR(255),
+    quantitative VARCHAR(255),
+    verbal VARCHAR(255),
+    writing VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
