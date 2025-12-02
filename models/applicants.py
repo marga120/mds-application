@@ -177,6 +177,25 @@ def compute_english_status(user_code: str, not_required_rule=None):
     desc = None
     failed_tests = []
 
+    # Helper function to safely convert to int
+    def safe_int(value):
+        if value in (None, ""):
+            return None
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return None
+
+    # Helper function to safely convert to float
+    def safe_float(value):
+        if value in (None, ""):
+            return None
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return None
+
+
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -213,49 +232,18 @@ def compute_english_status(user_code: str, not_required_rule=None):
                 (user_code,),
             )
             for row in cur.fetchall():
-                L = (
-                    int(row["listening"])
-                    if row["listening"] not in (None, "")
-                    else None
-                )
-                W = (
-                    int(row["structure_written"])
-                    if row["structure_written"] not in (None, "")
-                    else None
-                )
-                R = int(row["reading"]) if row["reading"] not in (None, "") else None
-                S = int(row["speaking"]) if row["speaking"] not in (None, "") else None
-                T = (
-                    int(row["total_score"])
-                    if row["total_score"] not in (None, "")
-                    else None
-                )
+                L = safe_int(row["listening"])
+                W = safe_int(row["structure_written"])
+                R = safe_int(row["reading"])
+                S = safe_int(row["speaking"])
+                T = safe_int(row["total_score"])
 
-                mL = (
-                    int(row["mybest_listening"])
-                    if row["mybest_listening"] not in (None, "")
-                    else None
-                )
-                mW = (
-                    int(row["mybest_writing"])
-                    if row["mybest_writing"] not in (None, "")
-                    else None
-                )
-                mR = (
-                    int(row["mybest_reading"])
-                    if row["mybest_reading"] not in (None, "")
-                    else None
-                )
-                mS = (
-                    int(row["mybest_speaking"])
-                    if row["mybest_speaking"] not in (None, "")
-                    else None
-                )
-                mT = (
-                    int(row["mybest_total"])
-                    if row["mybest_total"] not in (None, "")
-                    else None
-                )
+                mL = safe_int(row["mybest_listening"])
+                mW = safe_int(row["mybest_writing"])
+                mR = safe_int(row["mybest_reading"])
+                mS = safe_int(row["mybest_speaking"])
+                mT = safe_int(row["mybest_total"])
+
 
                 num = row["toefl_number"] or 1
 
@@ -310,23 +298,11 @@ def compute_english_status(user_code: str, not_required_rule=None):
                 (user_code,),
             )
             for row in cur.fetchall():
-                L = (
-                    float(row["listening"])
-                    if row["listening"] not in (None, "")
-                    else None
-                )
-                R = float(row["reading"]) if row["reading"] not in (None, "") else None
-                W = float(row["writing"]) if row["writing"] not in (None, "") else None
-                S = (
-                    float(row["speaking"])
-                    if row["speaking"] not in (None, "")
-                    else None
-                )
-                T = (
-                    float(row["total_band_score"])
-                    if row["total_band_score"] not in (None, "")
-                    else None
-                )
+                L = safe_float(row["listening"])
+                R = safe_float(row["reading"])
+                W = safe_float(row["writing"])
+                S = safe_float(row["speaking"])
+                T = safe_float(row["total_band_score"])
                 num = row["ielts_number"] or 1
 
                 if all(v is not None for v in (L, R, W, S, T)) and (
@@ -356,9 +332,7 @@ def compute_english_status(user_code: str, not_required_rule=None):
             cur.execute("SELECT total FROM melab WHERE user_code = %s", (user_code,))
             melab = cur.fetchone()
             if melab is not None:
-                total = (
-                    int(melab["total"]) if melab["total"] not in (None, "") else None
-                )
+                total = safe_int(melab["total"])
                 if total is not None and total >= MELAB_TOTAL_MIN:
                     status = "Passed"
                     desc = "MELAB, score is above the minimum requirement (64)"
@@ -383,7 +357,7 @@ def compute_english_status(user_code: str, not_required_rule=None):
             cur.execute("SELECT total FROM pte WHERE user_code = %s", (user_code,))
             pte = cur.fetchone()
             if pte is not None:
-                total = int(pte["total"]) if pte["total"] not in (None, "") else None
+                total = safe_int(pte["total"])
                 if total is not None and total >= PTE_TOTAL_MIN:
                     status = "Passed"
                     desc = "PTE, score is above the minimum requirement (65)"
@@ -415,18 +389,10 @@ def compute_english_status(user_code: str, not_required_rule=None):
             )
             cael = cur.fetchone()
             if cael is not None:
-                R = int(cael["reading"]) if cael["reading"] not in (None, "") else None
-                L = (
-                    int(cael["listening"])
-                    if cael["listening"] not in (None, "")
-                    else None
-                )
-                W = int(cael["writing"]) if cael["writing"] not in (None, "") else None
-                S = (
-                    int(cael["speaking"])
-                    if cael["speaking"] not in (None, "")
-                    else None
-                )
+                R = safe_int(cael["reading"])
+                L = safe_int(cael["listening"])
+                W = safe_int(cael["writing"])
+                S = safe_int(cael["speaking"])
                 if (
                     all(v is not None for v in (R, L, W, S))
                     and min(R, L, W, S) >= CAEL_EACH_MIN
