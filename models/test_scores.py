@@ -259,7 +259,7 @@ def process_ielts_scores(user_code, row, cursor, current_time):
 
             # Convert scores to strings if they exist, otherwise None
             def convert_score(value):
-                return str(value) if pd.notna(value) else None
+                return str(int(value)) if pd.notna(value) else None
 
             ielts_query = """
             INSERT INTO ielts (
@@ -366,7 +366,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
         
         # Convert scores to strings if they exist, otherwise None
         def convert_score(value):
-            return str(value) if pd.notna(value) else None
+            return str(int(value)) if pd.notna(value) else None
 
         # MELAB
         melab_ref = row.get("MELAB Reference #")
