@@ -2038,14 +2038,20 @@ def get_selected_applicants_for_export(user_codes, sections=None):
 
     try:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
+
+        # Validate and convert user_codes to list if needed
+        if not user_codes:
+            return [], None
+        if not isinstance(user_codes, (list, tuple)):
+            user_codes = [user_codes]
+
         # Default to all if no sections provided
         all_sections = sections is None or len(sections) == 0
         inc_personal = all_sections or 'personal' in sections
         inc_app = all_sections or 'application' in sections
         # Mapping 'institutions' or 'education' checkbox to the Education columns
-        inc_edu = all_sections or 'institutions' in sections or 'education' in sections 
-        
+        inc_edu = all_sections or 'institutions' in sections or 'education' in sections
+
         select_parts = []
         
         # Base parts usually needed for identification
@@ -2062,7 +2068,7 @@ def get_selected_applicants_for_export(user_codes, sections=None):
         # but 'application' is not (which might result in gaps), we will just check flags.
         
         # 1. Student# (Personal/Basic)
-        if inc_personal or inc_app: # Usually essential
+        if inc_personal or inc_app:
             select_parts.append("ast.student_number as \"Student#\"")
 
         # 2. Program/Session (Application)
@@ -2082,7 +2088,7 @@ def get_selected_applicants_for_export(user_codes, sections=None):
                 "ai.gender_code as \"Gender CODE\"",
                 "ai.visa_type_code as \"Visa Type CODE\"",
                 "ai.age as \"Age\"",
-                """CASE 
+                """CASE
                     WHEN ai.age <18 THEN '18-'
                     WHEN ai.age BETWEEN 18 AND 25 THEN '18-24'
                     WHEN ai.age BETWEEN 25 AND 34 THEN '25-34'
@@ -2101,42 +2107,42 @@ def get_selected_applicants_for_export(user_codes, sections=None):
 
         # 4. Admin / Offer Status (Application)
         select_parts.extend([
-            # Admission Review
-            "CASE WHEN app.sent != 'Not Reviewed' THEN 'Yes' ELSE 'No' END AS \"Admission Review\"",
+            # Admission Review - NO if not reviewed, yes otherwise
+            "CASE WHEN COALESCE(app.sent, 'Not Reviewed') = 'Not Reviewed' THEN 'NO' ELSE 'YES' END AS \"Admission Review\"",
 
-            # Offer Sent - Updated to match schema values
-            "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN 'Y' ELSE 'N' END AS \"Offer Sent\"",
+            # Offer Sent  Updated to match schema values
+            "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN 'Y' ELSE '' END AS \"Offer Sent\"",
 
-            # Offer Status - Updated to match schema values
-            "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN app.sent ELSE '' END AS \"Offer Status\"",
+            # Offer Status  Updated to match schema values
+            "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN COALESCE(app.sent, '') ELSE '' END AS \"Offer Status\"",
 
-            # Scholarship - VARCHAR(20) 
-            "COALESCE(app.scholarship, 'Undecided') AS \"Scholarship Offered\""
+            # Scholarship - yes only if scholarship offered, blank otherwise
+            "CASE WHEN app.scholarship = 'Yes' THEN 'yes' ELSE '' END AS \"Scholarship Offered\""
         ])
 
 
         # 5. Education History (Institutions/Education)
         if inc_edu:
             select_parts.extend([
-                "ai.academic_history_code as \"Academic History Source CODE\"",
-                # Year of Last Degree 
-                "(SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code) as \"Year of Last Degree\"",
-                # Years Since Degree (Raw Number)
-                "(EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) as \"Years Since Degree\"",
-                
+                "COALESCE(CAST(ai.academic_history_code AS TEXT), '') as \"Academic History Source CODE\"",
+                # Year of Last Degree
+                "COALESCE(CAST((SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code) AS TEXT), '') as \"Year of Last Degree\"",
+                # Years Since Degree
+                "COALESCE(CAST((EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) AS TEXT), '') as \"Years Since Degree\"",
+
                 # Years Since Degree Grouped (The Date of the last degree year shifted to current year: YYYY-MM-DD)
-                """TO_CHAR(
-                    (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code) + 
+                """COALESCE(TO_CHAR(
+                    (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code) +
                     MAKE_INTERVAL(years => (EXTRACT(YEAR FROM CURRENT_DATE)::int - EXTRACT(YEAR FROM (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code))::int)),
                     'YYYY-MM-DD'
-                ) as "Years Since Degree Grouped"
+                ), '') as "Years Since Degree Grouped"
                 """,
-                
-                "app.highest_degree as \"Level of Education\"",
-                "app.degree_area as \"Subject of Degree\"",
+
+                "COALESCE(CAST(app.highest_degree AS TEXT), '') as \"Level of Education\"",
+                "COALESCE(CAST(app.degree_area AS TEXT), '') as \"Subject of Degree\"",
                 
                 # Subject Grouped (Specific categories)
-                """CASE 
+                """CASE
                     WHEN app.degree_area ILIKE '%%comput%%' OR app.degree_area ILIKE '%%tech%%' OR app.degree_area ILIKE '%%software%%' OR app.degree_area ILIKE '%%inform%%' OR app.degree_area ILIKE '%%security%%' OR app.degree_area ILIKE '%%network%%' OR app.degree_area ILIKE '%%system%%' OR app.degree_area ILIKE '%%machine%%' OR app.degree_area ILIKE '%%data mining%%' OR app.degree_area ILIKE '%%analysis%%' THEN 'Computer Science / Engineering / Technology'
                     WHEN app.degree_area ILIKE '%%engineering%%' OR app.degree_area ILIKE '%%elect%%' OR app.degree_area ILIKE '%%power%%' OR app.degree_area ILIKE '%%mech%%' OR app.degree_area ILIKE '%%design%%' OR app.degree_area ILIKE '%%applied%%' OR app.degree_area ILIKE '%%civil%%' THEN 'Engineering (excluding computer engineering)'
                     WHEN app.degree_area ILIKE '%%stat%%' OR app.degree_area ILIKE '%%math%%' OR app.degree_area ILIKE '%%actuarial%%' OR app.degree_area ILIKE '%%operational%%' THEN 'Stats / Math / Actuarial Sciences'
@@ -2144,17 +2150,18 @@ def get_selected_applicants_for_export(user_codes, sections=None):
                     WHEN app.degree_area ILIKE '%%arts%%' OR app.degree_area ILIKE '%%psych%%' OR app.degree_area ILIKE '%%lang%%' OR app.degree_area ILIKE '%%liter%%' OR app.degree_area ILIKE '%%lingui%%' OR app.degree_area ILIKE '%%philosophy%%' OR app.degree_area ILIKE '%%communication%%' OR app.degree_area ILIKE '%%english%%' THEN 'Arts'
                     WHEN app.degree_area ILIKE '%%financ%%' OR app.degree_area ILIKE '%%mba%%' OR app.degree_area ILIKE '%%account%%' OR app.degree_area ILIKE '%%market%%' OR app.degree_area ILIKE '%%bus%%' OR app.degree_area ILIKE '%%econ%%' OR app.degree_area ILIKE '%%bba%%' OR app.degree_area ILIKE '%%manage%%' OR app.degree_area ILIKE '%%mgmt%%' OR app.degree_area ILIKE '%%international%%' OR app.degree_area ILIKE '%%admin%%' THEN 'Finance / Business / Management / Economics'
                     WHEN app.degree_area IS NOT NULL AND app.degree_area != '' THEN 'Other'
-                    ELSE '' 
+                    ELSE ''
                    END as "Subject Grouped"
                 """
             ])
         # 6. Other / Marketing (Personal or Application)
         if inc_personal or inc_app:
             select_parts.extend([
-                "ai.interest as \"Source of Interest in UBC\"",
-                "CASE WHEN app.mds_v IS TRUE THEN 'Y' ELSE '' END as \"Applied MDS-V\"",
-                "'' as \"Applied MDS-O\"", # Placeholder for missing column
-                "CASE WHEN app.mds_cl IS TRUE THEN 'Y' ELSE '' END as \"Applied MDS-CL\""
+                "COALESCE(CAST(ai.interest AS TEXT), '') as \"Source of Interest in UBC\"",
+                "CASE WHEN COALESCE(app.mds_v, FALSE) = TRUE THEN 'Y' ELSE '' END as \"Applied MDS-V\"",
+                # Derive from program_info if available, otherwise empty
+                "CASE WHEN COALESCE(CAST(pi.program AS TEXT), '') ILIKE '%%MDS%%O%%' THEN 'Y' ELSE '' END as \"Applied MDS-O\"",
+                "CASE WHEN COALESCE(app.mds_cl, FALSE) = TRUE THEN 'Y' ELSE '' END as \"Applied MDS-CL\""
             ])
 
         # Fallback if nothing selected
@@ -2162,18 +2169,19 @@ def get_selected_applicants_for_export(user_codes, sections=None):
             select_parts = ["ai.user_code as \"User Code\""]
 
         placeholders = ','.join(['%s'] * len(user_codes))
-        
+
         query = f"""
             SELECT {', '.join(select_parts)}
             FROM applicant_info ai
             LEFT JOIN applicant_status ast ON ai.user_code = ast.user_code
             LEFT JOIN application_info app ON ai.user_code = app.user_code
             LEFT JOIN sessions s ON ai.session_id = s.id
+            LEFT JOIN program_info pi ON ai.user_code = pi.user_code
             WHERE ai.user_code IN ({placeholders})
             ORDER BY ai.family_name, ai.given_name
         """
-        
-        cursor.execute(query, user_codes)
+
+        cursor.execute(query, tuple(user_codes))
         applicants = cursor.fetchall()
         cursor.close()
         conn.close()
