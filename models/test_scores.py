@@ -40,10 +40,20 @@ def process_toefl_scores(user_code, row, cursor, current_time):
         for i in range(1, 4):
             prefix = "TOEFL" if i == 1 else f"TOEFL{i}"
 
-            # Check if this TOEFL entry has data
-            reg_num = row.get(f"{prefix} Registration #")
-            if pd.isna(reg_num):
+            # Check if this TOEFL entry has ANY score data
+            has_scores = any([
+                pd.notna(row.get(f"{prefix} Total Score")),
+                pd.notna(row.get(f"{prefix} Listening")),
+                pd.notna(row.get(f"{prefix} Structure/Written")),
+                pd.notna(row.get(f"{prefix} Reading")),
+                pd.notna(row.get(f"{prefix} Speaking"))
+            ])
+            if not has_scores:
                 continue
+
+            # Get registration number (optional field)
+            reg_num = row.get(f"{prefix} Registration #")
+
 
             # Parse date of writing
             date_written = None
@@ -103,7 +113,7 @@ def process_toefl_scores(user_code, row, cursor, current_time):
 
             # Convert scores to strings if they exist, otherwise None
             def convert_score(value):
-                return str(int(value)) if pd.notna(value) else None
+                return str(value) if pd.notna(value) else None
 
             toefl_query = """
             INSERT INTO toefl (
@@ -242,10 +252,19 @@ def process_ielts_scores(user_code, row, cursor, current_time):
         for i in range(1, 4):
             prefix = "IELTS" if i == 1 else f"IELTS{i}"
 
-            # Check if this IELTS entry has data
-            candidate_num = row.get(f"{prefix} Candidate #")
-            if pd.isna(candidate_num):
+            # Check if this IELTS entry has ANY score data
+            has_scores = any([
+                pd.notna(row.get(f"{prefix} Total Band Score")),
+                pd.notna(row.get(f"{prefix} Listening")),
+                pd.notna(row.get(f"{prefix} Reading")),
+                pd.notna(row.get(f"{prefix} Writing")),
+                pd.notna(row.get(f"{prefix} Speaking"))
+            ])
+            if not has_scores:
                 continue
+
+            # Get candidate number (optional field)
+            candidate_num = row.get(f"{prefix} Candidate #")
 
             # Parse date of writing
             date_written = None
@@ -259,7 +278,7 @@ def process_ielts_scores(user_code, row, cursor, current_time):
 
             # Convert scores to strings if they exist, otherwise None
             def convert_score(value):
-                return str(int(value)) if pd.notna(value) else None
+                return str(value) if pd.notna(value) else None
 
             ielts_query = """
             INSERT INTO ielts (
@@ -366,11 +385,12 @@ def process_other_test_scores(user_code, row, cursor, current_time):
         
         # Convert scores to strings if they exist, otherwise None
         def convert_score(value):
-            return str(int(value)) if pd.notna(value) else None
+            return str(value) if pd.notna(value) else None
 
         # MELAB
-        melab_ref = row.get("MELAB Reference #")
-        if pd.notna(melab_ref):
+        has_melab_scores = pd.notna(row.get("MELAB Total Score"))
+        if has_melab_scores:
+            melab_ref = row.get("MELAB Reference #")
             melab_date = None
             if pd.notna(row.get("MELAB Date of Writing")):
                 try:
@@ -397,7 +417,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 melab_query,
                 (
                     user_code,
-                    str(melab_ref),
+                    str(melab_ref) if pd.notna(melab_ref) else None,
                     melab_date,
                     convert_score(row.get("MELAB Total Score")),
                     current_time,  # created_at
@@ -407,8 +427,9 @@ def process_other_test_scores(user_code, row, cursor, current_time):
 
 
         # PTE
-        pte_ref = row.get("PTE Reference #")
-        if pd.notna(pte_ref):
+        has_pte_scores = pd.notna(row.get("PTE Total Score"))
+        if has_pte_scores:
+            pte_ref = row.get("PTE Reference #")
             pte_date = None
             if pd.notna(row.get("PTE Date of Writing")):
                 try:
@@ -435,7 +456,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 pte_query,
                 (
                     user_code,
-                    str(pte_ref),
+                    str(pte_ref) if pd.notna(pte_ref) else None,
                     pte_date,
                     convert_score(row.get("PTE Total Score")),
                     current_time,  # created_at
@@ -444,8 +465,14 @@ def process_other_test_scores(user_code, row, cursor, current_time):
             )
 
         # CAEL
-        cael_ref = row.get("CAEL Reference #")
-        if pd.notna(cael_ref):
+        has_cael_scores = any([
+            pd.notna(row.get("CAEL Reading Performance Score")),
+            pd.notna(row.get("CAEL Listening Performance Score")),
+            pd.notna(row.get("CAEL Writing Performance Score")),
+            pd.notna(row.get("CAEL Speaking Performance Score"))
+        ])
+        if has_cael_scores:
+            cael_ref = row.get("CAEL Reference #")
             cael_date = None
             if pd.notna(row.get("CAEL Date of Writing")):
                 try:
@@ -478,7 +505,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 cael_query,
                 (
                     user_code,
-                    str(cael_ref),
+                    str(cael_ref) if pd.notna(cael_ref) else None,
                     cael_date,
                     convert_score(row.get("CAEL Reading Performance Score")),
                     convert_score(row.get("CAEL Listening Performance Score")),
@@ -490,8 +517,13 @@ def process_other_test_scores(user_code, row, cursor, current_time):
             )
 
         # CELPIP
-        celpip_ref = row.get("CELPIP Reference #")
-        if pd.notna(celpip_ref):
+        has_celpip_scores = any([
+            pd.notna(row.get("CELPIP Listening Score")),
+            pd.notna(row.get("CELPIP Speaking Score")),
+            pd.notna(row.get("CELPIP Academic Reading & Writing Score"))
+        ])
+        if has_celpip_scores:
+            celpip_ref = row.get("CELPIP Reference #")
             celpip_date = None
             if pd.notna(row.get("CELPIP Date of Writing")):
                 try:
@@ -524,7 +556,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 celpip_query,
                 (
                     user_code,
-                    str(celpip_ref),
+                    str(celpip_ref) if pd.notna(celpip_ref) else None,
                     celpip_date,
                     convert_score(row.get("CELPIP Listening Score")),
                     convert_score(row.get("CELPIP Speaking Score")),
@@ -535,8 +567,12 @@ def process_other_test_scores(user_code, row, cursor, current_time):
             )
 
         # ALT ELPP
-        alt_elpp_ref = row.get("ALT ELPP Reference #")
-        if pd.notna(alt_elpp_ref):
+        has_alt_elpp_scores = any([
+            pd.notna(row.get("ALT ELPP Total Score")),
+            pd.notna(row.get("ALT ELPP Test Type"))
+        ])
+        if has_alt_elpp_scores:
+            alt_elpp_ref = row.get("ALT ELPP Reference #")
             alt_elpp_date = None
             if pd.notna(row.get("ALT ELPP Date of Writing")):
                 try:
@@ -567,7 +603,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 alt_elpp_query,
                 (
                     user_code,
-                    str(alt_elpp_ref),
+                    str(alt_elpp_ref) if pd.notna(alt_elpp_ref) else None,
                     alt_elpp_date,
                     convert_score(row.get("ALT ELPP Total Score")),
                     convert_score(row.get("ALT ELPP Test Type")),
@@ -577,8 +613,14 @@ def process_other_test_scores(user_code, row, cursor, current_time):
             )
 
         # GRE
-        gre_reg = row.get("GRE Registration #")
-        if pd.notna(gre_reg):
+        has_gre_scores = any([
+            pd.notna(row.get("GRE Verbal Reasoning")),
+            pd.notna(row.get("GRE Quantitative Reasoning")),
+            pd.notna(row.get("GRE Analytical Writing")),
+            pd.notna(row.get("GRE (Subject Tests) - Overall Scaled Score"))
+        ])
+        if has_gre_scores:
+            gre_reg = row.get("GRE Registration #")
             gre_date = None
             if pd.notna(row.get("GRE Date of Writing")):
                 try:
@@ -637,7 +679,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 gre_query,
                 (
                     user_code,
-                    str(gre_reg),
+                    str(gre_reg) if pd.notna(gre_reg) else None,
                     gre_date,
                     convert_score(row.get("GRE Verbal Reasoning")),
                     convert_score(row.get("GRE Verbal Reasoning % Below")),
@@ -662,8 +704,15 @@ def process_other_test_scores(user_code, row, cursor, current_time):
             )
 
         # GMAT
-        gmat_ref = row.get("GMAT Reference #")
-        if pd.notna(gmat_ref):
+        has_gmat_scores = any([
+            pd.notna(row.get("GMAT Total Score")),
+            pd.notna(row.get("Integrated Reasoning")),
+            pd.notna(row.get("Quantitative")),
+            pd.notna(row.get("Verbal")),
+            pd.notna(row.get("Analytical Writing Assessment"))
+        ])
+        if has_gmat_scores:
+            gmat_ref = row.get("GMAT Reference #")
             gmat_date = None
             if pd.notna(row.get("GMAT Date of Writing")):
                 try:
@@ -698,7 +747,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 gmat_query,
                 (
                     user_code,
-                    str(gmat_ref),
+                    str(gmat_ref) if pd.notna(gmat_ref) else None,
                     gmat_date,
                     convert_score(row.get("GMAT Total Score")),
                     convert_score(row.get("Integrated Reasoning")),
