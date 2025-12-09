@@ -10,7 +10,6 @@ class AuthManager {
   constructor() {
     this.checkAuthentication();
     this.initializeLogout();
-    this.initializeResetPassword();
   }
 
   async checkAuthentication() {
@@ -141,9 +140,6 @@ class AuthManager {
             <a href="/account" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-md">
               Account Settings
             </a>
-            <button id="resetPasswordBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              Reset Password
-            </button>
             <div class="border-t border-gray-100"></div>
             <button id="logoutBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-md">
               Logout

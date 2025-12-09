@@ -1,6 +1,6 @@
 /**
  * USERS MANAGER
- * 
+ *
  * Handles user management including creating, editing, deleting users,
  * and changing user roles. Admin-only functionality.
  */
@@ -289,18 +289,42 @@ class UsersManager {
     const modal = document.getElementById("userModal");
     const title = document.getElementById("modalTitle");
     const passwordField = document.getElementById("passwordFields");
+    const userInfoDisplay = document.getElementById("userInfoDisplay");
+    const editableUserFields = document.getElementById("editableUserFields");
 
     this.currentUserId = userId;
 
     if (userId) {
+      // Edit mode - show only role and password
       title.textContent = "Edit User";
       passwordField.querySelector('label').textContent = "Password (leave empty to keep current)";
       document.getElementById("userPassword").removeAttribute('required');
+
+      // Remove required attributes from hidden fields
+      document.getElementById("firstName").removeAttribute('required');
+      document.getElementById("lastName").removeAttribute('required');
+      document.getElementById("userEmail").removeAttribute('required');
+
+      // Show user info display, hide editable name/email fields
+      userInfoDisplay.classList.remove("hidden");
+      editableUserFields.classList.add("hidden");
+
       this.loadUserData(userId);
     } else {
+      // Create mode - show all fields
       title.textContent = "Create User";
       passwordField.querySelector('label').textContent = "Password";
       document.getElementById("userPassword").setAttribute('required', 'required');
+
+      // Add required attributes back for create mode
+      document.getElementById("firstName").setAttribute('required', 'required');
+      document.getElementById("lastName").setAttribute('required', 'required');
+      document.getElementById("userEmail").setAttribute('required', 'required');
+
+      // Hide user info display, show editable name/email fields
+      userInfoDisplay.classList.add("hidden");
+      editableUserFields.classList.remove("hidden");
+
       document.getElementById("userForm").reset();
     }
 
@@ -327,9 +351,17 @@ class UsersManager {
       const result = await response.json();
 
       if (result.success) {
-        document.getElementById("firstName").value = result.user.first_name;
-        document.getElementById("lastName").value = result.user.last_name;
-        document.getElementById("userEmail").value = result.user.email;
+        // Store the user data for later use
+        this.currentUserData = result.user;
+
+        // Create full name from first_name and last_name if full_name doesn't exist
+        const fullName = result.user.full_name || `${result.user.first_name} ${result.user.last_name}`;
+
+        // Display user info in read-only section
+        document.getElementById("displayFullName").textContent = fullName;
+        document.getElementById("displayEmail").textContent = result.user.email;
+
+        // Set role (editable)
         document.getElementById("userRole").value = result.user.role_user_id;
       }
     } catch (error) {
@@ -338,9 +370,6 @@ class UsersManager {
   }
 
   async handleSaveUser() {
-    const firstName = document.getElementById("firstName").value.trim();
-    const lastName = document.getElementById("lastName").value.trim();
-    const email = document.getElementById("userEmail").value.trim();
     const password = document.getElementById("userPassword").value;
     const roleId = parseInt(document.getElementById("userRole").value);
 
@@ -349,22 +378,44 @@ class UsersManager {
     saveBtn.textContent = "Saving...";
 
     try {
-      const url = this.currentUserId 
+      const url = this.currentUserId
         ? `/api/auth/user/${this.currentUserId}`
         : "/api/auth/register";
-      
+
       const method = this.currentUserId ? "PUT" : "POST";
 
-      const body = {
-        first_name: firstName,
-        last_name: lastName,
-        email: email,
-        role_user_id: roleId
-      };
+      let body;
 
-      // Only include password if it's provided
-      if (password) {
-        body.password = password;
+      if (this.currentUserId) {
+        // Edit mode - send all fields but use existing data for name/email
+        body = {
+          first_name: this.currentUserData.first_name,
+          last_name: this.currentUserData.last_name,
+          email: this.currentUserData.email,
+          role_user_id: roleId
+        };
+
+        // Only include password if it's provided
+        if (password) {
+          body.password = password;
+        }
+      } else {
+        // Create mode - send all fields from form
+        const firstName = document.getElementById("firstName").value.trim();
+        const lastName = document.getElementById("lastName").value.trim();
+        const email = document.getElementById("userEmail").value.trim();
+
+        body = {
+          first_name: firstName,
+          last_name: lastName,
+          email: email,
+          role_user_id: roleId
+        };
+
+        // Password is required for create
+        if (password) {
+          body.password = password;
+        }
       }
 
       const response = await fetch(url, {
@@ -627,6 +678,10 @@ class UsersManager {
 // Initialize the users manager when the page loads
 let usersManager;
 document.addEventListener("DOMContentLoaded", () => {
+  // Initialize AuthManager for header dropdowns
+  new AuthManager();
+
+  // Initialize UsersManager for user management functionality
   usersManager = new UsersManager();
   window.usersManager = usersManager;
 });
