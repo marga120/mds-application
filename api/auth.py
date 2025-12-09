@@ -250,6 +250,71 @@ def delete_user(user_id):
             conn.rollback()
             conn.close()
         return jsonify({"success": False, "message": f"Database error: {str(e)}"}), 500
+
+@auth_api.route("/delete-users", methods=["DELETE"], strict_slashes=False)
+@login_required
+def delete_users():
+    """
+    Delete multiple users by their IDs.
+    @requires: Admin (role_user_id == 1)
+    @param: user_ids - List of user IDs to delete
+    """
+    if current_user.role_user_id != 1:
+        return jsonify({"success": False, "message": "Unauthorized access"}), 403
+
+    data = request.get_json()
+    user_ids = data.get("user_ids", [])
+
+    if not user_ids or not isinstance(user_ids, list):
+        return jsonify({"success": False, "message": "Invalid user_ids parameter"}), 400
+
+    # Remove current user from the list if present
+    user_ids = [uid for uid in user_ids if uid != current_user.id]
+
+    if not user_ids:
+        return jsonify({"success": False, "message": "No valid users to delete"}), 400
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        deleted_count = 0
+
+        for user_id in user_ids:
+            # Check if user exists
+            cursor.execute('SELECT id FROM "user" WHERE id = %s', (user_id,))
+            if not cursor.fetchone():
+                continue  # Skip non-existent users
+
+            # Log activity BEFORE deletion
+            log_activity(
+                action_type="user_deleted",
+                target_entity="user",
+                target_id=str(user_id),
+                additional_metadata={"deleted_by": current_user.email, "bulk_delete": True}
+            )
+
+            # Delete related data
+            cursor.execute('DELETE FROM ratings WHERE user_id = %s', (user_id,))
+            cursor.execute('UPDATE activity_log SET user_id = NULL WHERE user_id = %s', (user_id,))
+            cursor.execute('DELETE FROM "user" WHERE id = %s', (user_id,))
+
+            deleted_count += 1
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "success": True,
+            "message": f"Successfully deleted {deleted_count} user{'s' if deleted_count != 1 else ''}",
+            "deleted_count": deleted_count
+        })
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return jsonify({"success": False, "message": f"Database error: {str(e)}"}), 500
+
 #ACCOUNT SETTINGS ROUTES
 
 @auth_api.route("/update-email", methods=["POST"])

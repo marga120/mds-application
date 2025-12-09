@@ -10,6 +10,7 @@ class UsersManager {
     this.currentUserId = null;
     this.loggedInUserId = null;
     this.usersCache = [];
+    this.selectedUsers = new Set(); // Track selected user IDs
     this.searchTimeout = null;
     this.sortField = null; // 'name', 'email', or 'role'
     this.sortDir = 'asc'; // 'asc' or 'desc'
@@ -58,6 +59,16 @@ class UsersManager {
 
     document.getElementById("confirmDeleteBtn").addEventListener("click", () => {
       this.handleDeleteUser();
+    });
+
+    // Delete Selected Button
+    document.getElementById("deleteSelectedBtn").addEventListener("click", () => {
+      this.showBulkDeleteModal();
+    });
+
+    // Select All Checkbox
+    document.getElementById("selectAllUsers").addEventListener("change", (e) => {
+      this.handleSelectAll(e.target.checked);
     });
 
     // Search Input (Debounced)
@@ -155,7 +166,7 @@ class UsersManager {
     if (!users || users.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+          <td colspan="6" class="px-6 py-4 text-center text-gray-500">
             No users found
           </td>
         </tr>
@@ -193,6 +204,14 @@ class UsersManager {
     tbody.innerHTML = sortedUsers.map(user => `
       <tr class="hover:bg-gray-50">
         <td class="px-6 py-4 whitespace-nowrap">
+          <input type="checkbox"
+            class="user-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 ${user.id === this.loggedInUserId ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}"
+            data-user-id="${user.id}"
+            ${user.id === this.loggedInUserId ? 'disabled' : ''}
+            ${this.selectedUsers.has(user.id) ? 'checked' : ''}
+            onchange="window.usersManager.handleUserSelection(${user.id}, this.checked)">
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
           <div class="flex items-center">
             <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
               <span class="text-blue-600 font-semibold">${this.getInitialsFromFullName(user.full_name)}</span>
@@ -227,6 +246,9 @@ class UsersManager {
         </td>
       </tr>
     `).join('');
+
+    // Update the select all checkbox state
+    this.updateSelectAllCheckbox();
   }
 
   getInitialsFromFullName(fullName) {
@@ -382,6 +404,8 @@ class UsersManager {
 
   showDeleteModal(userId) {
     this.currentUserId = userId;
+    const confirmText = document.getElementById("deleteConfirmText");
+    confirmText.textContent = "Are you sure you want to delete this user? This action cannot be undone.";
     document.getElementById("deleteMessage").classList.add("hidden");
     document.getElementById("deleteModal").classList.remove("hidden");
   }
@@ -389,6 +413,19 @@ class UsersManager {
   hideDeleteModal() {
     document.getElementById("deleteModal").classList.add("hidden");
     this.currentUserId = null;
+
+    // Reset button state
+    const confirmBtn = document.getElementById("confirmDeleteBtn");
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "Yes, Delete";
+    }
+
+    // Hide any messages
+    document.getElementById("deleteMessage").classList.add("hidden");
+
+    // Update UI to hide delete button if no selections
+    this.updateSelectionUI();
   }
 
   async handleDeleteUser() {
@@ -450,12 +487,137 @@ class UsersManager {
   showDeleteMessage(message, type) {
     const messageDiv = document.getElementById("deleteMessage");
     messageDiv.textContent = message;
-    messageDiv.className = `p-3 rounded-md ${
+    messageDiv.className = `p-3 rounded-md mb-4 ${
       type === "success"
         ? "bg-green-50 text-green-800 border border-green-200"
         : "bg-red-50 text-red-800 border border-red-200"
     }`;
     messageDiv.classList.remove("hidden");
+  }
+
+  // Selection Management
+  handleUserSelection(userId, isChecked) {
+    if (isChecked) {
+      this.selectedUsers.add(userId);
+    } else {
+      this.selectedUsers.delete(userId);
+    }
+    this.updateSelectionUI();
+  }
+
+  handleSelectAll(isChecked) {
+    if (isChecked) {
+      // Select all users except the logged-in user
+      this.usersCache.forEach(user => {
+        if (user.id !== this.loggedInUserId) {
+          this.selectedUsers.add(user.id);
+        }
+      });
+    } else {
+      this.selectedUsers.clear();
+    }
+
+    // Re-render to update checkboxes
+    const searchInput = document.getElementById("userSearchInput");
+    const query = searchInput ? searchInput.value : "";
+    this.filterUsers(query);
+  }
+
+  updateSelectAllCheckbox() {
+    const selectAllCheckbox = document.getElementById("selectAllUsers");
+    const selectableUsers = this.usersCache.filter(u => u.id !== this.loggedInUserId);
+    const allSelected = selectableUsers.length > 0 &&
+                       selectableUsers.every(u => this.selectedUsers.has(u.id));
+
+    if (selectAllCheckbox) {
+      selectAllCheckbox.checked = allSelected;
+      selectAllCheckbox.indeterminate = !allSelected && this.selectedUsers.size > 0;
+    }
+  }
+
+  updateSelectionUI() {
+    const deleteBtn = document.getElementById("deleteSelectedBtn");
+    const countSpan = document.getElementById("selectedCount");
+
+    if (this.selectedUsers.size > 0) {
+      deleteBtn.classList.remove("hidden");
+      countSpan.textContent = this.selectedUsers.size;
+    } else {
+      deleteBtn.classList.add("hidden");
+    }
+
+    this.updateSelectAllCheckbox();
+  }
+
+  showBulkDeleteModal() {
+    if (this.selectedUsers.size === 0) return;
+
+    const count = this.selectedUsers.size;
+    const confirmText = document.getElementById("deleteConfirmText");
+    confirmText.textContent = `Are you sure you want to delete ${count} user${count > 1 ? 's' : ''}? This action cannot be undone.`;
+
+    this.currentUserId = null; // Signal bulk delete
+    document.getElementById("deleteMessage").classList.add("hidden");
+    document.getElementById("deleteModal").classList.remove("hidden");
+  }
+
+  async handleDeleteUser() {
+    const confirmBtn = document.getElementById("confirmDeleteBtn");
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = "Deleting...";
+
+    try {
+      // Check if this is a bulk delete or single delete
+      if (this.currentUserId === null && this.selectedUsers.size > 0) {
+        // Bulk delete
+        const userIds = Array.from(this.selectedUsers);
+        const response = await fetch('/api/auth/delete-users', {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ user_ids: userIds })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          this.showDeleteMessage(`Successfully deleted ${userIds.length} user${userIds.length > 1 ? 's' : ''}`, "success");
+          this.selectedUsers.clear();
+          setTimeout(() => {
+            this.hideDeleteModal();
+            this.loadUsers();
+          }, 1500);
+        } else {
+          this.showDeleteMessage(result.message, "error");
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = "Yes, Delete";
+        }
+      } else {
+        // Single delete
+        const response = await fetch(`/api/auth/delete-user/${this.currentUserId}`, {
+          method: "DELETE"
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          this.showDeleteMessage("User deleted successfully", "success");
+          setTimeout(() => {
+            this.hideDeleteModal();
+            this.loadUsers();
+          }, 1500);
+        } else {
+          this.showDeleteMessage(result.message, "error");
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = "Yes, Delete";
+        }
+      }
+    } catch (error) {
+      this.showDeleteMessage("An error occurred while deleting", "error");
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "Yes, Delete";
+    }
   }
 }
 
