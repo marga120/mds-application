@@ -517,6 +517,9 @@ class UsersManager {
       this.selectedUsers.clear();
     }
 
+    // Update the delete button visibility and selection count
+    this.updateSelectionUI();
+
     // Re-render to update checkboxes
     const searchInput = document.getElementById("userSearchInput");
     const query = searchInput ? searchInput.value : "";
