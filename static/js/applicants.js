@@ -2715,6 +2715,33 @@ class ApplicantsManager {
     return null;
   }
 
+  hasInstitutionData(institution) {
+  // Helper to check if a value is meaningful (not null, undefined, empty string, or placeholder)
+  const hasValue = (val) => {
+    if (val === null || val === undefined || val === '') return false;
+    // Treat "UNKNOWN" and similar placeholders as empty
+    if (typeof val === 'string' && val.toUpperCase() === 'UNKNOWN') return false;
+    return true;
+  };
+  
+  // Check if institution has any meaningful data besides institution_number
+  return (
+    hasValue(institution.full_name) ||
+    hasValue(institution.country) ||
+    hasValue(institution.start_date) ||
+    hasValue(institution.end_date) ||
+    hasValue(institution.program_study) ||
+    hasValue(institution.degree_confer) ||
+    hasValue(institution.credential_receive) ||
+    hasValue(institution.date_confer) ||
+    hasValue(institution.expected_confer_date) ||
+    hasValue(institution.honours) ||
+    hasValue(institution.gpa) ||
+    hasValue(institution.fail_withdraw) ||
+    hasValue(institution.reason)
+  );
+}
+
   async loadInstitutionInfo(userCode) {
     try {
       const response = await fetch(`/api/applicant-institutions/${userCode}`);
@@ -2825,6 +2852,7 @@ class ApplicantsManager {
             
             <div class="space-y-6">
               ${result.institutions
+                .filter(institution => this.hasInstitutionData(institution))
                 .map(
                   (institution, index) => `
                 <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
