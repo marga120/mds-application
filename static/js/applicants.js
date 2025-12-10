@@ -1487,11 +1487,7 @@ class ApplicantsManager {
                   )}
                   ${this.renderInfoField(
                     "Date of Birth",
-                    applicant.date_birth
-                      ? new Date(applicant.date_birth).toLocaleDateString(
-                          "en-CA"
-                        )
-                      : null
+                    applicant.date_birth ? this.formatDate(applicant.date_birth) : null
                   )}
                   ${this.renderInfoField("Gender", applicant.gender)}
                   ${this.renderInfoField(
@@ -2891,16 +2887,12 @@ class ApplicantsManager {
                       }
                       ${
                         institution.start_date
-                          ? `<p><span class="font-medium text-gray-700">Start Date:</span> ${new Date(
-                              institution.start_date
-                            ).toLocaleDateString()}</p>`
+                          ? `<p><span class="font-medium text-gray-700">Start Date:</span> ${this.formatDate(institution.start_date)}</p>`
                           : ""
                       }
                       ${
                         institution.end_date
-                          ? `<p><span class="font-medium text-gray-700">End Date:</span> ${new Date(
-                              institution.end_date
-                            ).toLocaleDateString()}</p>`
+                          ? `<p><span class="font-medium text-gray-700">End Date:</span> ${this.formatDate(institution.end_date)}</p>`
                           : ""
                       }
                       ${
@@ -2918,16 +2910,12 @@ class ApplicantsManager {
                       }
                       ${
                         institution.date_confer
-                          ? `<p><span class="font-medium text-gray-700">Date Conferred:</span> ${new Date(
-                              institution.date_confer
-                            ).toLocaleDateString()}</p>`
+                          ? `<p><span class="font-medium text-gray-700">Date Conferred:</span> ${this.formatDate(institution.date_confer)}</p>`
                           : ""
                       }
                       ${
                         institution.expected_confer_date
-                          ? `<p><span class="font-medium text-gray-700">Expected Graduation:</span> ${new Date(
-                              institution.expected_confer_date
-                            ).toLocaleDateString()}</p>`
+                          ? `<p><span class="font-medium text-gray-700">Expected Graduation:</span> ${this.formatDate(institution.expected_confer_date)}</p>`
                           : ""
                       }
                       ${
