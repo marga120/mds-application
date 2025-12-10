@@ -613,8 +613,8 @@ class ApplicantsManager {
     // Load applicant info and ratings
     this.loadApplicantInfo(userCode);
 
-    // Show Comments & Ratings tab by default
-    this.showTab("comments-ratings");
+    // Show Applicant Info tab by default
+    this.showTab("applicant-info");
 
     this.loadRatings(userCode);
 
