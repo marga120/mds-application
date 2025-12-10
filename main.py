@@ -105,6 +105,17 @@ def logs_page():
 def unauthorized(error):
     return redirect(url_for("login_page"))
 
+@app.route('/account')
+@login_required
+def account():
+    return render_template('account.html')
+@app.route('/users')
+@login_required
+def users_page():
+    """Render the users management page (Admin only)"""
+    if not current_user.is_admin:
+        return "Access Denied - Admin Only", 403
+    return render_template('users.html')
 
 if __name__ == "__main__":
     # Only initialize database if not in reloader process

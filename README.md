@@ -102,9 +102,12 @@ The MDS Application Management System uses role-based access control with three 
 **Full System Access** - Complete control over all system functions
 
 #### What Admins Can Do:
-- **User Management**
-  - Create new user accounts for Faculty and Viewers (outside of UI)
-  - Assign roles and manage user permissions (outside of UI)
+- **User Management** (NEW - via `/users` page)
+  - Create new user accounts for Faculty and Viewers with email and password
+  - Edit existing user emails and reset passwords
+  - Delete user accounts (cannot delete own account)
+  - Search and filter users by name, email, or role
+  - Assign and modify user roles (Admin, Faculty, Viewer)
   - View system activity logs and audit trails
 
 - **Session Management**
@@ -223,6 +226,31 @@ The MDS Application Management System uses role-based access control with three 
 #### Navigation and Interface
 - **Dashboard**: Centralized view of current session applicants
 - **Search and Filter**: Find specific students by name, status, or criteria
+- **Account Settings** (NEW): Access via `/account` page
+
+#### Account Settings (NEW - All Users)
+All users can manage their own account through the Account Settings page:
+
+- **View Profile Information**
+  - Display current name, email, and role
+  - View account creation and last update timestamps
+
+- **Update Email Address**
+  - Change account email with password confirmation
+  - Email uniqueness validation
+  - Immediate session update after successful change
+
+- **Change Password**
+  - Requires current password verification
+  - Minimum 8 character requirement enforced
+  - Password confirmation to prevent typos
+  - Secure bcrypt hashing
+
+**Security Features:**
+- All changes require current password verification
+- Server-side validation of all inputs
+- Activity logging for audit trails
+- Cannot view or modify other users' accounts
 
 #### Student Profile View
 - **Personal Information**: Contact details, demographics
@@ -276,13 +304,17 @@ mds-application/
 │   └── js/
 │       ├── applicants.js      # Main application logic
 │       ├── auth.js            # Authentication handling
-│       ├── sessions.js  # Session creation
+│       ├── account.js         # Account settings (NEW)
+│       ├── users.js           # User management for admins (NEW)
+│       ├── sessions.js        # Session creation
 │       ├── logs.js            # Activity log viewer
 │       └── main.js            # Application entry point
 ├── templates/                  # HTML template files
 │   ├── create-session.html    # Session creation page
 │   ├── index.html             # Main application interface
 │   ├── login.html             # Login page
+│   ├── account.html           # Account settings page (NEW)
+│   ├── users.html             # User management page (NEW - Admin only)
 │   ├── header.html            # Header component
 │   └── logs.html              # Activity logs page
 ├── utils/                      # Utility functions
@@ -340,8 +372,14 @@ mds-application/
 - `POST /login`: User authentication
 - `POST /logout`: Session termination
 - `GET /check-session`: Session validation
-- `POST /register`: User creation (Admin only)
 - `GET /user`: Current user information
+- `POST /register`: User creation (Admin only)
+- `GET /users`: List all users with search (Admin only) - NEW
+- `GET /user/<user_id>`: Get specific user details (Admin only) - NEW
+- `PUT /user/<user_id>`: Update user details (Admin only) - NEW
+- `DELETE /delete-user/<user_id>`: Delete user account (Admin only) - NEW
+- `POST /update-email`: Update current user's email - NEW
+- `POST /reset-password`: Change current user's password - NEW
 
 #### Applicants (`/api/`)
 - `GET /applicant-status`: List all applicants with status
