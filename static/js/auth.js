@@ -414,7 +414,7 @@ closeResetPasswordModal() {
           <input type="file" id="csvFileInputModal" accept=".csv" class="hidden">
         </div>
         
-        <div class="flex justify-end gap-3">
+       <div class="flex justify-end gap-3">
           <button class="close-upload-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
             Cancel
           </button>
@@ -424,6 +424,11 @@ closeResetPasswordModal() {
         </div>
         
         <div id="uploadStatusModal" class="mt-4 hidden"></div>
+        
+        <div id="uploadTimestampModal" class="mt-4 p-3 bg-gray-50 rounded-md text-sm text-gray-600" style="display: none;">
+          <strong>Last Upload:</strong> <span id="lastUploadTime">--</span><br>
+          <strong>Records:</strong> <span id="lastUploadRecords">--</span>
+        </div>
       </div>
     </div>
   `;
@@ -489,12 +494,31 @@ setupUploadModal() {
   const uploadBtn = document.getElementById('uploadCsvBtnModal');
   const fileName = document.getElementById('fileNameModal');
   const uploadStatus = document.getElementById('uploadStatusModal');
+  const uploadTimestamp = document.getElementById('uploadTimestampModal');
+  const lastUploadTime = document.getElementById('lastUploadTime');
+  const lastUploadRecords = document.getElementById('lastUploadRecords');
   
   let selectedFile = null;
+  
+  // Function to load and display last upload info
+  const loadLastUploadInfo = () => {
+    const lastUpload = localStorage.getItem('lastUploadInfo');
+    if (lastUpload) {
+      try {
+        const info = JSON.parse(lastUpload);
+        lastUploadTime.textContent = new Date(info.timestamp).toLocaleString();
+        lastUploadRecords.textContent = info.records;
+        uploadTimestamp.style.display = 'block';
+      } catch (e) {
+        console.error('Error loading last upload info:', e);
+      }
+    }
+  };
   
   uploadMenuItem.addEventListener('click', (e) => {
     e.preventDefault();
     modal.classList.remove('hidden');
+    loadLastUploadInfo(); // Load last upload info when opening modal
   });
   
   closeButtons.forEach(btn => {
@@ -563,6 +587,18 @@ setupUploadModal() {
       const result = await response.json();
       
       if (result.success) {
+        // Save upload info to localStorage
+        const uploadInfo = {
+          timestamp: new Date().toISOString(),
+          records: result.records_processed
+        };
+        localStorage.setItem('lastUploadInfo', JSON.stringify(uploadInfo));
+        
+        // Update timestamp display
+        lastUploadTime.textContent = new Date(uploadInfo.timestamp).toLocaleString();
+        lastUploadRecords.textContent = uploadInfo.records;
+        uploadTimestamp.style.display = 'block';
+        
         uploadStatus.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
         uploadStatus.textContent = 'CSV uploaded successfully! Reloading...';
         uploadStatus.classList.remove('hidden');
@@ -583,6 +619,7 @@ setupUploadModal() {
     }
   });
   }
+  
   initializeResetPassword() {
     // Open modal
     document.addEventListener("click", (e) => {
