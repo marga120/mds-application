@@ -1142,7 +1142,7 @@ class ApplicantsManager {
     });
 
     modal.querySelector("#cancelStatusBtn").addEventListener("click", () => {
-      this.loadAppStatus(modal.dataset.currentUserCode);
+      this.loadApplicationStatus(modal.dataset.currentUserCode);
     });
 
     // Prerequisites tab status change buttons
