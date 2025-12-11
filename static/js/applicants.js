@@ -2507,9 +2507,9 @@ class ApplicantsManager {
     const highlightClass = isHighlight ? "font-bold text-lg" : "text-sm";
 
     return `
-      <div class="flex justify-between items-center">
-        <span class="text-xs font-medium opacity-70">${label}:</span>
-        <span class="${highlightClass} font-semibold">${value}</span>
+      <div class="flex justify-between items-start gap-2">
+        <span class="text-xs font-medium opacity-70 flex-shrink-0">${label}:</span>
+        <span class="${highlightClass} font-semibold break-all text-right max-w-[60%]">${value}</span>
       </div>
     `;
   }
