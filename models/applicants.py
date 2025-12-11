@@ -14,6 +14,13 @@ from models.test_scores import (
 )
 from models.institutions import process_institution_info
 
+def convert_id_to_string(value):
+    """Convert ID numbers to clean strings, removing .0 from floats"""
+    if pd.isna(value):
+        return None
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
 
 def calculate_age(birth_date):
     """
@@ -271,7 +278,31 @@ def compute_english_status(user_code: str, not_required_rule=None):
                     desc = f"TOEFL{num} (MyBest), score is above the minimum requirement (90)"
                     break
 
-                failed_tests.append(f"TOEFL{num}")
+                # Track what failed for this TOEFL test
+                failed_sections = []
+                total_failed = False
+
+                if all(v is not None for v in (L, W, R, S, T)):
+                    if L < TOEFL_LR_MIN:
+                        failed_sections.append("Listening")
+                    if R < TOEFL_LR_MIN:
+                        failed_sections.append("Reading")
+                    if W < TOEFL_WS_MIN:
+                        failed_sections.append("Writing")
+                    if S < TOEFL_WS_MIN:
+                        failed_sections.append("Speaking")
+                    if T < TOEFL_TOTAL_MIN:
+                        total_failed = True
+
+                # If both total and sections failed, just show total
+                if total_failed and failed_sections:
+                    failed_tests.append(f"TOEFL{num} (Total)")
+                elif failed_sections:
+                    failed_tests.append(f"TOEFL{num} ({', '.join(failed_sections)})")
+                elif total_failed:
+                    failed_tests.append(f"TOEFL{num} (Total)")
+                else:
+                    failed_tests.append(f"TOEFL{num}")
 
             if status == "Passed":
                 cur.execute(
@@ -312,7 +343,31 @@ def compute_english_status(user_code: str, not_required_rule=None):
                     desc = f"IELTS{num}, score is above the minimum requirement (6.5 overall, 6.0 each)"
                     break
 
-                failed_tests.append(f"IELTS{num}")
+                # Track what failed for this IELTS test
+                failed_sections = []
+                total_failed = False
+
+                if all(v is not None for v in (R, W, L, S, T)):
+                    if R < IELTS_EACH_MIN:
+                        failed_sections.append("Reading")
+                    if W < IELTS_EACH_MIN:
+                        failed_sections.append("Writing")
+                    if L < IELTS_EACH_MIN:
+                        failed_sections.append("Listening")
+                    if S < IELTS_EACH_MIN:
+                        failed_sections.append("Speaking")
+                    if T < IELTS_TOTAL_MIN:
+                        total_failed = True
+
+                # If both total and sections failed, just show total
+                if total_failed and failed_sections:
+                    failed_tests.append(f"IELTS{num} (Total)")
+                elif failed_sections:
+                    failed_tests.append(f"IELTS{num} ({', '.join(failed_sections)})")
+                elif total_failed:
+                    failed_tests.append(f"IELTS{num} (Total)")
+                else:
+                    failed_tests.append(f"IELTS{num}")
 
             if status == "Passed":
                 cur.execute(
@@ -400,7 +455,23 @@ def compute_english_status(user_code: str, not_required_rule=None):
                     status = "Passed"
                     desc = "CAEL, all sections ≥ 60"
                 else:
-                    failed_tests.append("CAEL")
+                    # Track what failed for CAEL
+                    failed_sections = []
+
+                    if all(v is not None for v in (R, L, W, S)):
+                        if R < CAEL_EACH_MIN:
+                            failed_sections.append("Reading")
+                        if L < CAEL_EACH_MIN:
+                            failed_sections.append("Listening")
+                        if W < CAEL_EACH_MIN:
+                            failed_sections.append("Writing")
+                        if S < CAEL_EACH_MIN:
+                            failed_sections.append("Speaking")
+
+                    if failed_sections:
+                        failed_tests.append(f"CAEL ({', '.join(failed_sections)})")
+                    else:
+                        failed_tests.append("CAEL")
 
             # Finalize result
             if status == "Passed":
@@ -427,16 +498,23 @@ def compute_english_status(user_code: str, not_required_rule=None):
                         (user_code,),
                     )
                 else:
-                    reason = ", ".join(failed_tests)
+                    # Format the description based on number of failed tests
+                    if len(failed_tests) == 1:
+                        reason = failed_tests[0]
+                        desc_text = f"{reason} is below the minimum requirement"
+                    else:
+                        reason = ", ".join(failed_tests)
+                        desc_text = f"{reason} are below the minimum requirement"
+
                     cur.execute(
                         """
                         UPDATE application_info
-                           SET english_status = 'Not Met',
-                               english_description = %s,
-                               english = FALSE
-                         WHERE user_code = %s
+                        SET english_status = 'Not Met',
+                            english_description = %s,
+                            english = FALSE
+                        WHERE user_code = %s
                         """,
-                        (f"{reason} are below the minimum requirement", user_code),
+                        (desc_text, user_code),
                     )
 
         conn.commit()
@@ -743,8 +821,8 @@ def process_csv_data(df):
                     row.get("City"),
                     row.get("Province, State or Region"),
                     row.get("Postal Code"),
-                    row.get("Primary Telephone"),
-                    row.get("Secondary Telephone"),
+                    convert_id_to_string(row.get("Primary Telephone")),
+                    convert_id_to_string(row.get("Secondary Telephone")),
                     row.get("Email"),
                     row.get("Aboriginal"),  # aboriginal
                     row.get("Aboriginal Type First Nations"),  # first_nation
@@ -829,7 +907,7 @@ def process_csv_data(df):
                 status_query,
                 (
                     user_code,
-                    row.get("Student Number"),
+                    convert_id_to_string(row.get("Student Number")),
                     app_start,
                     submit_date,
                     row.get("Status CODE"),
