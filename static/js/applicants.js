@@ -2674,6 +2674,7 @@ class ApplicantsManager {
       "Academic History",
       "UBC Academic History",
       "Aboriginal Info",
+      "Visa Type",
     ];
     const isLongTextField = longTextFields.includes(label);
 
