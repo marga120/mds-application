@@ -4607,10 +4607,10 @@ async initializeExportButton() {
   createSharedExportOptionsModal() {
     const modal = document.createElement('div');
     modal.id = 'sharedExportOptionsModal';
-    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50';
+    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50';
 
     modal.innerHTML = `
-      <div class="relative top-20 mx-auto p-6 border w-11/12 max-w-md shadow-lg rounded-lg bg-white">
+      <div class="mx-auto p-6 border w-11/12 max-w-md shadow-lg rounded-lg bg-white">
         <div class="flex items-center justify-between pb-4 border-b border-gray-200">
           <h3 class="text-xl font-semibold text-gray-900" id="exportModalTitle">Export Options</h3>
           <button class="export-modal-close text-gray-400 hover:text-gray-600">
