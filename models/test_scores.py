@@ -2,6 +2,14 @@ from utils.database import get_db_connection
 import pandas as pd
 from datetime import datetime
 
+def convert_id_to_string(value):
+    """Convert ID numbers to clean strings, removing .0 from floats"""
+    if pd.isna(value):
+        return None
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
 def process_toefl_scores(user_code, row, cursor, current_time):
     """
     Process and insert TOEFL test scores from CSV data.
@@ -169,7 +177,7 @@ def process_toefl_scores(user_code, row, cursor, current_time):
                 (
                     user_code,
                     i,  # toefl_number
-                    str(reg_num) if pd.notna(reg_num) else None,
+                    convert_id_to_string(reg_num),
                     date_written,
                     convert_score(row.get(f"{prefix} Total Score")),
                     convert_score(row.get(f"{prefix} Listening")),
@@ -311,7 +319,7 @@ def process_ielts_scores(user_code, row, cursor, current_time):
                 (
                     user_code,
                     i,  # ielts_number
-                    str(candidate_num) if pd.notna(candidate_num) else None,
+                    convert_id_to_string(candidate_num),
                     date_written,
                     convert_score(row.get(f"{prefix} Total Band Score")),
                     convert_score(row.get(f"{prefix} Listening")),
@@ -417,7 +425,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 melab_query,
                 (
                     user_code,
-                    str(melab_ref) if pd.notna(melab_ref) else None,
+                    convert_id_to_string(melab_ref),
                     melab_date,
                     convert_score(row.get("MELAB Total Score")),
                     current_time,  # created_at
@@ -456,7 +464,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 pte_query,
                 (
                     user_code,
-                    str(pte_ref) if pd.notna(pte_ref) else None,
+                    convert_id_to_string(pte_ref),
                     pte_date,
                     convert_score(row.get("PTE Total Score")),
                     current_time,  # created_at
@@ -505,7 +513,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 cael_query,
                 (
                     user_code,
-                    str(cael_ref) if pd.notna(cael_ref) else None,
+                    convert_id_to_string(cael_ref),
                     cael_date,
                     convert_score(row.get("CAEL Reading Performance Score")),
                     convert_score(row.get("CAEL Listening Performance Score")),
@@ -556,7 +564,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 celpip_query,
                 (
                     user_code,
-                    str(celpip_ref) if pd.notna(celpip_ref) else None,
+                    convert_id_to_string(celpip_ref),
                     celpip_date,
                     convert_score(row.get("CELPIP Listening Score")),
                     convert_score(row.get("CELPIP Speaking Score")),
@@ -603,7 +611,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 alt_elpp_query,
                 (
                     user_code,
-                    str(alt_elpp_ref) if pd.notna(alt_elpp_ref) else None,
+                    convert_id_to_string(alt_elpp_ref),
                     alt_elpp_date,
                     convert_score(row.get("ALT ELPP Total Score")),
                     convert_score(row.get("ALT ELPP Test Type")),
@@ -679,7 +687,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 gre_query,
                 (
                     user_code,
-                    str(gre_reg) if pd.notna(gre_reg) else None,
+                    convert_id_to_string(gre_reg),
                     gre_date,
                     convert_score(row.get("GRE Verbal Reasoning")),
                     convert_score(row.get("GRE Verbal Reasoning % Below")),
@@ -747,7 +755,7 @@ def process_other_test_scores(user_code, row, cursor, current_time):
                 gmat_query,
                 (
                     user_code,
-                    str(gmat_ref) if pd.notna(gmat_ref) else None,
+                    convert_id_to_string(gmat_ref),
                     gmat_date,
                     convert_score(row.get("GMAT Total Score")),
                     convert_score(row.get("Integrated Reasoning")),
