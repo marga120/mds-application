@@ -1,9 +1,8 @@
 """
 DATABASE BACKUP AND IMPORT API
 
-This module handles database backup and import operations for the MDS Application
-Management System. It provides endpoints for exporting the database to SQL files
-and importing SQL files back into the database. Admin-only access is enforced
+This module handles database backup and import ops. It provides endpoints for exporting the database to SQL files
+and importing SQL files back into the database. Admin-only!!!
 for all operations to maintain data integrity and security.
 """
 
