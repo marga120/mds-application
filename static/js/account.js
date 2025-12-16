@@ -77,5 +77,9 @@ class AccountManager {
 
 let accountManager;
 document.addEventListener("DOMContentLoaded", () => {
+  // Initialize AuthManager for header dropdowns
+  new AuthManager();
+
+  // Initialize AccountManager for account settings functionality
   accountManager = new AccountManager();
 });

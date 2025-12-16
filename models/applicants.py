@@ -14,6 +14,13 @@ from models.test_scores import (
 )
 from models.institutions import process_institution_info
 
+def convert_id_to_string(value):
+    """Convert ID numbers to clean strings, removing .0 from floats"""
+    if pd.isna(value):
+        return None
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
 
 def calculate_age(birth_date):
     """
@@ -177,6 +184,25 @@ def compute_english_status(user_code: str, not_required_rule=None):
     desc = None
     failed_tests = []
 
+    # Helper function to safely convert to int
+    def safe_int(value):
+        if value in (None, ""):
+            return None
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return None
+
+    # Helper function to safely convert to float
+    def safe_float(value):
+        if value in (None, ""):
+            return None
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return None
+
+
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -213,49 +239,18 @@ def compute_english_status(user_code: str, not_required_rule=None):
                 (user_code,),
             )
             for row in cur.fetchall():
-                L = (
-                    int(row["listening"])
-                    if row["listening"] not in (None, "")
-                    else None
-                )
-                W = (
-                    int(row["structure_written"])
-                    if row["structure_written"] not in (None, "")
-                    else None
-                )
-                R = int(row["reading"]) if row["reading"] not in (None, "") else None
-                S = int(row["speaking"]) if row["speaking"] not in (None, "") else None
-                T = (
-                    int(row["total_score"])
-                    if row["total_score"] not in (None, "")
-                    else None
-                )
+                L = safe_int(row["listening"])
+                W = safe_int(row["structure_written"])
+                R = safe_int(row["reading"])
+                S = safe_int(row["speaking"])
+                T = safe_int(row["total_score"])
 
-                mL = (
-                    int(row["mybest_listening"])
-                    if row["mybest_listening"] not in (None, "")
-                    else None
-                )
-                mW = (
-                    int(row["mybest_writing"])
-                    if row["mybest_writing"] not in (None, "")
-                    else None
-                )
-                mR = (
-                    int(row["mybest_reading"])
-                    if row["mybest_reading"] not in (None, "")
-                    else None
-                )
-                mS = (
-                    int(row["mybest_speaking"])
-                    if row["mybest_speaking"] not in (None, "")
-                    else None
-                )
-                mT = (
-                    int(row["mybest_total"])
-                    if row["mybest_total"] not in (None, "")
-                    else None
-                )
+                mL = safe_int(row["mybest_listening"])
+                mW = safe_int(row["mybest_writing"])
+                mR = safe_int(row["mybest_reading"])
+                mS = safe_int(row["mybest_speaking"])
+                mT = safe_int(row["mybest_total"])
+
 
                 num = row["toefl_number"] or 1
 
@@ -283,7 +278,31 @@ def compute_english_status(user_code: str, not_required_rule=None):
                     desc = f"TOEFL{num} (MyBest), score is above the minimum requirement (90)"
                     break
 
-                failed_tests.append(f"TOEFL{num}")
+                # Track what failed for this TOEFL test
+                failed_sections = []
+                total_failed = False
+
+                if all(v is not None for v in (L, W, R, S, T)):
+                    if L < TOEFL_LR_MIN:
+                        failed_sections.append("Listening")
+                    if R < TOEFL_LR_MIN:
+                        failed_sections.append("Reading")
+                    if W < TOEFL_WS_MIN:
+                        failed_sections.append("Writing")
+                    if S < TOEFL_WS_MIN:
+                        failed_sections.append("Speaking")
+                    if T < TOEFL_TOTAL_MIN:
+                        total_failed = True
+
+                # If both total and sections failed, just show total
+                if total_failed and failed_sections:
+                    failed_tests.append(f"TOEFL{num} (Total)")
+                elif failed_sections:
+                    failed_tests.append(f"TOEFL{num} ({', '.join(failed_sections)})")
+                elif total_failed:
+                    failed_tests.append(f"TOEFL{num} (Total)")
+                else:
+                    failed_tests.append(f"TOEFL{num}")
 
             if status == "Passed":
                 cur.execute(
@@ -310,23 +329,11 @@ def compute_english_status(user_code: str, not_required_rule=None):
                 (user_code,),
             )
             for row in cur.fetchall():
-                L = (
-                    float(row["listening"])
-                    if row["listening"] not in (None, "")
-                    else None
-                )
-                R = float(row["reading"]) if row["reading"] not in (None, "") else None
-                W = float(row["writing"]) if row["writing"] not in (None, "") else None
-                S = (
-                    float(row["speaking"])
-                    if row["speaking"] not in (None, "")
-                    else None
-                )
-                T = (
-                    float(row["total_band_score"])
-                    if row["total_band_score"] not in (None, "")
-                    else None
-                )
+                L = safe_float(row["listening"])
+                R = safe_float(row["reading"])
+                W = safe_float(row["writing"])
+                S = safe_float(row["speaking"])
+                T = safe_float(row["total_band_score"])
                 num = row["ielts_number"] or 1
 
                 if all(v is not None for v in (L, R, W, S, T)) and (
@@ -336,7 +343,31 @@ def compute_english_status(user_code: str, not_required_rule=None):
                     desc = f"IELTS{num}, score is above the minimum requirement (6.5 overall, 6.0 each)"
                     break
 
-                failed_tests.append(f"IELTS{num}")
+                # Track what failed for this IELTS test
+                failed_sections = []
+                total_failed = False
+
+                if all(v is not None for v in (R, W, L, S, T)):
+                    if R < IELTS_EACH_MIN:
+                        failed_sections.append("Reading")
+                    if W < IELTS_EACH_MIN:
+                        failed_sections.append("Writing")
+                    if L < IELTS_EACH_MIN:
+                        failed_sections.append("Listening")
+                    if S < IELTS_EACH_MIN:
+                        failed_sections.append("Speaking")
+                    if T < IELTS_TOTAL_MIN:
+                        total_failed = True
+
+                # If both total and sections failed, just show total
+                if total_failed and failed_sections:
+                    failed_tests.append(f"IELTS{num} (Total)")
+                elif failed_sections:
+                    failed_tests.append(f"IELTS{num} ({', '.join(failed_sections)})")
+                elif total_failed:
+                    failed_tests.append(f"IELTS{num} (Total)")
+                else:
+                    failed_tests.append(f"IELTS{num}")
 
             if status == "Passed":
                 cur.execute(
@@ -356,9 +387,7 @@ def compute_english_status(user_code: str, not_required_rule=None):
             cur.execute("SELECT total FROM melab WHERE user_code = %s", (user_code,))
             melab = cur.fetchone()
             if melab is not None:
-                total = (
-                    int(melab["total"]) if melab["total"] not in (None, "") else None
-                )
+                total = safe_int(melab["total"])
                 if total is not None and total >= MELAB_TOTAL_MIN:
                     status = "Passed"
                     desc = "MELAB, score is above the minimum requirement (64)"
@@ -383,7 +412,7 @@ def compute_english_status(user_code: str, not_required_rule=None):
             cur.execute("SELECT total FROM pte WHERE user_code = %s", (user_code,))
             pte = cur.fetchone()
             if pte is not None:
-                total = int(pte["total"]) if pte["total"] not in (None, "") else None
+                total = safe_int(pte["total"])
                 if total is not None and total >= PTE_TOTAL_MIN:
                     status = "Passed"
                     desc = "PTE, score is above the minimum requirement (65)"
@@ -415,18 +444,10 @@ def compute_english_status(user_code: str, not_required_rule=None):
             )
             cael = cur.fetchone()
             if cael is not None:
-                R = int(cael["reading"]) if cael["reading"] not in (None, "") else None
-                L = (
-                    int(cael["listening"])
-                    if cael["listening"] not in (None, "")
-                    else None
-                )
-                W = int(cael["writing"]) if cael["writing"] not in (None, "") else None
-                S = (
-                    int(cael["speaking"])
-                    if cael["speaking"] not in (None, "")
-                    else None
-                )
+                R = safe_int(cael["reading"])
+                L = safe_int(cael["listening"])
+                W = safe_int(cael["writing"])
+                S = safe_int(cael["speaking"])
                 if (
                     all(v is not None for v in (R, L, W, S))
                     and min(R, L, W, S) >= CAEL_EACH_MIN
@@ -434,7 +455,23 @@ def compute_english_status(user_code: str, not_required_rule=None):
                     status = "Passed"
                     desc = "CAEL, all sections ≥ 60"
                 else:
-                    failed_tests.append("CAEL")
+                    # Track what failed for CAEL
+                    failed_sections = []
+
+                    if all(v is not None for v in (R, L, W, S)):
+                        if R < CAEL_EACH_MIN:
+                            failed_sections.append("Reading")
+                        if L < CAEL_EACH_MIN:
+                            failed_sections.append("Listening")
+                        if W < CAEL_EACH_MIN:
+                            failed_sections.append("Writing")
+                        if S < CAEL_EACH_MIN:
+                            failed_sections.append("Speaking")
+
+                    if failed_sections:
+                        failed_tests.append(f"CAEL ({', '.join(failed_sections)})")
+                    else:
+                        failed_tests.append("CAEL")
 
             # Finalize result
             if status == "Passed":
@@ -461,16 +498,23 @@ def compute_english_status(user_code: str, not_required_rule=None):
                         (user_code,),
                     )
                 else:
-                    reason = ", ".join(failed_tests)
+                    # Format the description based on number of failed tests
+                    if len(failed_tests) == 1:
+                        reason = failed_tests[0]
+                        desc_text = f"{reason} is below the minimum requirement"
+                    else:
+                        reason = ", ".join(failed_tests)
+                        desc_text = f"{reason} are below the minimum requirement"
+
                     cur.execute(
                         """
                         UPDATE application_info
-                           SET english_status = 'Not Met',
-                               english_description = %s,
-                               english = FALSE
-                         WHERE user_code = %s
+                        SET english_status = 'Not Met',
+                            english_description = %s,
+                            english = FALSE
+                        WHERE user_code = %s
                         """,
-                        (f"{reason} are below the minimum requirement", user_code),
+                        (desc_text, user_code),
                     )
 
         conn.commit()
@@ -777,8 +821,8 @@ def process_csv_data(df):
                     row.get("City"),
                     row.get("Province, State or Region"),
                     row.get("Postal Code"),
-                    row.get("Primary Telephone"),
-                    row.get("Secondary Telephone"),
+                    convert_id_to_string(row.get("Primary Telephone")),
+                    convert_id_to_string(row.get("Secondary Telephone")),
                     row.get("Email"),
                     row.get("Aboriginal"),  # aboriginal
                     row.get("Aboriginal Type First Nations"),  # first_nation
@@ -863,7 +907,7 @@ def process_csv_data(df):
                 status_query,
                 (
                     user_code,
-                    row.get("Student Number"),
+                    convert_id_to_string(row.get("Student Number")),
                     app_start,
                     submit_date,
                     row.get("Status CODE"),
@@ -2038,14 +2082,20 @@ def get_selected_applicants_for_export(user_codes, sections=None):
 
     try:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
+
+        # Validate and convert user_codes to list if needed
+        if not user_codes:
+            return [], None
+        if not isinstance(user_codes, (list, tuple)):
+            user_codes = [user_codes]
+
         # Default to all if no sections provided
         all_sections = sections is None or len(sections) == 0
         inc_personal = all_sections or 'personal' in sections
         inc_app = all_sections or 'application' in sections
         # Mapping 'institutions' or 'education' checkbox to the Education columns
-        inc_edu = all_sections or 'institutions' in sections or 'education' in sections 
-        
+        inc_edu = all_sections or 'institutions' in sections or 'education' in sections
+
         select_parts = []
         
         # Base parts usually needed for identification
@@ -2062,7 +2112,7 @@ def get_selected_applicants_for_export(user_codes, sections=None):
         # but 'application' is not (which might result in gaps), we will just check flags.
         
         # 1. Student# (Personal/Basic)
-        if inc_personal or inc_app: # Usually essential
+        if inc_personal or inc_app:
             select_parts.append("ast.student_number as \"Student#\"")
 
         # 2. Program/Session (Application)
@@ -2082,7 +2132,7 @@ def get_selected_applicants_for_export(user_codes, sections=None):
                 "ai.gender_code as \"Gender CODE\"",
                 "ai.visa_type_code as \"Visa Type CODE\"",
                 "ai.age as \"Age\"",
-                """CASE 
+                """CASE
                     WHEN ai.age <18 THEN '18-'
                     WHEN ai.age BETWEEN 18 AND 25 THEN '18-24'
                     WHEN ai.age BETWEEN 25 AND 34 THEN '25-34'
@@ -2101,42 +2151,42 @@ def get_selected_applicants_for_export(user_codes, sections=None):
 
         # 4. Admin / Offer Status (Application)
         select_parts.extend([
-            # Admission Review
-            "CASE WHEN app.sent != 'Not Reviewed' THEN 'Yes' ELSE 'No' END AS \"Admission Review\"",
+            # Admission Review - NO if not reviewed, yes otherwise
+            "CASE WHEN COALESCE(app.sent, 'Not Reviewed') = 'Not Reviewed' THEN 'NO' ELSE 'YES' END AS \"Admission Review\"",
 
-            # Offer Sent - Updated to match schema values
-            "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN 'Y' ELSE 'N' END AS \"Offer Sent\"",
+            # Offer Sent  Updated to match schema values
+            "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN 'Y' ELSE '' END AS \"Offer Sent\"",
 
-            # Offer Status - Updated to match schema values
-            "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN app.sent ELSE '' END AS \"Offer Status\"",
+            # Offer Status  Updated to match schema values
+            "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN COALESCE(app.sent, '') ELSE '' END AS \"Offer Status\"",
 
-            # Scholarship - VARCHAR(20) with CHECK constraint
-            "COALESCE(app.scholarship, 'Undecided') AS \"Scholarship Offered\""
+            # Scholarship - yes only if scholarship offered, blank otherwise
+            "CASE WHEN app.scholarship = 'Yes' THEN 'yes' ELSE '' END AS \"Scholarship Offered\""
         ])
 
 
         # 5. Education History (Institutions/Education)
         if inc_edu:
             select_parts.extend([
-                "ai.academic_history_code as \"Academic History Source CODE\"",
-                # Year of Last Degree 
-                "(SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code) as \"Year of Last Degree\"",
-                # Years Since Degree (Raw Number)
-                "(EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) as \"Years Since Degree\"",
-                
+                "COALESCE(CAST(ai.academic_history_code AS TEXT), '') as \"Academic History Source CODE\"",
+                # Year of Last Degree
+                "COALESCE(CAST((SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code) AS TEXT), '') as \"Year of Last Degree\"",
+                # Years Since Degree
+                "COALESCE(CAST((EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) AS TEXT), '') as \"Years Since Degree\"",
+
                 # Years Since Degree Grouped (The Date of the last degree year shifted to current year: YYYY-MM-DD)
-                """TO_CHAR(
-                    (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code) + 
+                """COALESCE(TO_CHAR(
+                    (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code) +
                     MAKE_INTERVAL(years => (EXTRACT(YEAR FROM CURRENT_DATE)::int - EXTRACT(YEAR FROM (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code))::int)),
                     'YYYY-MM-DD'
-                ) as "Years Since Degree Grouped"
+                ), '') as "Years Since Degree Grouped"
                 """,
-                
-                "app.highest_degree as \"Level of Education\"",
-                "app.degree_area as \"Subject of Degree\"",
+
+                "COALESCE(CAST(app.highest_degree AS TEXT), '') as \"Level of Education\"",
+                "COALESCE(CAST(app.degree_area AS TEXT), '') as \"Subject of Degree\"",
                 
                 # Subject Grouped (Specific categories)
-                """CASE 
+                """CASE
                     WHEN app.degree_area ILIKE '%%comput%%' OR app.degree_area ILIKE '%%tech%%' OR app.degree_area ILIKE '%%software%%' OR app.degree_area ILIKE '%%inform%%' OR app.degree_area ILIKE '%%security%%' OR app.degree_area ILIKE '%%network%%' OR app.degree_area ILIKE '%%system%%' OR app.degree_area ILIKE '%%machine%%' OR app.degree_area ILIKE '%%data mining%%' OR app.degree_area ILIKE '%%analysis%%' THEN 'Computer Science / Engineering / Technology'
                     WHEN app.degree_area ILIKE '%%engineering%%' OR app.degree_area ILIKE '%%elect%%' OR app.degree_area ILIKE '%%power%%' OR app.degree_area ILIKE '%%mech%%' OR app.degree_area ILIKE '%%design%%' OR app.degree_area ILIKE '%%applied%%' OR app.degree_area ILIKE '%%civil%%' THEN 'Engineering (excluding computer engineering)'
                     WHEN app.degree_area ILIKE '%%stat%%' OR app.degree_area ILIKE '%%math%%' OR app.degree_area ILIKE '%%actuarial%%' OR app.degree_area ILIKE '%%operational%%' THEN 'Stats / Math / Actuarial Sciences'
@@ -2144,17 +2194,18 @@ def get_selected_applicants_for_export(user_codes, sections=None):
                     WHEN app.degree_area ILIKE '%%arts%%' OR app.degree_area ILIKE '%%psych%%' OR app.degree_area ILIKE '%%lang%%' OR app.degree_area ILIKE '%%liter%%' OR app.degree_area ILIKE '%%lingui%%' OR app.degree_area ILIKE '%%philosophy%%' OR app.degree_area ILIKE '%%communication%%' OR app.degree_area ILIKE '%%english%%' THEN 'Arts'
                     WHEN app.degree_area ILIKE '%%financ%%' OR app.degree_area ILIKE '%%mba%%' OR app.degree_area ILIKE '%%account%%' OR app.degree_area ILIKE '%%market%%' OR app.degree_area ILIKE '%%bus%%' OR app.degree_area ILIKE '%%econ%%' OR app.degree_area ILIKE '%%bba%%' OR app.degree_area ILIKE '%%manage%%' OR app.degree_area ILIKE '%%mgmt%%' OR app.degree_area ILIKE '%%international%%' OR app.degree_area ILIKE '%%admin%%' THEN 'Finance / Business / Management / Economics'
                     WHEN app.degree_area IS NOT NULL AND app.degree_area != '' THEN 'Other'
-                    ELSE '' 
+                    ELSE ''
                    END as "Subject Grouped"
                 """
             ])
         # 6. Other / Marketing (Personal or Application)
         if inc_personal or inc_app:
             select_parts.extend([
-                "ai.interest as \"Source of Interest in UBC\"",
-                "CASE WHEN app.mds_v IS TRUE THEN 'Y' ELSE '' END as \"Applied MDS-V\"",
-                "'' as \"Applied MDS-O\"", # Placeholder for missing column
-                "CASE WHEN app.mds_cl IS TRUE THEN 'Y' ELSE '' END as \"Applied MDS-CL\""
+                "COALESCE(CAST(ai.interest AS TEXT), '') as \"Source of Interest in UBC\"",
+                "CASE WHEN COALESCE(app.mds_v, FALSE) = TRUE THEN 'Y' ELSE '' END as \"Applied MDS-V\"",
+                # Derive from program_info if available, otherwise empty
+                "CASE WHEN COALESCE(CAST(pi.program AS TEXT), '') ILIKE '%%MDS%%O%%' THEN 'Y' ELSE '' END as \"Applied MDS-O\"",
+                "CASE WHEN COALESCE(app.mds_cl, FALSE) = TRUE THEN 'Y' ELSE '' END as \"Applied MDS-CL\""
             ])
 
         # Fallback if nothing selected
@@ -2162,18 +2213,19 @@ def get_selected_applicants_for_export(user_codes, sections=None):
             select_parts = ["ai.user_code as \"User Code\""]
 
         placeholders = ','.join(['%s'] * len(user_codes))
-        
+
         query = f"""
             SELECT {', '.join(select_parts)}
             FROM applicant_info ai
             LEFT JOIN applicant_status ast ON ai.user_code = ast.user_code
             LEFT JOIN application_info app ON ai.user_code = app.user_code
             LEFT JOIN sessions s ON ai.session_id = s.id
+            LEFT JOIN program_info pi ON ai.user_code = pi.user_code
             WHERE ai.user_code IN ({placeholders})
             ORDER BY ai.family_name, ai.given_name
         """
-        
-        cursor.execute(query, user_codes)
+
+        cursor.execute(query, tuple(user_codes))
         applicants = cursor.fetchall()
         cursor.close()
         conn.close()

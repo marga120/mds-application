@@ -613,8 +613,8 @@ class ApplicantsManager {
     // Load applicant info and ratings
     this.loadApplicantInfo(userCode);
 
-    // Show Comments & Ratings tab by default
-    this.showTab("comments-ratings");
+    // Show Applicant Info tab by default
+    this.showTab("applicant-info");
 
     this.loadRatings(userCode);
 
@@ -1142,7 +1142,7 @@ class ApplicantsManager {
     });
 
     modal.querySelector("#cancelStatusBtn").addEventListener("click", () => {
-      this.loadAppStatus(modal.dataset.currentUserCode);
+      this.loadApplicationStatus(modal.dataset.currentUserCode);
     });
 
     // Prerequisites tab status change buttons
@@ -1487,11 +1487,7 @@ class ApplicantsManager {
                   )}
                   ${this.renderInfoField(
                     "Date of Birth",
-                    applicant.date_birth
-                      ? new Date(applicant.date_birth).toLocaleDateString(
-                          "en-CA"
-                        )
-                      : null
+                    applicant.date_birth ? this.formatDate(applicant.date_birth) : null
                   )}
                   ${this.renderInfoField("Gender", applicant.gender)}
                   ${this.renderInfoField(
@@ -2511,9 +2507,9 @@ class ApplicantsManager {
     const highlightClass = isHighlight ? "font-bold text-lg" : "text-sm";
 
     return `
-      <div class="flex justify-between items-center">
-        <span class="text-xs font-medium opacity-70">${label}:</span>
-        <span class="${highlightClass} font-semibold">${value}</span>
+      <div class="flex justify-between items-start gap-2">
+        <span class="text-xs font-medium opacity-70 flex-shrink-0">${label}:</span>
+        <span class="${highlightClass} font-semibold break-all text-right max-w-[60%]">${value}</span>
       </div>
     `;
   }
@@ -2678,6 +2674,7 @@ class ApplicantsManager {
       "Academic History",
       "UBC Academic History",
       "Aboriginal Info",
+      "Visa Type",
     ];
     const isLongTextField = longTextFields.includes(label);
 
@@ -2714,6 +2711,33 @@ class ApplicantsManager {
     if (value === "N") return "No";
     return null;
   }
+
+  hasInstitutionData(institution) {
+  // Helper to check if a value is meaningful (not null, undefined, empty string, or placeholder)
+  const hasValue = (val) => {
+    if (val === null || val === undefined || val === '') return false;
+    // Treat "UNKNOWN" and similar placeholders as empty
+    if (typeof val === 'string' && val.toUpperCase() === 'UNKNOWN') return false;
+    return true;
+  };
+  
+  // Check if institution has any meaningful data besides institution_number
+  return (
+    hasValue(institution.full_name) ||
+    hasValue(institution.country) ||
+    hasValue(institution.start_date) ||
+    hasValue(institution.end_date) ||
+    hasValue(institution.program_study) ||
+    hasValue(institution.degree_confer) ||
+    hasValue(institution.credential_receive) ||
+    hasValue(institution.date_confer) ||
+    hasValue(institution.expected_confer_date) ||
+    hasValue(institution.honours) ||
+    hasValue(institution.gpa) ||
+    hasValue(institution.fail_withdraw) ||
+    hasValue(institution.reason)
+  );
+}
 
   async loadInstitutionInfo(userCode) {
     try {
@@ -2825,6 +2849,7 @@ class ApplicantsManager {
             
             <div class="space-y-6">
               ${result.institutions
+                .filter(institution => this.hasInstitutionData(institution))
                 .map(
                   (institution, index) => `
                 <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -2863,16 +2888,12 @@ class ApplicantsManager {
                       }
                       ${
                         institution.start_date
-                          ? `<p><span class="font-medium text-gray-700">Start Date:</span> ${new Date(
-                              institution.start_date
-                            ).toLocaleDateString()}</p>`
+                          ? `<p><span class="font-medium text-gray-700">Start Date:</span> ${this.formatDate(institution.start_date)}</p>`
                           : ""
                       }
                       ${
                         institution.end_date
-                          ? `<p><span class="font-medium text-gray-700">End Date:</span> ${new Date(
-                              institution.end_date
-                            ).toLocaleDateString()}</p>`
+                          ? `<p><span class="font-medium text-gray-700">End Date:</span> ${this.formatDate(institution.end_date)}</p>`
                           : ""
                       }
                       ${
@@ -2890,16 +2911,12 @@ class ApplicantsManager {
                       }
                       ${
                         institution.date_confer
-                          ? `<p><span class="font-medium text-gray-700">Date Conferred:</span> ${new Date(
-                              institution.date_confer
-                            ).toLocaleDateString()}</p>`
+                          ? `<p><span class="font-medium text-gray-700">Date Conferred:</span> ${this.formatDate(institution.date_confer)}</p>`
                           : ""
                       }
                       ${
                         institution.expected_confer_date
-                          ? `<p><span class="font-medium text-gray-700">Expected Graduation:</span> ${new Date(
-                              institution.expected_confer_date
-                            ).toLocaleDateString()}</p>`
+                          ? `<p><span class="font-medium text-gray-700">Expected Graduation:</span> ${this.formatDate(institution.expected_confer_date)}</p>`
                           : ""
                       }
                       ${
@@ -4590,10 +4607,10 @@ async initializeExportButton() {
   createSharedExportOptionsModal() {
     const modal = document.createElement('div');
     modal.id = 'sharedExportOptionsModal';
-    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50';
+    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50';
 
     modal.innerHTML = `
-      <div class="relative top-20 mx-auto p-6 border w-11/12 max-w-md shadow-lg rounded-lg bg-white">
+      <div class="mx-auto p-6 border w-11/12 max-w-md shadow-lg rounded-lg bg-white">
         <div class="flex items-center justify-between pb-4 border-b border-gray-200">
           <h3 class="text-xl font-semibold text-gray-900" id="exportModalTitle">Export Options</h3>
           <button class="export-modal-close text-gray-400 hover:text-gray-600">
