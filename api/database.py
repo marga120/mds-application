@@ -61,7 +61,9 @@ def backup_database():
             '-F', 'p',  # Plain text SQL format
             '-f', backup_path,
             '--no-owner',  # Don't include ownership commands
-            '--no-privileges'  # Don't include privilege commands
+            '--no-privileges',  # Don't include privilege commands
+            '--clean',  # Include DROP statements before CREATE
+            '--if-exists'  # Use IF EXISTS with DROP statements
         ]
 
         # Execute pg_dump
@@ -169,7 +171,9 @@ def import_database():
             '-p', str(DB_CONFIG['port']),
             '-U', DB_CONFIG['user'],
             '-d', DB_CONFIG['database'],
-            '-f', temp_path
+            '-v', 'ON_ERROR_STOP=0',  # Don't stop on errors (allows duplicate constraint warnings)
+            '-f', temp_path,
+            '--single-transaction'  # Wrap entire import in a single transaction
         ]
 
         # Execute psql import
@@ -186,16 +190,48 @@ def import_database():
         except:
             pass
 
+        # Check for critical errors (not just warnings about duplicate constraints)
         if result.returncode != 0:
             error_msg = result.stderr or "Unknown error during import"
+            # Filter out duplicate constraint warnings
+            if "already exists" not in error_msg.lower() and "duplicate" not in error_msg.lower():
+                log_activity(
+                    current_user.id,
+                    "database_import_failed",
+                    f"Database import failed: {error_msg}"
+                )
+                return jsonify({
+                    "success": False,
+                    "message": f"Import failed: {error_msg}"
+                }), 500
+
+        if result.stderr and result.stderr.strip():
+            print(f"Import warnings: {result.stderr.strip()}")
+
+        # Ensure transaction is committed by creating a new connection and verifying data
+        try:
+            import time
+            time.sleep(0.5)  # Brief pause to ensure transaction is fully committed
+
+            # Verify import by checking if applicant_info has data
+            verify_conn = psycopg2.connect(**DB_CONFIG)
+            verify_cursor = verify_conn.cursor()
+            verify_cursor.execute("SELECT COUNT(*) FROM applicant_info")
+            count = verify_cursor.fetchone()[0]
+            verify_cursor.close()
+            verify_conn.close()
+
+            if count == 0:
+                raise Exception("No applicant data found after import")
+        except Exception as verify_error:
             log_activity(
                 current_user.id,
-                "database_import_failed",
-                f"Database import failed: {error_msg}"
+                "database_import_verification_failed",
+                f"Import verification failed: {str(verify_error)}"
             )
             return jsonify({
                 "success": False,
-                "message": f"Import failed: {error_msg}"
+                "message": f"Import verification failed: {str(verify_error)}"
             }), 500
 
         # Log successful import

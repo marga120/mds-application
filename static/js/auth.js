@@ -1155,7 +1155,7 @@ setupUploadModal() {
           importStatus.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
           importStatus.textContent = 'Database imported successfully! Reloading...';
           importStatus.classList.remove('hidden');
-          setTimeout(() => window.location.reload(), 2000);
+          setTimeout(() => window.location.reload(), 3500);
         } else {
           importStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
           importStatus.textContent = result.message || 'Import failed';
