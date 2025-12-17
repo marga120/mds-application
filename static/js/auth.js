@@ -104,10 +104,17 @@ class AuthManager {
               <button id="clearDataMenuItem" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
                 Clear All Data
               </button>
+              <button id="backupDatabase" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+                Backup Database
+              </button>
+              <button id="importDatabase" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+                Import Database
+              </button>
               <div class="border-t border-gray-100"></div>
               <a href="/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
                 View Logs
               </a>
+              
             </div>
           </div>
         `;
@@ -477,12 +484,12 @@ closeResetPasswordModal() {
       </div>
     </div>
   `;
-  
   document.body.insertAdjacentHTML('beforeend', uploadModalHTML);
   document.body.insertAdjacentHTML('beforeend', clearModalHTML);
-  
   this.setupUploadModal();
   this.setupClearModal();
+  this.setupDatabaseBackup();
+  this.setupDatabaseImport();
 }
 
 setupUploadModal() {
@@ -665,6 +672,7 @@ setupUploadModal() {
     document.getElementById("resetPasswordError").classList.add("hidden");
     document.getElementById("resetPasswordSuccess").classList.add("hidden");
   }
+
   setupClearModal() {
     const clearMenuItem = document.getElementById('clearDataMenuItem');
     const modal = document.getElementById('clearDataModal');
@@ -779,5 +787,389 @@ setupUploadModal() {
       errorDiv.textContent = "An error occurred. Please try again.";
       errorDiv.classList.remove("hidden");
     }
+  }
+
+  setupDatabaseBackup() {
+    const backupBtn = document.getElementById('backupDatabase');
+
+    if (backupBtn) {
+      backupBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showBackupModal();
+      });
+    }
+  }
+
+  showBackupModal() {
+    // Create backup modal HTML
+    const backupModalHTML = `
+      <div id="backupDatabaseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-8 border w-11/12 max-w-2xl shadow-lg rounded-lg bg-white">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-2xl font-semibold text-blue-600 flex items-center">
+              <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+              </svg>
+              Backup Database
+            </h3>
+            <button class="close-backup-modal text-gray-400 hover:text-gray-600">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="mb-6">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p class="text-blue-800 font-semibold mb-2">Database Backup Information</p>
+              <p class="text-blue-700 text-sm">This will create a complete backup of your database in SQL format.</p>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+              <h4 class="font-semibold text-gray-800 mb-3">What will be backed up:</h4>
+              <ul class="space-y-2 text-sm text-gray-700">
+                <li class="flex items-start">
+                  <svg class="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  All applicant information and application data
+                </li>
+                <li class="flex items-start">
+                  <svg class="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  All test scores (TOEFL, IELTS, GRE, GMAT, etc.)
+                </li>
+                <li class="flex items-start">
+                  <svg class="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  User accounts and roles
+                </li>
+                <li class="flex items-start">
+                  <svg class="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  Ratings and comments
+                </li>
+                <li class="flex items-start">
+                  <svg class="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  Sessions and activity logs
+                </li>
+              </ul>
+            </div>
+
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p class="text-yellow-800 text-sm">
+                <span class="font-semibold">Tip:</span> Store backups in a secure location. Regular backups are recommended before major changes.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3">
+            <button class="close-backup-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+              Cancel
+            </button>
+            <button id="confirmBackupBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+              </svg>
+              Create Backup
+            </button>
+          </div>
+
+          <div id="backupStatusModal" class="mt-4 hidden"></div>
+        </div>
+      </div>
+    `;
+
+    // Remove existing modal if present
+    const existingModal = document.getElementById('backupDatabaseModal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    // Add modal to DOM
+    document.body.insertAdjacentHTML('beforeend', backupModalHTML);
+
+    // Setup modal functionality
+    this.setupBackupModalHandlers();
+  }
+
+  setupBackupModalHandlers() {
+    const modal = document.getElementById('backupDatabaseModal');
+    const closeButtons = modal.querySelectorAll('.close-backup-modal');
+    const backupBtn = document.getElementById('confirmBackupBtn');
+    const backupStatus = document.getElementById('backupStatusModal');
+
+    closeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        modal.remove();
+      });
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+
+    backupBtn.addEventListener('click', async () => {
+      backupBtn.disabled = true;
+      backupBtn.innerHTML = `
+        <svg class="animate-spin h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        Creating Backup...
+      `;
+
+      try {
+        const response = await fetch('/api/backup-database', {
+          method: 'POST'
+        });
+
+        if (response.ok) {
+          // Get the blob from response
+          const blob = await response.blob();
+
+          // Create a download link
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+
+          // Extract filename from Content-Disposition header if available
+          const contentDisposition = response.headers.get('Content-Disposition');
+          let filename = 'database_backup.sql';
+          if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+            if (filenameMatch) {
+              filename = filenameMatch[1];
+            }
+          }
+
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+
+          backupStatus.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
+          backupStatus.innerHTML = `
+            <div class="flex items-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              Database backup created successfully! File: ${filename}
+            </div>
+          `;
+          backupStatus.classList.remove('hidden');
+
+          // Close modal after 2 seconds
+          setTimeout(() => {
+            modal.remove();
+          }, 2000);
+        } else {
+          const result = await response.json();
+          backupStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
+          backupStatus.textContent = result.message || 'Failed to create backup';
+          backupStatus.classList.remove('hidden');
+          backupBtn.disabled = false;
+          backupBtn.innerHTML = `
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            Create Backup
+          `;
+        }
+      } catch (error) {
+        console.error('Backup error:', error);
+        backupStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
+        backupStatus.textContent = 'Error creating backup. Please try again.';
+        backupStatus.classList.remove('hidden');
+        backupBtn.disabled = false;
+        backupBtn.innerHTML = `
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          Create Backup
+        `;
+      }
+    });
+  }
+
+  setupDatabaseImport() {
+    const importBtn = document.getElementById('importDatabase');
+
+    if (importBtn) {
+      importBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showImportModal();
+      });
+    }
+  }
+
+  showImportModal() {
+    // Create import modal HTML
+    const importModalHTML = `
+      <div id="importDatabaseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-8 border w-11/12 max-w-2xl shadow-lg rounded-lg bg-white">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-2xl font-semibold text-red-600 flex items-center">
+              <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+              Import Database
+            </h3>
+            <button class="close-import-modal text-gray-400 hover:text-gray-600">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="mb-6">
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <p class="text-red-800 font-semibold mb-2">WARNING: This action will replace existing data!</p>
+              <p class="text-red-700 text-sm">Make sure you have a backup before proceeding.</p>
+            </div>
+
+            <p class="text-gray-600 mb-4">Select a SQL backup file to import:</p>
+            <div id="dropZoneImport" class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-400 transition-colors cursor-pointer">
+              <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+              <button type="button" class="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                Choose SQL File
+              </button>
+              <p class="mt-2 text-sm text-gray-500" id="fileNameImport">No file chosen</p>
+            </div>
+            <input type="file" id="sqlFileInput" accept=".sql" class="hidden">
+          </div>
+
+          <div class="flex justify-end gap-3">
+            <button class="close-import-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+              Cancel
+            </button>
+            <button id="confirmImportBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+              Import Database
+            </button>
+          </div>
+
+          <div id="importStatusModal" class="mt-4 hidden"></div>
+        </div>
+      </div>
+    `;
+
+    // Remove existing modal if present
+    const existingModal = document.getElementById('importDatabaseModal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    // Add modal to DOM
+    document.body.insertAdjacentHTML('beforeend', importModalHTML);
+
+    // Setup modal functionality
+    this.setupImportModalHandlers();
+  }
+
+  setupImportModalHandlers() {
+    const modal = document.getElementById('importDatabaseModal');
+    const closeButtons = modal.querySelectorAll('.close-import-modal');
+    const dropZone = document.getElementById('dropZoneImport');
+    const fileInput = document.getElementById('sqlFileInput');
+    const importBtn = document.getElementById('confirmImportBtn');
+    const fileName = document.getElementById('fileNameImport');
+    const importStatus = document.getElementById('importStatusModal');
+
+    let selectedFile = null;
+
+    closeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        modal.remove();
+      });
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file && file.name.endsWith('.sql')) {
+        selectedFile = file;
+        fileName.textContent = file.name;
+        importBtn.disabled = false;
+      }
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-blue-400', 'bg-blue-50');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.sql')) {
+        selectedFile = file;
+        fileName.textContent = file.name;
+        importBtn.disabled = false;
+      }
+    });
+
+    importBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      // Double confirmation
+      if (!confirm('Are you ABSOLUTELY SURE you want to import this database? This will REPLACE all existing data!')) {
+        return;
+      }
+
+      importBtn.disabled = true;
+      importBtn.textContent = 'Importing...';
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      try {
+        const response = await fetch('/api/import-database', {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          importStatus.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
+          importStatus.textContent = 'Database imported successfully! Reloading...';
+          importStatus.classList.remove('hidden');
+          setTimeout(() => window.location.reload(), 3500);
+        } else {
+          importStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
+          importStatus.textContent = result.message || 'Import failed';
+          importStatus.classList.remove('hidden');
+          importBtn.disabled = false;
+          importBtn.textContent = 'Import Database';
+        }
+      } catch (error) {
+        importStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
+        importStatus.textContent = 'Error importing database';
+        importStatus.classList.remove('hidden');
+        importBtn.disabled = false;
+        importBtn.textContent = 'Import Database';
+      }
+    });
   }
 }

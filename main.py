@@ -23,6 +23,7 @@ from api.sessions import sessions_api
 from api.ratings import ratings_api
 from api.logs import logs_api
 from api.test_scores import test_scores_api
+from api.database import database_api
 
 # Import user model for Flask-Login
 from models.users import get_user_by_id
@@ -59,6 +60,7 @@ app.register_blueprint(sessions_api, url_prefix="/api")
 app.register_blueprint(ratings_api, url_prefix="/api")
 app.register_blueprint(logs_api, url_prefix="/api")
 app.register_blueprint(test_scores_api, url_prefix="/api")
+app.register_blueprint(database_api, url_prefix="/api")
 
 
 # Web routes (that render templates)
