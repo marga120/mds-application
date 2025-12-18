@@ -235,8 +235,8 @@
   }
 
   .rating-comment-content {
-    @apply text-sm text-gray-700 bg-gray-50 p-3 rounded-md border-l-4 border-ubc-light-blue leading-relaxed;
-  }
+      @apply text-sm text-gray-700 bg-gray-50 p-3 rounded-md border-l-4 border-ubc-light-blue leading-relaxed break-words;
+    }
 
   /* Improve scrollbar styling */
   .max-h-96::-webkit-scrollbar {
