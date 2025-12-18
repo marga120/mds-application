@@ -1500,16 +1500,20 @@ def process_application_info(user_code, row, cursor, current_time):
             user_code, cursor
         )
 
-        # Insert into application_info table WITHOUT gpa
+        # Insert into application_info table with MDS default values
         application_info_query = """
         INSERT INTO application_info (
-            user_code, full_name, canadian, sent, highest_degree, degree_area
-        ) VALUES (%s, %s, %s, %s, %s, %s)
+            user_code, full_name, canadian, sent, highest_degree, degree_area,
+            mds_v, mds_cl, mds_o
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (user_code) DO UPDATE SET
             full_name = EXCLUDED.full_name,
             canadian = EXCLUDED.canadian,
             highest_degree = EXCLUDED.highest_degree,
-            degree_area = EXCLUDED.degree_area
+            degree_area = EXCLUDED.degree_area,
+            mds_v = EXCLUDED.mds_v,
+            mds_cl = EXCLUDED.mds_cl,
+            mds_o = EXCLUDED.mds_o
         """
 
         cursor.execute(
@@ -1521,6 +1525,9 @@ def process_application_info(user_code, row, cursor, current_time):
                 "Not Reviewed",
                 highest_degree,
                 degree_area,
+                "No",  # mds_v default
+                "No",  # mds_cl default
+                "Yes"  # mds_o default
             ),
         )
 
@@ -1564,7 +1571,7 @@ def get_applicant_application_info_by_code(user_code):
             SELECT 
                 user_code, sent, full_name, canadian, english,
                 cs, stat, math, additional_comments, gpa, highest_degree, degree_area,
-                mds_v, mds_cl, scholarship,
+                mds_v, mds_cl, mds_o, scholarship,
                 english_status, english_description, english_comment
             FROM application_info 
             WHERE user_code = %s
@@ -1648,7 +1655,7 @@ def update_applicant_application_status(user_code, status):
         return False, f"Database error: {str(e)}"
 
 
-def update_applicant_prerequisites(user_code, cs, stat, math, gpa=None, additional_comments=None):
+def update_applicant_prerequisites(user_code, cs, stat, math, gpa=None, additional_comments=None, mds_v=None, mds_cl=None, mds_o=None):
     """
     Update prerequisite course and GPA information for an applicant.
 
@@ -1700,23 +1707,28 @@ def update_applicant_prerequisites(user_code, cs, stat, math, gpa=None, addition
             conn.close()
             return False, "Applicant not found"
 
+        # Update prerequisites with GPA and MDS fields handling
         cursor.execute(
             """
             UPDATE application_info 
-            SET cs = %s, stat = %s, math = %s, gpa = %s, additional_comments = %s
+            SET cs = %s, stat = %s, math = %s, gpa = %s, additional_comments = %s,
+                mds_v = %s,
+                mds_cl = %s,
+                mds_o = %s
             WHERE user_code = %s
-        """,
-            (cs, stat, math, gpa, additional_comments, user_code),
+            """,
+            (cs, stat, math, gpa, additional_comments, mds_v, mds_cl, mds_o, user_code),
         )
 
         if cursor.rowcount == 0:
-            # If no rows updated, create new record
+            # If no rows updated, create new record with defaults
             cursor.execute(
                 """
-                INSERT INTO application_info (user_code, cs, stat, math, gpa, additional_comments) 
-                VALUES (%s, %s, %s, %s, %s,%s)
-            """,
-                (user_code, cs, stat, math, gpa,additional_comments),
+                INSERT INTO application_info (user_code, cs, stat, math, gpa, additional_comments, mds_v, mds_cl, mds_o) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (user_code, cs, stat, math, gpa, additional_comments, 
+                mds_v or 'No', mds_cl or 'No', mds_o or 'Yes'),
             )
 
         conn.commit()
@@ -2202,10 +2214,10 @@ def get_selected_applicants_for_export(user_codes, sections=None):
         if inc_personal or inc_app:
             select_parts.extend([
                 "COALESCE(CAST(ai.interest AS TEXT), '') as \"Source of Interest in UBC\"",
-                "CASE WHEN COALESCE(app.mds_v, FALSE) = TRUE THEN 'Y' ELSE '' END as \"Applied MDS-V\"",
+                "CASE WHEN app.mds_v = 'Yes' THEN 'Y' ELSE '' END as \"Applied MDS-V\"",
                 # Derive from program_info if available, otherwise empty
-                "CASE WHEN COALESCE(CAST(pi.program AS TEXT), '') ILIKE '%%MDS%%O%%' THEN 'Y' ELSE '' END as \"Applied MDS-O\"",
-                "CASE WHEN COALESCE(app.mds_cl, FALSE) = TRUE THEN 'Y' ELSE '' END as \"Applied MDS-CL\""
+                "CASE WHEN app.mds_o = 'Yes' THEN 'Y' ELSE '' END as \"Applied MDS-O\"",
+                "CASE WHEN app.mds_cl = 'Yes' THEN 'Y' ELSE '' END as \"Applied MDS-CL\""
             ])
 
         # Fallback if nothing selected
