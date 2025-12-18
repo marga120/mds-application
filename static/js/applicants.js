@@ -732,7 +732,7 @@ class ApplicantsManager {
               </div>
               
               <!-- Overall GPA Section -->
-              <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+              <h4 class="text-lg font-semibold text-ubc-blue mb-2 flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
@@ -752,7 +752,7 @@ class ApplicantsManager {
                 </div>
               </div>
               <!-- Prerequisite Courses Section -->
-              <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
+              <h4 class="text-lg font-semibold text-ubc-blue mb-2 flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
                 </svg>
@@ -760,90 +760,87 @@ class ApplicantsManager {
               </h4>
               
               <div id="prerequisiteCoursesContainer" class="space-y-4">
-                <!-- Computer Science -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 flex items-center gap-4">
-                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Computer Science:</label>
-                  <textarea
-                    id="prerequisiteCs"
-                    class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
-                    placeholder="Enter review of Computer Science prerequisite courses"
-                  ></textarea>
-                </div>
+                <!-- All Courses in One Box -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 space-y-3">
+                  <div class="flex items-center gap-4">
+                    <label class="text-sm font-medium text-gray-700 whitespace-nowrap min-w-[180px]">Computer Science:</label>
+                    <textarea
+                      id="prerequisiteCs"
+                      class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
+                      placeholder="Enter review of Computer Science prerequisite courses"
+                    ></textarea>
+                  </div>
 
-                <!-- Statistics -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 flex items-center gap-4">
-                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Statistics:</label>
-                  <textarea
-                    id="prerequisiteStat"
-                    class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
-                    placeholder="Enter review of Statistics prerequisite courses"
-                  ></textarea>
-                </div>
+                  <div class="flex items-center gap-4">
+                    <label class="text-sm font-medium text-gray-700 whitespace-nowrap min-w-[180px]">Statistics:</label>
+                    <textarea
+                      id="prerequisiteStat"
+                      class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
+                      placeholder="Enter review of Statistics prerequisite courses"
+                    ></textarea>
+                  </div>
 
-                <!-- Math -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 flex items-center gap-4">
-                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Math:</label>
-                  <textarea
-                    id="prerequisiteMath"
-                    class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
-                    placeholder="Enter review of Math prerequisite courses"
-                  ></textarea>
-                </div>
+                  <div class="flex items-center gap-4">
+                    <label class="text-sm font-medium text-gray-700 whitespace-nowrap min-w-[180px]">Math:</label>
+                    <textarea
+                      id="prerequisiteMath"
+                      class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
+                      placeholder="Enter review of Math prerequisite courses"
+                    ></textarea>
+                  </div>
 
-                <!-- Additional Comments -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 flex items-center gap-4">
-                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Additional Comments (e.g., Reference Letter):</label>
-                  <textarea
-                    id="additionalComments"
-                    class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
-                    placeholder="Enter Additional Comments"
-                  ></textarea>
+                  <div class="flex items-center gap-4">
+                    <label class="text-sm font-medium text-gray-700 whitespace-nowrap min-w-[180px]">Additional Comments:</label>
+                    <textarea
+                      id="additionalComments"
+                      class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
+                      placeholder="Enter Additional Comments (e.g., Reference Letter)"
+                    ></textarea>
+                  </div>
                 </div>
 
                <!-- Applied to Section -->
               <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                <label class="block text-sm font-medium text-gray-700 mb-3">Applied to</label>
-                <div class="flex gap-12">
+                <div class="flex items-center gap-6 flex-nowrap">
+                  <span class="text-sm font-medium text-gray-700">Applied to:</span>
                   <!-- UBC-V -->
-                  <div class="flex items-center gap-3">
-                    <span class="text-sm font-medium text-gray-700 min-w-[60px]">UBC-V</span>
-                    <div class="flex gap-4">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium text-gray-700">UBC-V</span>
+                    <div class="flex gap-3">
                       <label class="flex items-center cursor-pointer">
-                        <input type="radio" name="mdsV" value="Yes" class="mr-1.5" />
+                        <input type="radio" name="mdsV" value="Yes" class="mr-1" />
                         <span class="text-sm">Yes</span>
                       </label>
                       <label class="flex items-center cursor-pointer">
-                        <input type="radio" name="mdsV" value="No" class="mr-1.5" checked />
+                        <input type="radio" name="mdsV" value="No" class="mr-1" checked />
                         <span class="text-sm">No</span>
                       </label>
                     </div>
                   </div>
-                  
                   <!-- UBC-O -->
-                  <div class="flex items-center gap-3">
-                    <span class="text-sm font-medium text-gray-700 min-w-[60px]">UBC-O</span>
-                    <div class="flex gap-4">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium text-gray-700">UBC-O</span>
+                    <div class="flex gap-3">
                       <label class="flex items-center cursor-pointer">
-                        <input type="radio" name="mdsO" value="Yes" class="mr-1.5" checked />
+                        <input type="radio" name="mdsO" value="Yes" class="mr-1" checked />
                         <span class="text-sm">Yes</span>
                       </label>
                       <label class="flex items-center cursor-pointer">
-                        <input type="radio" name="mdsO" value="No" class="mr-1.5" />
+                        <input type="radio" name="mdsO" value="No" class="mr-1" />
                         <span class="text-sm">No</span>
                       </label>
                     </div>
                   </div>
-                  
                   <!-- UBC-CL -->
-                  <div class="flex items-center gap-3">
-                    <span class="text-sm font-medium text-gray-700 min-w-[60px]">UBC-CL</span>
-                    <div class="flex gap-4">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium text-gray-700">UBC-CL</span>
+                    <div class="flex gap-3">
                       <label class="flex items-center cursor-pointer">
-                        <input type="radio" name="mdsCL" value="Yes" class="mr-1.5" />
+                        <input type="radio" name="mdsCL" value="Yes" class="mr-1" />
                         <span class="text-sm">Yes</span>
                       </label>
                       <label class="flex items-center cursor-pointer">
-                        <input type="radio" name="mdsCL" value="No" class="mr-1.5" checked />
+                        <input type="radio" name="mdsCL" value="No" class="mr-1" checked />
                         <span class="text-sm">No</span>
                       </label>
                     </div>
@@ -901,7 +898,7 @@ class ApplicantsManager {
               <div class="space-y-3 text-sm">
                 <div>
                   <span class="font-semibold text-gray-700">Overall CGPA:</span>
-                  <span class="text-gray-900 ml-2" id="summaryGpa">-</span>
+                  <span class="text-gray-900 ml-1" id="summaryGpa">-</span>
                 </div>
                 <div>
                   <span class="font-semibold text-gray-700">CS Prerequisite:</span>
