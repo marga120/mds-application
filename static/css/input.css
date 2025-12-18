@@ -235,8 +235,8 @@
   }
 
   .rating-comment-content {
-    @apply text-sm text-gray-700 bg-gray-50 p-3 rounded-md border-l-4 border-ubc-light-blue leading-relaxed;
-  }
+      @apply text-sm text-gray-700 bg-gray-50 p-3 rounded-md border-l-4 border-ubc-light-blue leading-relaxed break-words;
+    }
 
   /* Improve scrollbar styling */
   .max-h-96::-webkit-scrollbar {
@@ -268,5 +268,33 @@
     .tab-content {
       max-height: 70vh;
     }
+  }
+
+  /* Single-line scrollable textareas */
+  .single-line-scrollable {
+    height: 2.5rem;
+    min-height: 2.5rem;
+    max-height: 2.5rem;
+    overflow-y: auto;
+    line-height: 1.5rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .single-line-scrollable::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .single-line-scrollable::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded;
+  }
+
+  .single-line-scrollable::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded;
+  }
+
+  .single-line-scrollable:hover::-webkit-scrollbar-thumb,
+  .single-line-scrollable:focus::-webkit-scrollbar-thumb {
+    @apply bg-gray-400;
   }
 }

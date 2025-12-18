@@ -761,45 +761,41 @@ class ApplicantsManager {
               
               <div id="prerequisiteCoursesContainer" class="space-y-4">
                 <!-- Computer Science -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Computer Science:</label>
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 flex items-center gap-4">
+                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Computer Science:</label>
                   <textarea
                     id="prerequisiteCs"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
-                    rows="2"
+                    class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
                     placeholder="Enter review of Computer Science prerequisite courses"
                   ></textarea>
                 </div>
 
                 <!-- Statistics -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Statistics:</label>
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 flex items-center gap-4">
+                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Statistics:</label>
                   <textarea
                     id="prerequisiteStat"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
-                    rows="2"
+                    class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
                     placeholder="Enter review of Statistics prerequisite courses"
                   ></textarea>
                 </div>
 
                 <!-- Math -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Math:</label>
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 flex items-center gap-4">
+                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Math:</label>
                   <textarea
                     id="prerequisiteMath"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
-                    rows="2"
+                    class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
                     placeholder="Enter review of Math prerequisite courses"
                   ></textarea>
                 </div>
 
                 <!-- Additional Comments -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Additional Comments (e.g., Reference Letter):</label>
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 flex items-center gap-4">
+                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Additional Comments (e.g., Reference Letter):</label>
                   <textarea
                     id="additionalComments"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
-                    rows="2"
+                    class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
                     placeholder="Enter Additional Comments"
                   ></textarea>
                 </div>
@@ -807,7 +803,7 @@ class ApplicantsManager {
                <!-- Applied to Section -->
               <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
                 <label class="block text-sm font-medium text-gray-700 mb-3">Applied to</label>
-                <div class="flex gap-8">
+                <div class="flex gap-12">
                   <!-- UBC-V -->
                   <div class="flex items-center gap-3">
                     <span class="text-sm font-medium text-gray-700 min-w-[60px]">UBC-V</span>
@@ -930,23 +926,22 @@ class ApplicantsManager {
             <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg border border-blue-200 mb-6">
               <h4 class="text-lg font-semibold text-gray-900 mb-4">Your Rating & Comment</h4>
               <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Rating (0.0 - 10.0)</label>
-                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter a rating between 0.0 and 10.0">
+                <div class="flex items-center gap-4">
+                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Rating (0.0 - 10.0):</label>
+                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc flex-1" placeholder="Enter a rating between 0.0 and 10.0">
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
-                  <textarea id="commentTextarea" rows="3" class="input-ubc w-full resize-none" placeholder="Add your comments about this applicant..."></textarea>
+                <div class="flex items-center gap-4">
+                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Comment:</label>
+                  <textarea id="commentTextarea" class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none" placeholder="Add your comments about this applicant..."></textarea>
                 </div>
               </div>
             </div>
 
-            <!-- Scholarship Section -->
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200 mb-6">
-              <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
-                Offer Scholarship
-              </h4>
-              <div class="flex items-center gap-6 mb-4">
+           <!-- Scholarship Section -->
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-6">
+            <div class="flex items-center gap-4 mb-3">
+              <h4 class="text-base font-semibold text-ubc-blue whitespace-nowrap">Offer Scholarship:</h4>
+              <div class="flex items-center gap-4">
                 <label class="flex items-center cursor-pointer">
                   <input type="radio" name="scholarship" value="Yes" class="w-4 h-4 text-ubc-blue focus:ring-ubc-blue">
                   <span class="ml-2 text-gray-700">Yes</span>
@@ -961,6 +956,7 @@ class ApplicantsManager {
                 </label>
               </div>
             </div>
+          </div>
 
             <!-- Application Status Section -->
             <div class="mt-6">
