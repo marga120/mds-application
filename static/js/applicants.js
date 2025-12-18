@@ -730,7 +730,7 @@ class ApplicantsManager {
                 </svg>
                 <span id="prerequisitesFeedbackText" class="text-sm font-medium"></span>
               </div>
-
+              
               <!-- Overall GPA Section -->
               <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -739,7 +739,7 @@ class ApplicantsManager {
                 </svg>
                 Overall GPA
               </h4>
-              
+
               <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-6">
                 <div class="flex items-center gap-3">
                   <label class="text-sm font-medium text-gray-700">Overall GPA:</label>
@@ -749,15 +749,8 @@ class ApplicantsManager {
                       class="w-128 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue"
                       placeholder="Enter GPA"
                     />
-                    <button
-                      id="saveGpaBtn"
-                      class="ml-auto px-3 py-1.5 bg-ubc-blue text-white text-sm rounded-md hover:bg-blue-700 transition-colors font-medium"
-                    >
-                      Save Overall GPA
-                    </button>
                 </div>
               </div>
-
               <!-- Prerequisite Courses Section -->
               <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -811,13 +804,31 @@ class ApplicantsManager {
                   ></textarea>
                 </div>
 
+                <!-- Status Selection -->
+                <div class="mt-6">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Application Status</label>
+                  <select id="prereqStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="Not Reviewed">Not Reviewed</option>
+                    <option value="Reviewed by PPA">Reviewed by PPA</option>
+                    <option value="Need Jeff's Review">Need Jeff's Review</option>
+                    <option value="Need Khalad's Review">Need Khalad's Review</option>
+                    <option value="Waitlist">Waitlist</option>
+                    <option value="Declined">Declined</option>
+                    <option value="Send Offer to CoGS">Send Offer to CoGS</option>
+                    <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
+                    <option value="Offer Sent to Student">Offer Sent to Student</option>
+                    <option value="Offer Accepted">Offer Accepted</option>
+                    <option value="Offer Declined">Offer Declined</option>
+                  </select>
+                </div>
+
                 <!-- Save Button -->
                 <div class="flex gap-3 mt-6">
                   <button
-                    id="savePrerequisitesBtn"
+                    id="saveAllPrerequisitesBtn"
                     class="px-4 py-2 bg-ubc-blue text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
                   >
-                    Save Prerequisite Courses
+                    Save All Prerequisites
                   </button>
                   <button
                     id="clearPrerequisitesBtn"
@@ -825,42 +836,6 @@ class ApplicantsManager {
                   >
                     Clear
                   </button>
-                </div>
-
-                <!-- Status Change Section for Prerequisites Tab -->
-                <div id="prereqStatusChangeSection" class="mt-6">
-                  <h5 class="text-sm font-medium text-gray-700 mb-3">Change Status</h5>
-                  
-                  <div class="space-y-3">
-                    <div>
-                      <label class="block text-sm text-gray-600 mb-2">Select New Status</label>
-                      <select id="prereqStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                        <option value="Not Reviewed">Not Reviewed</option>
-                        <option value="Reviewed by PPA">Reviewed by PPA</option>
-                        <option value="Need Jeff's Review">Need Jeff's Review</option>
-                        <option value="Need Khalad's Review">Need Khalad's Review</option>
-                        <option value="Waitlist">Waitlist</option>
-                        <option value="Declined">Declined</option>
-                        <option value="Send Offer to CoGS">Send Offer to CoGS</option>
-                        <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
-                        <option value="Offer Sent to Student">Offer Sent to Student</option>
-                        <option value="Offer Accepted">Offer Accepted</option>
-                        <option value="Offer Declined">Offer Declined</option>
-                      </select>
-                    </div>
-                    
-                    <div class="flex gap-3">
-                      <button id="prereqUpdateStatusBtn" class="px-4 py-2 bg-[#002145] text-white rounded-md hover:bg-[#001a33] transition-colors text-sm font-medium flex items-center">
-                        <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                        </svg>
-                        Update Status
-                      </button>
-                      <button id="prereqCancelStatusBtn" class="px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -912,10 +887,6 @@ class ApplicantsManager {
                   <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
                   <textarea id="commentTextarea" rows="3" class="input-ubc w-full resize-none" placeholder="Add your comments about this applicant..."></textarea>
                 </div>
-                <div class="flex gap-3">
-                  <button id="saveRatingBtn" class="btn-ubc">Save Rating</button>
-                  <button id="clearRatingBtn" class="btn-ubc-outline">Clear</button>
-                </div>
               </div>
             </div>
 
@@ -938,45 +909,40 @@ class ApplicantsManager {
                   <span class="ml-2 text-gray-700">Undecided</span>
                 </label>
               </div>
-              <button id="saveScholarshipBtn" class="btn-ubc">
-                Save
-              </button>
             </div>
 
-            <!-- Status Change Section for Comments & Ratings Tab -->
-            <div id="ratingsStatusChangeSection" class="mt-6 mb-8">
-              <h5 class="text-sm font-medium text-gray-700 mb-3">Change Status</h5>
-              
-              <div class="space-y-3">
-                <div>
-                  <label class="block text-sm text-gray-600 mb-2">Select New Status</label>
-                  <select id="ratingsStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                    <option value="Not Reviewed">Not Reviewed</option>
-                    <option value="Reviewed by PPA">Reviewed by PPA</option>
-                    <option value="Need Jeff's Review">Need Jeff's Review</option>
-                    <option value="Need Khalad's Review">Need Khalad's Review</option>
-                    <option value="Waitlist">Waitlist</option>
-                    <option value="Declined">Declined</option>
-                    <option value="Send Offer to CoGS">Send Offer to CoGS</option>
-                    <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
-                    <option value="Offer Sent to Student">Offer Sent to Student</option>
-                    <option value="Offer Accepted">Offer Accepted</option>
-                    <option value="Offer Declined">Offer Declined</option>
-                  </select>
-                </div>
-                
-                <div class="flex gap-3">
-                  <button id="ratingsUpdateStatusBtn" class="px-4 py-2 bg-[#002145] text-white rounded-md hover:bg-[#001a33] transition-colors text-sm font-medium flex items-center">
-                    <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                    </svg>
-                    Update Status
-                  </button>
-                  <button id="ratingsCancelStatusBtn" class="px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
-                    Cancel
-                  </button>
-                </div>
-              </div>
+            <!-- Application Status Section -->
+            <div class="mt-6">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Application Status</label>
+              <select id="ratingsStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="Not Reviewed">Not Reviewed</option>
+                <option value="Reviewed by PPA">Reviewed by PPA</option>
+                <option value="Need Jeff's Review">Need Jeff's Review</option>
+                <option value="Need Khalad's Review">Need Khalad's Review</option>
+                <option value="Waitlist">Waitlist</option>
+                <option value="Declined">Declined</option>
+                <option value="Send Offer to CoGS">Send Offer to CoGS</option>
+                <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
+                <option value="Offer Sent to Student">Offer Sent to Student</option>
+                <option value="Offer Accepted">Offer Accepted</option>
+                <option value="Offer Declined">Offer Declined</option>
+              </select>
+            </div>
+
+            <!-- Save All Button -->
+            <div class="flex gap-3 mt-6">
+              <button
+                id="saveAllRatingsBtn"
+                class="px-4 py-2 bg-ubc-blue text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+              >
+                Save All
+              </button>
+              <button
+                id="clearRatingBtn"
+                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium"
+              >
+                Clear
+              </button>
             </div>
 
             <!-- All Ratings Section -->
@@ -1125,16 +1091,12 @@ class ApplicantsManager {
     });
 
     // Rating form handlers
-    modal.querySelector("#saveRatingBtn").addEventListener("click", () => {
-      this.saveRating();
+    modal.querySelector("#saveAllRatingsBtn")?.addEventListener("click", () => {
+      this.saveAllRatings();
     });
 
     modal.querySelector("#clearRatingBtn").addEventListener("click", () => {
       this.clearRatingForm();
-    });
-
-    modal.querySelector("#saveScholarshipBtn").addEventListener("click", () => {
-      this.saveScholarship();
     });
 
     modal.querySelector("#updateStatusBtn").addEventListener("click", () => {
@@ -1145,24 +1107,6 @@ class ApplicantsManager {
       this.loadApplicationStatus(modal.dataset.currentUserCode);
     });
 
-    // Prerequisites tab status change buttons
-    modal.querySelector("#prereqUpdateStatusBtn")?.addEventListener("click", () => {
-      this.updateStatusFromTab('prereqStatusSelect');
-    });
-
-    modal.querySelector("#prereqCancelStatusBtn")?.addEventListener("click", () => {
-      this.loadApplicationStatus(modal.dataset.currentUserCode);
-    });
-
-    // Ratings tab status change buttons
-    modal.querySelector("#ratingsUpdateStatusBtn")?.addEventListener("click", () => {
-      this.updateStatusFromTab('ratingsStatusSelect');
-    });
-
-    modal.querySelector("#ratingsCancelStatusBtn")?.addEventListener("click", () => {
-      this.loadApplicationStatus(modal.dataset.currentUserCode);
-    });
-
     // Close modal when clicking outside
     modal.addEventListener("click", (e) => {
       if (e.target === modal) {
@@ -1170,10 +1114,9 @@ class ApplicantsManager {
         modal.classList.remove("flex");
       }
     });
-
-    const savePrereqBtn = modal.querySelector("#savePrerequisitesBtn");
+    
+    const savePrereqBtn = modal.querySelector("#saveAllPrerequisitesBtn");
     const clearPrereqBtn = modal.querySelector("#clearPrerequisitesBtn");
-    const saveGpaBtn = modal.querySelector("#saveGpaBtn");
 
     if (savePrereqBtn) {
       savePrereqBtn.addEventListener("click", (e) => {
@@ -1188,14 +1131,6 @@ class ApplicantsManager {
         e.preventDefault();
         e.stopPropagation();
         this.clearPrerequisites();
-      });
-    }
-
-    if (saveGpaBtn) {
-      saveGpaBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.saveOverallGpa();
       });
     }
 
@@ -1341,101 +1276,112 @@ class ApplicantsManager {
     }
   }
 
-  async saveRating() {
-    const modal = document.getElementById("applicantModal");
-    const userCode = modal.dataset.currentUserCode;
-    const rating = document.getElementById("ratingInput").value;
-    const comment = document.getElementById("commentTextarea").value;
-
-    if (!rating || rating === "") {
-      this.showMessage("Please enter a rating", "error");
-      return;
-    }
-
-    // Validate rating
-    const ratingFloat = parseFloat(rating);
-    if (isNaN(ratingFloat) || ratingFloat < 0.0 || ratingFloat > 10.0) {
-      this.showMessage("Rating must be between 0.0 and 10.0", "error");
-      return;
-    }
-
-    // Check decimal places
-    if (Math.round(ratingFloat * 10) / 10 !== ratingFloat) {
-      this.showMessage("Rating can only have one decimal place", "error");
-      return;
-    }
-
-    const saveBtn = document.getElementById("saveRatingBtn");
-    const originalText = saveBtn.textContent;
-    saveBtn.disabled = true;
-    saveBtn.textContent = "Saving...";
-
-    try {
-      const response = await fetch(`/api/ratings/${userCode}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          rating: rating,
-          comment: comment,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        this.showMessage(result.message, "success");
-        await this.loadRatings(userCode); // Reload all ratings
-        await this.loadApplicants();
-      } else {
-        this.showMessage(result.message, "error");
-      }
-    } catch (error) {
-      this.showMessage(`Error saving rating: ${error.message}`, "error");
-    } finally {
-      saveBtn.disabled = false;
-      saveBtn.textContent = originalText;
-    }
-  }
-
-  async saveScholarship() {
+  async saveAllRatings() {
     const modal = document.getElementById("applicantModal");
     const userCode = modal.dataset.currentUserCode;
     if (!userCode) return;
 
-    const selectedScholarship = document.querySelector('input[name="scholarship"]:checked').value;
+    const rating = document.getElementById("ratingInput").value.trim();
+    const comment = document.getElementById("commentTextarea").value.trim();
+    const scholarship = document.querySelector('input[name="scholarship"]:checked').value;
+    const status = document.getElementById("ratingsStatusSelect").value;
 
-    const saveBtn = document.getElementById("saveScholarshipBtn");
+    // Validate rating if provided
+    if (rating) {
+      const ratingFloat = parseFloat(rating);
+      if (isNaN(ratingFloat) || ratingFloat < 0.0 || ratingFloat > 10.0) {
+        this.showMessage("Rating must be between 0.0 and 10.0", "error");
+        return;
+      }
+
+      // Check decimal places
+      if (Math.round(ratingFloat * 10) / 10 !== ratingFloat) {
+        this.showMessage("Rating can only have one decimal place", "error");
+        return;
+      }
+    }
+
+    const saveBtn = document.getElementById("saveAllRatingsBtn");
     const originalText = saveBtn.textContent;
     saveBtn.disabled = true;
     saveBtn.textContent = "Saving...";
 
     try {
-      const response = await fetch(`/api/applicant-application-info/${userCode}/scholarship`, {
+      // Save rating and comment if provided
+      if (rating) {
+        const ratingResponse = await fetch(`/api/ratings/${userCode}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            rating: rating,
+            comment: comment,
+          }),
+        });
+
+        const ratingResult = await ratingResponse.json();
+        if (!ratingResult.success) {
+          this.showMessage(ratingResult.message || "Failed to save rating", "error");
+          return;
+        }
+      }
+
+      // Save scholarship
+      const scholarshipResponse = await fetch(`/api/applicant-application-info/${userCode}/scholarship`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          scholarship: selectedScholarship,
-        }),
+        body: JSON.stringify({ scholarship }),
       });
 
-      const result = await response.json();
+      const scholarshipResult = await scholarshipResponse.json();
+      if (!scholarshipResult.success) {
+        this.showMessage(scholarshipResult.message || "Failed to save scholarship", "error");
+        return;
+      }
 
-      if (result.success) {
-        this.showMessage("Scholarship decision saved successfully", "success");
+      // Update status
+      const statusResponse = await fetch(`/api/applicant-application-info/${userCode}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      const statusResult = await statusResponse.json();
+
+      if (statusResult.success) {
+        this.showMessage("All information saved successfully", "success");
+
+        // Update the status tab label
+        const statusTabLabel = document.getElementById("statusTabLabel");
+        if (statusTabLabel) {
+          statusTabLabel.textContent = status;
+        }
+
+        // Sync all status selects across all tabs
+        this.syncAllStatusSelects(status);
+
+        // Reload displays
+        this.loadApplicationStatus(userCode);
+        this.loadRatings(userCode);
+        await this.loadStatusHistory(userCode);
+        await this.loadApplicants();
       } else {
-        this.showMessage(result.message || "Failed to save scholarship decision", "error");
+        this.showMessage("Rating and scholarship saved but failed to update status: " + (statusResult.message || "Unknown error"), "error");
       }
     } catch (error) {
-      this.showMessage(`Error saving scholarship decision: ${error.message}`, "error");
+      console.error("Error saving ratings information:", error);
+      this.showMessage(`Error saving: ${error.message}`, "error");
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
     }
   }
+
 
   clearRatingForm() {
     document.getElementById("ratingInput").value = "";
@@ -3189,6 +3135,11 @@ class ApplicantsManager {
         // Add change listener for preview
         this.setupStatusPreview(currentStatus);
       }
+            // Also update the prerequisites tab status dropdown
+      const prereqStatusSelect = document.getElementById("prereqStatusSelect");
+      if (prereqStatusSelect && result.status) {
+        prereqStatusSelect.value = result.status;
+      }
     } catch (error) {
       console.error("Error loading applicant status:", error);
     }
@@ -3269,73 +3220,6 @@ class ApplicantsManager {
     const updateBtn = document.getElementById("updateStatusBtn");
 
     if (!userCode || !newStatus) return;
-
-    const originalHTML = updateBtn.innerHTML;
-    updateBtn.disabled = true;
-    updateBtn.innerHTML = `
-    <svg class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-    </svg>
-    Updating...
-  `;
-
-    try {
-      const response = await fetch(
-        `/api/applicant-application-info/${userCode}/status`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            status: newStatus,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (result.success) {
-        this.showMessage(result.message, "success");
-
-        // Update tab label
-        document.getElementById("statusTabLabel").textContent = newStatus;
-
-        // Sync all status selects
-        this.syncAllStatusSelects(newStatus);
-
-        // Reload the entire status display
-        this.loadApplicationStatus(userCode);
-
-        // Reload status history immediately
-        await this.loadStatusHistory(userCode);
-        await this.loadApplicants();
-      } else {
-        this.showMessage(result.message, "error");
-      }
-    } catch (error) {
-      this.showMessage(`Error updating status: ${error.message}`, "error");
-    } finally {
-      updateBtn.disabled = false;
-      updateBtn.innerHTML = originalHTML;
-    }
-  }
-
-  async updateStatusFromTab(selectId) {
-    const userCode =
-      document.getElementById("applicantModal").dataset.currentUserCode;
-    const selectElement = document.getElementById(selectId);
-    const newStatus = selectElement.value;
-    
-    // Find the corresponding update button
-    let updateBtn;
-    if (selectId === 'prereqStatusSelect') {
-      updateBtn = document.getElementById("prereqUpdateStatusBtn");
-    } else if (selectId === 'ratingsStatusSelect') {
-      updateBtn = document.getElementById("ratingsUpdateStatusBtn");
-    }
-
-    if (!userCode || !newStatus || !updateBtn) return;
 
     const originalHTML = updateBtn.innerHTML;
     updateBtn.disabled = true;
@@ -3662,7 +3546,6 @@ class ApplicantsManager {
           savePrerequisitesBtn.style.display = "inline-block";
         if (clearPrerequisitesBtn)
           clearPrerequisitesBtn.style.display = "inline-block";
-        if (saveGpaBtn) saveGpaBtn.style.display = "inline-block";
         if (csInput) csInput.disabled = false;
         if (statInput) statInput.disabled = false;
         if (mathInput) mathInput.disabled = false;
@@ -3673,7 +3556,6 @@ class ApplicantsManager {
           savePrerequisitesBtn.style.display = "inline-block";
         if (clearPrerequisitesBtn)
           clearPrerequisitesBtn.style.display = "inline-block";
-        if (saveGpaBtn) saveGpaBtn.style.display = "none"; // Hide GPA save button for Faculty
         if (csInput) csInput.disabled = false;
         if (statInput) statInput.disabled = false;
         if (mathInput) mathInput.disabled = false;
@@ -3682,7 +3564,6 @@ class ApplicantsManager {
         // Viewers can only see the values - hide all buttons and disable inputs
         if (savePrerequisitesBtn) savePrerequisitesBtn.style.display = "none";
         if (clearPrerequisitesBtn) clearPrerequisitesBtn.style.display = "none";
-        if (saveGpaBtn) saveGpaBtn.style.display = "none";
         if (csInput) {
           csInput.disabled = true;
           if (!csInput.value || csInput.value.trim() === "") {
@@ -3749,83 +3630,6 @@ class ApplicantsManager {
     }
   }
 
-  async saveOverallGpa() {
-    const modal = document.getElementById("applicantModal");
-    const userCode = modal.dataset.currentUserCode;
-    if (!userCode) return;
-
-    // Get GPA value and validate
-    const gpaInput = document.getElementById("overallGpa");
-    let gpa = gpaInput.value.trim();
-
-    // Validate GPA - only check if it's not empty
-    if (!gpa) {
-      this.showPrerequisitesFeedback("Please enter a GPA value", false);
-      return;
-    }
-
-    const saveBtn = document.getElementById("saveGpaBtn");
-    const originalText = saveBtn.textContent;
-    saveBtn.disabled = true;
-    saveBtn.textContent = "Saving...";
-
-    try {
-      // Get current prerequisite courses values to maintain them
-      const response = await fetch(
-        `/api/applicant-application-info/${userCode}`
-      );
-      const result = await response.json();
-
-      const cs =
-        result.success && result.application_info
-          ? result.application_info.cs || ""
-          : "";
-      const stat =
-        result.success && result.application_info
-          ? result.application_info.stat || ""
-          : "";
-      const math =
-        result.success && result.application_info
-          ? result.application_info.math || ""
-          : "";
-
-      const additional_comments =
-        result.success && result.application_info
-          ? result.application_info.additional_comments || ""
-          : "";
-
-      // Save GPA along with existing course values
-      const saveResponse = await fetch(
-        `/api/applicant-application-info/${userCode}/prerequisites`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ cs, stat, math, gpa, additional_comments}),
-        }
-      );
-
-      const saveResult = await saveResponse.json();
-
-      if (saveResult.success) {
-        this.showPrerequisitesFeedback("Overall GPA saved successfully", true);
-      } else {
-        this.showPrerequisitesFeedback(
-          saveResult.message || "Failed to save GPA",
-          false
-        );
-      }
-    } catch (error) {
-      console.error("Error saving GPA:", error);
-      this.showPrerequisitesFeedback("Error saving GPA", false);
-    } finally {
-      saveBtn.disabled = false;
-      saveBtn.textContent = originalText;
-      this.loadPrerequisitesSummary(userCode);
-    }
-  }
-
   async savePrerequisiteCourses() {
     const modal = document.getElementById("applicantModal");
     const userCode = modal.dataset.currentUserCode;
@@ -3835,26 +3639,17 @@ class ApplicantsManager {
     const stat = document.getElementById("prerequisiteStat").value;
     const math = document.getElementById("prerequisiteMath").value;
     const additionalComments = document.getElementById("additionalComments").value;
+    const gpa = document.getElementById("overallGpa").value;
+    const status = document.getElementById("prereqStatusSelect").value;
 
-    const saveBtn = document.getElementById("savePrerequisitesBtn");
+    const saveBtn = document.getElementById("saveAllPrerequisitesBtn");
     const originalText = saveBtn.textContent;
     saveBtn.disabled = true;
     saveBtn.textContent = "Saving...";
 
     try {
-      // Get current GPA value to maintain it
-      const response = await fetch(
-        `/api/applicant-application-info/${userCode}`
-      );
-      const result = await response.json();
-
-      const gpa =
-        result.success && result.application_info
-          ? result.application_info.gpa || null
-          : null;
-
-      // Save courses along with existing GPA
-      const saveResponse = await fetch(
+      // Save prerequisites (GPA, CS, Stat, Math, Additional Comments)
+      const prereqResponse = await fetch(
         `/api/applicant-application-info/${userCode}/prerequisites`,
         {
           method: "PUT",
@@ -3865,23 +3660,60 @@ class ApplicantsManager {
         }
       );
 
-      const saveResult = await saveResponse.json();
+      const prereqResult = await prereqResponse.json();
 
-      if (saveResult.success) {
+      if (!prereqResult.success) {
         this.showPrerequisitesFeedback(
-          "Prerequisite courses saved successfully",
+          prereqResult.message || "Failed to save prerequisites",
+          false
+        );
+        return;
+      }
+
+      // Update status
+      const statusResponse = await fetch(`/api/applicant-application-info/${userCode}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      const statusResult = await statusResponse.json();
+
+      if (statusResult.success) {
+        this.showPrerequisitesFeedback(
+          "All prerequisites and status saved successfully",
           true
         );
+        
+        // Update the status tab label
+        const statusTabLabel = document.getElementById("statusTabLabel");
+        if (statusTabLabel) {
+          statusTabLabel.textContent = status;
+        }
+
+        // Sync all status selects across all tabs
+        this.syncAllStatusSelects(status);
+
+        // Reload the entire status display
+        this.loadApplicationStatus(userCode);
+
+        // Reload status history
+        await this.loadStatusHistory(userCode);
+
+        // Refresh the applicants list to show updated status
+        await this.loadApplicants();
       } else {
         this.showPrerequisitesFeedback(
-          saveResult.message || "Failed to save prerequisite courses",
+          "Prerequisites saved but failed to update status: " + (statusResult.message || "Unknown error"),
           false
         );
       }
     } catch (error) {
-      console.error("Error saving prerequisite courses:", error);
+      console.error("Error saving prerequisites:", error);
       this.showPrerequisitesFeedback(
-        "Error saving prerequisite courses",
+        "Error saving prerequisites",
         false
       );
     } finally {
@@ -3908,6 +3740,9 @@ class ApplicantsManager {
         document.getElementById("overallGpa").value = "";
       }
       // Faculty and Viewers: don't clear GPA field
+      
+      // Don't touch the status dropdown - it should remain as selected
+      
     } catch (error) {
       console.error("Error checking user permissions:", error);
       // If error checking permissions, don't clear GPA to be safe
