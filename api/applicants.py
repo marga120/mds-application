@@ -533,7 +533,12 @@ def update_applicant_prerequisites(user_code):
     else:
         gpa = None
 
-    success, message = update_applicant_prerequisites(user_code, cs, stat, math, gpa, additional_comments)
+    # Handle MDS fields
+    mds_v = data.get("mds_v")
+    mds_cl = data.get("mds_cl")
+    mds_o = data.get("mds_o")
+
+    success, message = update_applicant_prerequisites(user_code, cs, stat, math, gpa, additional_comments, mds_v, mds_cl, mds_o)
 
     if success:
         return jsonify({"success": True, "message": message})
