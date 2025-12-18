@@ -761,45 +761,41 @@ class ApplicantsManager {
               
               <div id="prerequisiteCoursesContainer" class="space-y-4">
                 <!-- Computer Science -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Computer Science:</label>
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 flex items-center gap-4">
+                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Computer Science:</label>
                   <textarea
                     id="prerequisiteCs"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
-                    rows="2"
+                    class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
                     placeholder="Enter review of Computer Science prerequisite courses"
                   ></textarea>
                 </div>
 
                 <!-- Statistics -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Statistics:</label>
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 flex items-center gap-4">
+                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Statistics:</label>
                   <textarea
                     id="prerequisiteStat"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
-                    rows="2"
+                    class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
                     placeholder="Enter review of Statistics prerequisite courses"
                   ></textarea>
                 </div>
 
                 <!-- Math -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Math:</label>
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 flex items-center gap-4">
+                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Math:</label>
                   <textarea
                     id="prerequisiteMath"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
-                    rows="2"
+                    class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
                     placeholder="Enter review of Math prerequisite courses"
                   ></textarea>
                 </div>
 
                 <!-- Additional Comments -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Additional Comments (e.g., Reference Letter):</label>
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 flex items-center gap-4">
+                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Additional Comments (e.g., Reference Letter):</label>
                   <textarea
                     id="additionalComments"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
-                    rows="2"
+                    class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none"
                     placeholder="Enter Additional Comments"
                   ></textarea>
                 </div>
