@@ -804,6 +804,57 @@ class ApplicantsManager {
                   ></textarea>
                 </div>
 
+               <!-- Applied to Section -->
+              <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                <label class="block text-sm font-medium text-gray-700 mb-3">Applied to</label>
+                <div class="flex gap-8">
+                  <!-- UBC-V -->
+                  <div class="flex items-center gap-3">
+                    <span class="text-sm font-medium text-gray-700 min-w-[60px]">UBC-V</span>
+                    <div class="flex gap-4">
+                      <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="mdsV" value="Yes" class="mr-1.5" />
+                        <span class="text-sm">Yes</span>
+                      </label>
+                      <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="mdsV" value="No" class="mr-1.5" checked />
+                        <span class="text-sm">No</span>
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <!-- UBC-O -->
+                  <div class="flex items-center gap-3">
+                    <span class="text-sm font-medium text-gray-700 min-w-[60px]">UBC-O</span>
+                    <div class="flex gap-4">
+                      <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="mdsO" value="Yes" class="mr-1.5" checked />
+                        <span class="text-sm">Yes</span>
+                      </label>
+                      <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="mdsO" value="No" class="mr-1.5" />
+                        <span class="text-sm">No</span>
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <!-- UBC-CL -->
+                  <div class="flex items-center gap-3">
+                    <span class="text-sm font-medium text-gray-700 min-w-[60px]">UBC-CL</span>
+                    <div class="flex gap-4">
+                      <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="mdsCL" value="Yes" class="mr-1.5" />
+                        <span class="text-sm">Yes</span>
+                      </label>
+                      <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="mdsCL" value="No" class="mr-1.5" checked />
+                        <span class="text-sm">No</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
                 <!-- Status Selection -->
                 <div class="mt-6">
                   <label class="block text-sm font-medium text-gray-700 mb-2">Application Status</label>
@@ -3463,6 +3514,29 @@ class ApplicantsManager {
         document.getElementById("prerequisiteMath").value = appInfo.math || "";
         document.getElementById("additionalComments").value = appInfo.additional_comments || "";
         document.getElementById("overallGpa").value = appInfo.gpa || "";
+
+        // Load MDS radio button values
+        const mdsV = appInfo.mds_v || "No";
+        const mdsO = appInfo.mds_o || "Yes";
+        const mdsCL = appInfo.mds_cl || "No";
+
+        // Set UBC-V radio buttons
+        const mdsVRadios = document.querySelectorAll('input[name="mdsV"]');
+        mdsVRadios.forEach(radio => {
+          radio.checked = radio.value === mdsV;
+        });
+
+        // Set UBC-O radio buttons
+        const mdsORadios = document.querySelectorAll('input[name="mdsO"]');
+        mdsORadios.forEach(radio => {
+          radio.checked = radio.value === mdsO;
+        });
+
+        // Set UBC-CL radio buttons
+        const mdsCLRadios = document.querySelectorAll('input[name="mdsCL"]');
+        mdsCLRadios.forEach(radio => {
+          radio.checked = radio.value === mdsCL;
+        });
       }
 
       await this.updatePrerequisitesFormPermissions();
@@ -3642,6 +3716,11 @@ class ApplicantsManager {
     const gpa = document.getElementById("overallGpa").value;
     const status = document.getElementById("prereqStatusSelect").value;
 
+    // Get MDS radio button values
+    const mdsV = document.querySelector('input[name="mdsV"]:checked')?.value || "No";
+    const mdsO = document.querySelector('input[name="mdsO"]:checked')?.value || "Yes";
+    const mdsCL = document.querySelector('input[name="mdsCL"]:checked')?.value || "No";
+
     const saveBtn = document.getElementById("saveAllPrerequisitesBtn");
     const originalText = saveBtn.textContent;
     saveBtn.disabled = true;
@@ -3656,7 +3735,7 @@ class ApplicantsManager {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ cs, stat, math, gpa, additional_comments: additionalComments }),
+          body: JSON.stringify({ cs, stat, math, gpa, additional_comments: additionalComments, mds_v: mdsV, mds_cl: mdsCL, mds_o: mdsO }),
         }
       );
 
