@@ -807,7 +807,7 @@ class ApplicantsManager {
                <!-- Applied to Section -->
               <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
                 <label class="block text-sm font-medium text-gray-700 mb-3">Applied to</label>
-                <div class="flex gap-8">
+                <div class="flex gap-12">
                   <!-- UBC-V -->
                   <div class="flex items-center gap-3">
                     <span class="text-sm font-medium text-gray-700 min-w-[60px]">UBC-V</span>
