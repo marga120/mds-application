@@ -926,23 +926,22 @@ class ApplicantsManager {
             <div id="ratingFormSection" class="bg-blue-50 p-6 rounded-lg border border-blue-200 mb-6">
               <h4 class="text-lg font-semibold text-gray-900 mb-4">Your Rating & Comment</h4>
               <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Rating (0.0 - 10.0)</label>
-                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc w-full" placeholder="Enter a rating between 0.0 and 10.0">
+                <div class="flex items-center gap-4">
+                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Rating (0.0 - 10.0):</label>
+                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc flex-1" placeholder="Enter a rating between 0.0 and 10.0">
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
-                  <textarea id="commentTextarea" rows="3" class="input-ubc w-full resize-none" placeholder="Add your comments about this applicant..."></textarea>
+                <div class="flex items-center gap-4">
+                  <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Comment:</label>
+                  <textarea id="commentTextarea" class="single-line-scrollable flex-1 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue resize-none" placeholder="Add your comments about this applicant..."></textarea>
                 </div>
               </div>
             </div>
 
-            <!-- Scholarship Section -->
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200 mb-6">
-              <h4 class="text-lg font-semibold text-ubc-blue mb-4 flex items-center">
-                Offer Scholarship
-              </h4>
-              <div class="flex items-center gap-6 mb-4">
+           <!-- Scholarship Section -->
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-6">
+            <div class="flex items-center gap-4 mb-3">
+              <h4 class="text-base font-semibold text-ubc-blue whitespace-nowrap">Offer Scholarship:</h4>
+              <div class="flex items-center gap-4">
                 <label class="flex items-center cursor-pointer">
                   <input type="radio" name="scholarship" value="Yes" class="w-4 h-4 text-ubc-blue focus:ring-ubc-blue">
                   <span class="ml-2 text-gray-700">Yes</span>
@@ -957,6 +956,7 @@ class ApplicantsManager {
                 </label>
               </div>
             </div>
+          </div>
 
             <!-- Application Status Section -->
             <div class="mt-6">
