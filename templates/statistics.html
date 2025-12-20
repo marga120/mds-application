@@ -1,34 +1,177 @@
-  <!DOCTYPE html>                                                               
-  <html lang="en">                                                              
-  <head>                                                                        
-      <meta charset="UTF-8">                                                    
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">    
-      <title>Statistics - MDS Application Management</title>                    
-      <link href="{{ url_for('static', filename='css/output.css') }}"           
-  rel="stylesheet">                                                             
-  </head>                                                                       
-  <body class="bg-gray-50">
-    <!--Include header-->       
-    {% include 'header.html' %}                                              
-      <div class="container mx-auto p-6">                                       
-          <h1 class="text-3xl font-bold mb-6">Application Statistics</h1>       
-                                                                                
-          <!-- Add your statistics content here -->                             
-          <div class="bg-white rounded-lg shadow p-6">                          
-              <p class="text-gray-600">Statistics content goes here...</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistics - MDS Application Management</title>
+    <link href="{{ url_for('static', filename='css/output.css') }}" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    {% include 'header.html' %}
 
-          </div>                                                                
-      </div>                                                                    
-                                                                                          
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-ubc-blue">Application Statistics</h1>
+            <p class="text-gray-600 mt-2">Overview of application data and trends</p>
+        </div>
+
+        <!-- Overall Statistics Section -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Overall Statistics</h2>
+
+            <!-- Quick Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <!-- Submitted Applications -->
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 font-medium">Submitted</p>
+                            <p id="submittedCount" class="text-3xl font-bold text-gray-900">-</p>
+                        </div>
+                        <div class="bg-green-100 rounded-full p-3">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Unsubmitted Applications -->
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 font-medium">Unsubmitted</p>
+                            <p id="unsubmittedCount" class="text-3xl font-bold text-gray-900">-</p>
+                        </div>
+                        <div class="bg-yellow-100 rounded-full p-3">
+                            <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Domestic Applications -->
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 font-medium">Domestic</p>
+                            <p id="domesticCount" class="text-3xl font-bold text-gray-900">-</p>
+                        </div>
+                        <div class="bg-blue-100 rounded-full p-3">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- International Applications -->
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 font-medium">International</p>
+                            <p id="internationalCount" class="text-3xl font-bold text-gray-900">-</p>
+                        </div>
+                        <div class="bg-purple-100 rounded-full p-3">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gender and Country Distribution -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Gender Distribution -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Gender Distribution</h3>
+                    <div class="space-y-4">
+                        <!-- Male -->
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">Male</span>
+                                <span class="font-medium text-gray-900"><span id="maleCount">-</span> (<span id="malePercent">-</span>%)</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="maleBar" class="bg-blue-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <!-- Female -->
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">Female</span>
+                                <span class="font-medium text-gray-900"><span id="femaleCount">-</span> (<span id="femalePercent">-</span>%)</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="femaleBar" class="bg-pink-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <!-- Not Specified -->
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">Not Specified</span>
+                                <span class="font-medium text-gray-900"><span id="genderNotSpecifiedCount">-</span> (<span id="genderNotSpecifiedPercent">-</span>%)</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="genderNotSpecifiedBar" class="bg-gray-400 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top 10 Countries -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Top Countries</h3>
+                    <div id="countriesChart" class="space-y-3 max-h-64 overflow-y-auto">
+                        <div class="text-center text-gray-500 py-4">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Status-wise Statistics Section -->
+        <section>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Statistics by Application Status</h2>
+
+            <!-- Status Selector -->
+            <div class="bg-white rounded-lg shadow p-4 mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Select Status</label>
+                <select id="statusFilter" class="input-ubc w-full max-w-md">
+                    <option value="">All Statuses</option>
+                    <option value="Not Reviewed">Not Reviewed</option>
+                    <option value="Reviewed by PPA">Reviewed by PPA</option>
+                    <option value="Need Jeff's Review">Need Jeff's Review</option>
+                    <option value="Need Khalad's Review">Need Khalad's Review</option>
+                    <option value="Waitlist">Waitlist</option>
+                    <option value="Declined">Declined</option>
+                    <option value="Send Offer to CoGS">Send Offer to CoGS</option>
+                    <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
+                    <option value="Offer Sent to Student">Offer Sent to Student</option>
+                    <option value="Offer Accepted">Offer Accepted</option>
+                    <option value="Offer Declined">Offer Declined</option>
+                </select>
+            </div>
+
+            <!-- Status Statistics Container -->
+            <div id="statusStats" class="space-y-6">
+                <!-- Will be populated by JavaScript -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <p class="text-gray-500 text-center">Select a status to view detailed statistics</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/statistics.js') }}"></script>
     <script>
-      // Initialize components for this page
-      document.addEventListener("DOMContentLoaded", function () {
-        new AuthManager();
-        new LogsManager();
-      });
+        document.addEventListener("DOMContentLoaded", function () {
+            new AuthManager();
+            new StatisticsManager();
+        });
     </script>
-      
-  </script>                                                                 
-  </body>                                                                       
-  </html>  
+</body>
+</html>
