@@ -114,7 +114,9 @@ class AuthManager {
               <a href="/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
                 View Logs
               </a>
-              
+              <a href="/statistics" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+                View Statistics
+              </a>
             </div>
           </div>
         `;
