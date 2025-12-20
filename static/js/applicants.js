@@ -4777,9 +4777,11 @@ async initializeExportButton() {
 
     const searchInput = document.getElementById("searchInput");
     const isSearching = searchInput && searchInput.value.trim() !== "";
-    const resultText = isSearching
+    const isFiltering = this.reviewStatusFilter !== "";
+    const resultText = (isSearching || isFiltering)
       ? `<div class="mb-4 text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg">
          Showing <span class="font-semibold">${applicants.length}</span> of <span class="font-semibold">${this.allApplicants.length}</span> applicants
+         ${isFiltering ? `<span class="ml-2">(filtered by: <strong>${this.reviewStatusFilter}</strong>)</span>` : ""}
        </div>`
       : "";
 
@@ -4849,7 +4851,16 @@ async initializeExportButton() {
           </tr>
         </thead>
         <tbody>
-          ${applicants
+          ${applicants.length === 0
+            ? `<tr>
+                <td colspan="8" class="text-center py-8">
+                  <div class="text-gray-500">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No results found</h3>
+                    <p>No applicants match your filter criteria. Try selecting a different review status.</p>
+                  </div>
+                </td>
+              </tr>`
+            : applicants
             .map(
               (applicant) => `
               <tr>
@@ -4922,7 +4933,8 @@ async initializeExportButton() {
               </tr>
             `
             )
-            .join("")}
+            .join("")
+          }
         </tbody>
       </table>
     </div>
