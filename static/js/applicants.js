@@ -450,7 +450,7 @@ class ApplicantsManager {
   filterApplicants() {
     const filtered = this.getFilteredApplicants();
     
-    // If there's an active sort, apply it
+    // If there's an active sort apply That thang
     if (this.sortColumn) {
       const sorted = [...filtered].sort((a, b) => {
         let aValue, bValue;
@@ -4794,33 +4794,33 @@ async initializeExportButton() {
             <th style="width: 3%;">
               <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4" onchange="window.applicantsManager.toggleAllApplicants(this.checked)">
             </th>
-            <th style="width: 25%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('applicant')">
+            <th style="width: 18%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('applicant')">
               <div class="flex items-center justify-between">
                 <span>Applicant</span>
                 ${this.getSortIcon('applicant')}
               </div>
             </th>
-            <th style="width: 14%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('status')">
+            <th style="width: 15%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('status')">
               <div class="flex items-center justify-center gap-2">
                 <span>Application Status</span>
                 ${this.getSortIcon('status')}
               </div>
             </th>
-            <th style="width: 14%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('submit_date')">
+            <th style="width: 13%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('submit_date')">
               <div class="flex items-center justify-center gap-2">
                 <span>Submit Date</span>
                 ${this.getSortIcon('submit_date')}
               </div>
             </th>
-            <th style="width: 12%; position: relative;">
-              <div class="flex items-center justify-center gap-2">
-                <span>Review Status</span>
+            <th style="width: 14%; position: relative;">
+              <div class="flex flex-col items-center gap-1">
+                <span class="text-xs">Review Status</span>
                 <select
                   onchange="window.applicantsManager.filterByReviewStatus(this.value)"
-                  class="ml-2 text-xs border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  style="max-width: 150px;"
+                  class="text-xs border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                  style="max-width: 140px;"
                 >
-                  <option value="" ${this.reviewStatusFilter === "" ? "selected" : ""}>All</option>
+                  <option value="" ${this.reviewStatusFilter === "" ? "selected" : ""}>All Statuses</option>
                   <option value="Not Reviewed" ${this.reviewStatusFilter === "Not Reviewed" ? "selected" : ""}>Not Reviewed</option>
                   <option value="Reviewed by PPA" ${this.reviewStatusFilter === "Reviewed by PPA" ? "selected" : ""}>Reviewed by PPA</option>
                   <option value="Need Jeff's Review" ${this.reviewStatusFilter === "Need Jeff's Review" ? "selected" : ""}>Need Jeff's Review</option>
@@ -4835,19 +4835,19 @@ async initializeExportButton() {
                 </select>
               </div>
             </th>
-            <th style="width: 11%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('overall_rating')">
+            <th style="width: 12%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('overall_rating')">
               <div class="flex items-center justify-center gap-2">
                 <span>Overall Rating</span>
                 ${this.getSortIcon('overall_rating')}
               </div>
             </th>
-            <th style="width: 11%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('last_updated')">
+            <th style="width: 12%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('last_updated')">
               <div class="flex items-center justify-center gap-2">
                 <span>Last Updated</span>
                 ${this.getSortIcon('last_updated')}
               </div>
             </th>
-            <th style="width: 10%;">Actions</th>
+            <th style="width: 13%;">Actions</th>
           </tr>
         </thead>
         <tbody>

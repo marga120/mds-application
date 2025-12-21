@@ -83,6 +83,7 @@ class StatisticsManager {
                 this.applicants = result.applicants || [];
                 console.log("Applicants loaded successfully:", this.applicants.length);
                 if (this.applicants.length > 0) {
+                    //Just some debug code.
                     console.log("Sample applicant:", this.applicants[0]);
                 }
             }else{
