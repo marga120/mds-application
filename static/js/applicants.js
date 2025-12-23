@@ -4791,28 +4791,28 @@ async initializeExportButton() {
       <table class="modern-table">
         <thead>
           <tr>
-            <th style="width: 3%;">
+            <th style="width: 2.5%;">
               <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4" onchange="window.applicantsManager.toggleAllApplicants(this.checked)">
             </th>
-            <th style="width: 18%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('applicant')">
+            <th style="width: 15%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('applicant')">
               <div class="flex items-center justify-between">
                 <span>Applicant</span>
                 ${this.getSortIcon('applicant')}
               </div>
             </th>
-            <th style="width: 15%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('status')">
+            <th style="width: 13%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('status')">
               <div class="flex items-center justify-center gap-2">
                 <span>Application Status</span>
                 ${this.getSortIcon('status')}
               </div>
             </th>
-            <th style="width: 13%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('submit_date')">
+            <th style="width: 11%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('submit_date')">
               <div class="flex items-center justify-center gap-2">
                 <span>Submit Date</span>
                 ${this.getSortIcon('submit_date')}
               </div>
             </th>
-            <th style="width: 14%; position: relative;">
+            <th style="width: 12%; position: relative;">
               <div class="flex flex-col items-center gap-1">
                 <span class="text-xs">Review Status</span>
                 <select
@@ -4835,19 +4835,19 @@ async initializeExportButton() {
                 </select>
               </div>
             </th>
-            <th style="width: 12%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('overall_rating')">
+            <th style="width: 10%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('overall_rating')">
               <div class="flex items-center justify-center gap-2">
                 <span>Overall Rating</span>
                 ${this.getSortIcon('overall_rating')}
               </div>
             </th>
-            <th style="width: 12%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('last_updated')">
+            <th style="width: 10%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('last_updated')">
               <div class="flex items-center justify-center gap-2">
                 <span>Last Updated</span>
                 ${this.getSortIcon('last_updated')}
               </div>
             </th>
-            <th style="width: 13%;">Actions</th>
+            <th style="width: 11%;">Actions</th>
           </tr>
         </thead>
         <tbody>
