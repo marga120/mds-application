@@ -12,7 +12,8 @@ class ApplicantsManager {
     this.allApplicants = [];
     this.sessionName = "";
     this.sortColumn = null;
-    this.sortDirection = 'asc'; 
+    this.sortDirection = 'asc';
+    this.reviewStatusFilter = ""; // Track selected review status filter
     this.initializeEventListeners();
     this.loadSessionName();
     this.loadApplicants();
@@ -289,6 +290,13 @@ class ApplicantsManager {
     this.displayApplicants(sorted);
   }
 
+  filterByReviewStatus(status) {
+    // Set the filter (empty string means show all)
+    this.reviewStatusFilter = status;
+
+    // Re-apply filters and sorting
+    this.filterApplicants();
+  }
 
   formatLastChanged(secondsAgo) {
     const seconds = Math.floor(secondsAgo);
@@ -442,7 +450,7 @@ class ApplicantsManager {
   filterApplicants() {
     const filtered = this.getFilteredApplicants();
     
-    // If there's an active sort, apply it
+    // If there's an active sort apply That thang
     if (this.sortColumn) {
       const sorted = [...filtered].sort((a, b) => {
         let aValue, bValue;
@@ -493,9 +501,19 @@ class ApplicantsManager {
     const searchTerm = document.getElementById("searchInput").value.toLowerCase();
     const filter = document.getElementById("searchFilter").value;
 
-    if (!searchTerm) return this.allApplicants;
+    let filtered = this.allApplicants;
 
-    return this.allApplicants.filter((applicant) => {
+    // Apply review status filter first
+    if (this.reviewStatusFilter) {
+      filtered = filtered.filter((applicant) =>
+        applicant.review_status === this.reviewStatusFilter
+      );
+    }
+
+    // Then apply search filter
+    if (!searchTerm) return filtered;
+
+    return filtered.filter((applicant) => {
       if (filter === "all") {
         return (
           applicant.given_name?.toLowerCase().includes(searchTerm) ||
@@ -512,6 +530,9 @@ class ApplicantsManager {
   }
 
   getSortIcon(column) {
+    if (this.sortColumn == 'review_status'){
+      //Sort the applicants of review Status by review status.
+    }
     if (this.sortColumn !== column) {
       // Inactive column - light gray/white
       return `<svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4739,28 +4760,28 @@ async initializeExportButton() {
     if (applicants.length === 0) {
       const searchInput = document.getElementById("searchInput");
       const isSearching = searchInput && searchInput.value.trim() !== "";
+      const isFiltering = this.reviewStatusFilter !== "";
 
-      if (isSearching) {
-        container.innerHTML = `
-        <div class="no-data-state">
-          <h3 class="text-lg font-medium text-gray-900 mb-2">No results found</h3>
-          <p>No applicants match your search criteria. Try adjusting your search terms.</p>
-        </div>`;
-      } else {
+      // If no filters are active, show the empty state without table
+      if (!isSearching && !isFiltering) {
         container.innerHTML = `
         <div class="no-data-state">
           <h3 class="text-lg font-medium text-gray-900 mb-2">No applicants yet</h3>
           <p>Upload a CSV file to see applicant data here.</p>
         </div>`;
+        return;
       }
-      return;
+      // If filters are active, show table with empty message in body
+      // Continue to render the table below with empty tbody
     }
 
     const searchInput = document.getElementById("searchInput");
     const isSearching = searchInput && searchInput.value.trim() !== "";
-    const resultText = isSearching
+    const isFiltering = this.reviewStatusFilter !== "";
+    const resultText = (isSearching || isFiltering)
       ? `<div class="mb-4 text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg">
          Showing <span class="font-semibold">${applicants.length}</span> of <span class="font-semibold">${this.allApplicants.length}</span> applicants
+         ${isFiltering ? `<span class="ml-2">(filtered by: <strong>${this.reviewStatusFilter}</strong>)</span>` : ""}
        </div>`
       : "";
 
@@ -4770,50 +4791,76 @@ async initializeExportButton() {
       <table class="modern-table">
         <thead>
           <tr>
-            <th style="width: 3%;">
+            <th style="width: 2.5%;">
               <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4" onchange="window.applicantsManager.toggleAllApplicants(this.checked)">
             </th>
-            <th style="width: 25%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('applicant')">
+            <th style="width: 15%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('applicant')">
               <div class="flex items-center justify-between">
                 <span>Applicant</span>
                 ${this.getSortIcon('applicant')}
               </div>
             </th>
-            <th style="width: 14%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('status')">
+            <th style="width: 13%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('status')">
               <div class="flex items-center justify-center gap-2">
                 <span>Application Status</span>
                 ${this.getSortIcon('status')}
               </div>
             </th>
-            <th style="width: 14%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('submit_date')">
+            <th style="width: 11%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('submit_date')">
               <div class="flex items-center justify-center gap-2">
                 <span>Submit Date</span>
                 ${this.getSortIcon('submit_date')}
               </div>
             </th>
-            <th style="width: 12%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('review_status')">
-              <div class="flex items-center justify-center gap-2">
-                <span>Review Status</span>
-                ${this.getSortIcon('review_status')}
+            <th style="width: 12%; position: relative;">
+              <div class="flex flex-col items-center gap-1">
+                <span class="text-xs">Review Status</span>
+                <select
+                  onchange="window.applicantsManager.filterByReviewStatus(this.value)"
+                  class="text-xs border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                  style="max-width: 140px;"
+                >
+                  <option value="" ${this.reviewStatusFilter === "" ? "selected" : ""}>All Statuses</option>
+                  <option value="Not Reviewed" ${this.reviewStatusFilter === "Not Reviewed" ? "selected" : ""}>Not Reviewed</option>
+                  <option value="Reviewed by PPA" ${this.reviewStatusFilter === "Reviewed by PPA" ? "selected" : ""}>Reviewed by PPA</option>
+                  <option value="Need Jeff's Review" ${this.reviewStatusFilter === "Need Jeff's Review" ? "selected" : ""}>Need Jeff's Review</option>
+                  <option value="Need Khalad's Review" ${this.reviewStatusFilter === "Need Khalad's Review" ? "selected" : ""}>Need Khalad's Review</option>
+                  <option value="Waitlist" ${this.reviewStatusFilter === "Waitlist" ? "selected" : ""}>Waitlist</option>
+                  <option value="Declined" ${this.reviewStatusFilter === "Declined" ? "selected" : ""}>Declined</option>
+                  <option value="Send Offer to CoGS" ${this.reviewStatusFilter === "Send Offer to CoGS" ? "selected" : ""}>Send Offer to CoGS</option>
+                  <option value="Offer Sent to CoGS" ${this.reviewStatusFilter === "Offer Sent to CoGS" ? "selected" : ""}>Offer Sent to CoGS</option>
+                  <option value="Offer Sent to Student" ${this.reviewStatusFilter === "Offer Sent to Student" ? "selected" : ""}>Offer Sent to Student</option>
+                  <option value="Offer Accepted" ${this.reviewStatusFilter === "Offer Accepted" ? "selected" : ""}>Offer Accepted</option>
+                  <option value="Offer Declined" ${this.reviewStatusFilter === "Offer Declined" ? "selected" : ""}>Offer Declined</option>
+                </select>
               </div>
             </th>
-            <th style="width: 11%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('overall_rating')">
+            <th style="width: 10%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('overall_rating')">
               <div class="flex items-center justify-center gap-2">
                 <span>Overall Rating</span>
                 ${this.getSortIcon('overall_rating')}
               </div>
             </th>
-            <th style="width: 11%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('last_updated')">
+            <th style="width: 10%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('last_updated')">
               <div class="flex items-center justify-center gap-2">
                 <span>Last Updated</span>
                 ${this.getSortIcon('last_updated')}
               </div>
             </th>
-            <th style="width: 10%;">Actions</th>
+            <th style="width: 11%;">Actions</th>
           </tr>
         </thead>
         <tbody>
-          ${applicants
+          ${applicants.length === 0
+            ? `<tr>
+                <td colspan="8" class="text-center py-8">
+                  <div class="text-gray-500">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No results found</h3>
+                    <p>No applicants match your filter criteria. Try selecting a different review status.</p>
+                  </div>
+                </td>
+              </tr>`
+            : applicants
             .map(
               (applicant) => `
               <tr>
@@ -4886,7 +4933,8 @@ async initializeExportButton() {
               </tr>
             `
             )
-            .join("")}
+            .join("")
+          }
         </tbody>
       </table>
     </div>

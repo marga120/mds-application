@@ -76,7 +76,13 @@ def login_page():
     """Serve the login page"""
     return render_template("login.html")
 
+@app.route ("/statistics")
+@login_required
+def statistics_page():
+    "Serve as the stats page for admin users"
+    return render_template("statistics.html")
 
+    
 @app.route("/dashboard")
 @login_required
 def dashboard():
