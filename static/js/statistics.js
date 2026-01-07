@@ -100,7 +100,6 @@ class StatisticsManager {
                                                                                 
     setupEventListeners() {
         const statusFilter = document.getElementById("statusFilter");
-        
         if (statusFilter) {
             statusFilter.addEventListener("change", (e) => {
                 const selectedStatus = e.target.value;
@@ -111,19 +110,33 @@ class StatisticsManager {
                                                                                 
     displayStatusStatistics(status) {
         const statusStatsContainer = document.getElementById("statusStats");
-
         // Debug logging
         console.log("Selected status:", status);
         console.log("Total applicants:", this.applicants.length);
         console.log("Unique review_status values:", [...new Set(this.applicants.map(a => a.review_status))]);
 
-        // Filter applicants by the selected status (or all if empty)
-        const filteredApplicants = !status
+        // Filter applicants by the selected status (or all if empty)/Submitted || Unsubmitted
+
+        let total;
+        let filteredApplicants;
+        if(status === "Submitted Applications"){
+            // Show only submitted applications
+            filteredApplicants = this.applicants.filter(a => a.submit_date != null);
+            total = filteredApplicants.length;
+            console.log("Filtered applicants count (submitted): " , total);
+        } else if(status === "Unsubmitted Applications"){
+            // Show only unsubmitted applications
+            filteredApplicants = this.applicants.filter(a => !a.submit_date);
+            total = filteredApplicants.length;
+            console.log("Filtered applicants count (unsubmitted): " , total);
+        } else {
+            // Show all applicants or filter by review_status
+            filteredApplicants = !status
             ? this.applicants
             : this.applicants.filter(a => a.review_status === status);
-        const total = filteredApplicants.length;
-
-        console.log("Filtered applicants count:", total);
+            total = filteredApplicants.length;
+            console.log("Filtered applicants count:", total);
+        }
 
         // Display title based on selection
         const displayTitle = !status ? "All Statuses" : status;
@@ -170,7 +183,7 @@ class StatisticsManager {
             <!-- Domestic vs International -->                                    
             <div>                                                                 
                 <h4 class="text-md font-semibold text-gray-700 mb-4">Residency      
-        tatus</h4>                                                                   
+        Status</h4>                                                                   
                 <div class="space-y-3">                                             
                 <div>                                                             
                     <div class="flex justify-between text-sm mb-1">                 
