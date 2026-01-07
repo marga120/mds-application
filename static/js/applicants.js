@@ -1372,8 +1372,8 @@ class ApplicantsManager {
     saveBtn.textContent = "Saving...";
 
     try {
-      // Save rating and comment if provided
-      if (rating) {
+      // Save rating and/or comment if either is provided
+      if (rating || comment) {
         const ratingResponse = await fetch(`/api/ratings/${userCode}`, {
           method: "POST",
           headers: {
@@ -1387,7 +1387,7 @@ class ApplicantsManager {
 
         const ratingResult = await ratingResponse.json();
         if (!ratingResult.success) {
-          this.showMessage(ratingResult.message || "Failed to save rating", "error");
+          this.showMessage(ratingResult.message || "Failed to save rating/comment", "error");
           return;
         }
       }
@@ -1433,6 +1433,7 @@ class ApplicantsManager {
         // Reload displays
         this.loadApplicationStatus(userCode);
         this.loadRatings(userCode);
+        this.loadMyRating(userCode);
         await this.loadStatusHistory(userCode);
         await this.loadApplicants();
       } else {

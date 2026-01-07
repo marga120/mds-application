@@ -67,35 +67,37 @@ def get_user_ratings(user_code):
 def add_or_update_user_ratings(user_code, user_id, rating, comment):
     """
     Add or update a rating for an applicant.
-    
+
     Creates a new rating record or updates an existing one using PostgreSQL's
     ON CONFLICT functionality. Validates rating format and range.
-    
+
     @param user_code: Unique identifier for the applicant
     @param_type user_code: str
     @param user_id: ID of the user providing the rating
     @param_type user_id: int
-    @param rating: Numerical rating (0.0-10.0, one decimal place)
-    @param_type rating: float or str
+    @param rating: Optional numerical rating (0.0-10.0, one decimal place), can be None
+    @param_type rating: float, str, or None
     @param comment: Optional comment about the applicant
     @param_type comment: str
-    
+
     @return: Tuple of (success, message)
     @return_type: tuple[bool, str]
-    
+
     @validation:
-        - Rating must be between 0.0 and 10.0
-        - Rating rounded to 1 decimal place
-        - Converts string ratings to float
-    
+        - Rating must be between 0.0 and 10.0 (if provided)
+        - Rating rounded to 1 decimal place (if provided)
+        - Converts string ratings to float (if provided)
+        - At least one of rating or comment should be provided
+
     @db_tables: ratings
     @upsert: Uses PostgreSQL ON CONFLICT DO UPDATE
     @composite_key: (user_id, user_code) primary key
-    
+
     @example:
         success, msg = add_or_update_user_ratings("12345", user.id, 8.5, "Strong candidate")
+        success, msg = add_or_update_user_ratings("12345", user.id, None, "Just a comment")
         if success:
-            print("Rating saved successfully")
+            print("Rating/comment saved successfully")
     """
 
     """Add or update a rating for a user"""
@@ -107,23 +109,25 @@ def add_or_update_user_ratings(user_code, user_id, rating, comment):
         cursor = conn.cursor()
         current_time = datetime.now()
 
-        # Validate rating
-        try:
-            ratings_decimal = float(rating)
-            if ratings_decimal < 0.0 or ratings_decimal > 10.0:
-                return False, "Rating must be between 0.0 and 10.0"
-            # Round to 1 decimal place
-            ratings_decimal = round(ratings_decimal, 1)
-        except (ValueError, TypeError):
-            return False, "Invalid rating format"
+        # Validate rating (allow None/empty for comment-only saves)
+        ratings_decimal = None
+        if rating is not None and rating != "":
+            try:
+                ratings_decimal = float(rating)
+                if ratings_decimal < 0.0 or ratings_decimal > 10.0:
+                    return False, "Rating must be between 0.0 and 10.0"
+                # Round to 1 decimal place
+                ratings_decimal = round(ratings_decimal, 1)
+            except (ValueError, TypeError):
+                return False, "Invalid rating format"
 
         # Use INSERT ... ON CONFLICT for PostgreSQL with composite primary key
         cursor.execute(
             """
             INSERT INTO ratings (user_id, user_code, rating, user_comment, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (user_id, user_code) 
-            DO UPDATE SET 
+            ON CONFLICT (user_id, user_code)
+            DO UPDATE SET
                 rating = EXCLUDED.rating,
                 user_comment = EXCLUDED.user_comment,
                 updated_at = EXCLUDED.updated_at
@@ -131,7 +135,13 @@ def add_or_update_user_ratings(user_code, user_id, rating, comment):
             (user_id, user_code, ratings_decimal, comment, current_time, current_time),
         )
 
-        message = "Rating saved successfully"
+        # Update message based on what was saved
+        if ratings_decimal is not None and comment:
+            message = "Rating and comment saved successfully"
+        elif ratings_decimal is not None:
+            message = "Rating saved successfully"
+        else:
+            message = "Comment saved successfully"
 
         conn.commit()
         cursor.close()
