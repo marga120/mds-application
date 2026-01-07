@@ -7,24 +7,47 @@
  */
 
 
-class StatisticsManager {                                                     
-    constructor() { 
-        this.applicants = [] 
+class StatisticsManager {
+    constructor() {
+        this.applicants = []
         this.init();
-    }                                                           
-                                                                                
+    }
+
     async init() {
         await this.loadApplicants();
         this.setupEventListeners();
         this.displayOverallStatistics();
         this.displayStatusStatistics(""); // Load "All Statuses" by default
-     }                                                            
-      displayOverallStatistics() {                                                                                  
-      const total = this.applicants.length;                                                                     
-                                                                                                                
-      // Submission Status                                                                                      
-      const submitted = this.applicants.filter(a => a.submit_date).length;                                      
-      const unsubmitted = total - submitted;                                                                    
+     }
+
+    // Helper methods to match applicants.js logic
+    isSubmittedStatus(status) {
+        // Match the logic from applicants.js getStatusBadge()
+        if (!status || status === "N/A" || status.toLowerCase().includes("unsubmitted")) {
+            return false;
+        }
+        return status.toLowerCase().includes("submitted");
+    }
+
+    isUnsubmittedStatus(status) {
+        // Match the logic from applicants.js getStatusBadge()
+        if (!status || status === "N/A" || status.toLowerCase().includes("unsubmitted")) {
+            return true;
+        }
+        const statusLower = status.toLowerCase();
+        // If it contains "submitted" but not "unsubmitted", it's submitted
+        if (statusLower.includes("submitted")) {
+            return false;
+        }
+        // Everything else is treated as unsubmitted
+        return true;
+    }                                                            
+      displayOverallStatistics() {
+      const total = this.applicants.length;
+
+      // Submission Status (using status field logic from applicants.js)
+      const submitted = this.applicants.filter(a => this.isSubmittedStatus(a.status)).length;
+      const unsubmitted = this.applicants.filter(a => this.isUnsubmittedStatus(a.status)).length;                                                                    
                                                                                                                 
       // Domestic vs International                                                                              
       const domestic = this.applicants.filter(a => a.canadian === "Yes").length;                                
@@ -64,15 +87,15 @@ class StatisticsManager {
       this.displayCountryDistribution(this.applicants);                                                         
   }   
 
-    async loadApplicants() { 
+    async loadApplicants() {
         //Loading applicants grabs the current data.
         //When you fetch from /api/applicants.
-        // user_code: "...",                                                           
-        // submit_date: "2024-01-15" or null,  // null means unsubmitted               
-        // canadian: "Yes" or "No",             // domestic vs international           
-        // gender: "Male" or "Female" or null,  // null/undefined = not specified      
-        // citizenship_country: "Canada",       // country name                        
-        // status: "Not Reviewed",              // application status                  
+        // user_code: "...",
+        // submit_date: "2024-01-15" or null,  // date application was submitted
+        // canadian: "Yes" or "No",             // domestic vs international
+        // gender: "Male" or "Female" or null,  // null/undefined = not specified
+        // citizenship_country: "Canada",       // country name
+        // status: "Submitted" or "Unsubmitted", etc. // determines submitted/unsubmitted (matches applicants.js logic)
         // // ... other fields 
 
         try {
@@ -100,7 +123,6 @@ class StatisticsManager {
                                                                                 
     setupEventListeners() {
         const statusFilter = document.getElementById("statusFilter");
-        
         if (statusFilter) {
             statusFilter.addEventListener("change", (e) => {
                 const selectedStatus = e.target.value;
@@ -111,19 +133,33 @@ class StatisticsManager {
                                                                                 
     displayStatusStatistics(status) {
         const statusStatsContainer = document.getElementById("statusStats");
-
         // Debug logging
         console.log("Selected status:", status);
         console.log("Total applicants:", this.applicants.length);
         console.log("Unique review_status values:", [...new Set(this.applicants.map(a => a.review_status))]);
 
-        // Filter applicants by the selected status (or all if empty)
-        const filteredApplicants = !status
+        // Filter applicants by the selected status (or all if empty)/Submitted || Unsubmitted
+
+        let total;
+        let filteredApplicants;
+        if(status === "Submitted Applications"){
+            // Show only submitted applications (using status field logic from applicants.js)
+            filteredApplicants = this.applicants.filter(a => this.isSubmittedStatus(a.status));
+            total = filteredApplicants.length;
+            console.log("Filtered applicants count (submitted): " , total);
+        } else if(status === "Unsubmitted Applications"){
+            // Show only unsubmitted applications (using status field logic from applicants.js)
+            filteredApplicants = this.applicants.filter(a => this.isUnsubmittedStatus(a.status));
+            total = filteredApplicants.length;
+            console.log("Filtered applicants count (unsubmitted): " , total);
+        } else {
+            // Show all applicants or filter by review_status
+            filteredApplicants = !status
             ? this.applicants
             : this.applicants.filter(a => a.review_status === status);
-        const total = filteredApplicants.length;
-
-        console.log("Filtered applicants count:", total);
+            total = filteredApplicants.length;
+            console.log("Filtered applicants count:", total);
+        }
 
         // Display title based on selection
         const displayTitle = !status ? "All Statuses" : status;
@@ -170,7 +206,7 @@ class StatisticsManager {
             <!-- Domestic vs International -->                                    
             <div>                                                                 
                 <h4 class="text-md font-semibold text-gray-700 mb-4">Residency      
-        tatus</h4>                                                                   
+        Status</h4>                                                                   
                 <div class="space-y-3">                                             
                 <div>                                                             
                     <div class="flex justify-between text-sm mb-1">                 
