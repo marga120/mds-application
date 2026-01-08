@@ -908,11 +908,125 @@ def export_selected_applicants():
         sections_str = '_'.join(sections) if sections else 'all'
         filename = f'selected_{len(user_codes)}_{sections_str}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
         response.headers['Content-Disposition'] = f'attachment; filename={filename}'
-        
+
         return response
-        
+
     except Exception as e:
         print(f"Export error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"Export failed: {str(e)}"}), 500
+
+@applicants_api.route("/export/complete", methods=["POST"])
+@login_required
+def export_complete_applicants():
+    """
+    Export COMPLETE applicant data with ALL columns from ALL tables.
+    This endpoint returns a comprehensive CSV with all demographic info, application data,
+    education history, all test scores, and ratings for selected applicants.
+    """
+
+    if not current_user.is_authenticated or current_user.is_viewer:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    try:
+        from models.applicants import get_complete_applicant_export
+        import json
+
+        data = request.get_json()
+        user_codes = data.get('user_codes', [])
+
+        if not user_codes:
+            return jsonify({"success": False, "message": "No applicants selected"}), 400
+
+        applicants, error = get_complete_applicant_export(user_codes)
+
+        if error:
+            return jsonify({"success": False, "message": error}), 500
+
+        if not applicants:
+            return jsonify({"success": False, "message": "No applicant data found"}), 404
+
+        # Create CSV with ALL fields - we need to flatten JSON fields for CSV
+        output = io.StringIO()
+
+        # Build headers dynamically based on the data structure
+        # We'll flatten the nested JSON structures (institutions, test scores, ratings)
+        base_headers = []
+        for key in applicants[0].keys():
+            if key not in ['institutions', 'toefl_scores', 'ielts_scores', 'gre_score',
+                          'gmat_score', 'melab_score', 'pte_score', 'cael_score',
+                          'celpip_score', 'alt_elpp_score', 'duolingo_score', 'ratings_data']:
+                base_headers.append(key)
+
+        # Add headers for nested data (we'll serialize as JSON strings in CSV)
+        extended_headers = base_headers + [
+            'institutions_json', 'toefl_scores_json', 'ielts_scores_json',
+            'gre_score_json', 'gmat_score_json', 'melab_score_json', 'pte_score_json',
+            'cael_score_json', 'celpip_score_json', 'alt_elpp_score_json',
+            'duolingo_score_json', 'ratings_json'
+        ]
+
+        writer = csv.DictWriter(output, fieldnames=extended_headers)
+        writer.writeheader()
+
+        # Helper to clean None/NaN values
+        def clean_value(v):
+            if v is None:
+                return ''
+            if isinstance(v, str) and v.lower() in ['nan', 'none', 'null', '']:
+                return ''
+            if isinstance(v, float):
+                import math
+                if math.isnan(v):
+                    return ''
+            return v
+
+        # Write rows
+        for applicant in applicants:
+            row = {}
+            # Add base fields
+            for key in base_headers:
+                row[key] = clean_value(applicant.get(key))
+
+            # Add JSON fields as serialized strings
+            row['institutions_json'] = json.dumps(applicant.get('institutions', []))
+            row['toefl_scores_json'] = json.dumps(applicant.get('toefl_scores', []))
+            row['ielts_scores_json'] = json.dumps(applicant.get('ielts_scores', []))
+            row['gre_score_json'] = json.dumps(applicant.get('gre_score', {}))
+            row['gmat_score_json'] = json.dumps(applicant.get('gmat_score', {}))
+            row['melab_score_json'] = json.dumps(applicant.get('melab_score', {}))
+            row['pte_score_json'] = json.dumps(applicant.get('pte_score', {}))
+            row['cael_score_json'] = json.dumps(applicant.get('cael_score', {}))
+            row['celpip_score_json'] = json.dumps(applicant.get('celpip_score', {}))
+            row['alt_elpp_score_json'] = json.dumps(applicant.get('alt_elpp_score', {}))
+            row['duolingo_score_json'] = json.dumps(applicant.get('duolingo_score', {}))
+            row['ratings_json'] = json.dumps(applicant.get('ratings_data', []))
+
+            writer.writerow(row)
+
+        log_activity(
+            action_type="export_complete",
+            target_entity="complete_applicant_data",
+            target_id=None,
+            additional_metadata={
+                "record_count": len(applicants),
+                "user_codes": user_codes,
+                "export_type": "complete_database_export"
+            }
+        )
+
+        output.seek(0)
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+
+        filename = f'complete_export_{len(user_codes)}_applicants_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+
+        return response
+
+    except Exception as e:
+        print(f"Complete export error: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "message": f"Export failed: {str(e)}"}), 500

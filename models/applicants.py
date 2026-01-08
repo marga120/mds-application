@@ -2315,11 +2315,327 @@ def clear_all_applicant_data():
         conn.commit()
         cursor.close()
         conn.close()
-        
+
         return True, "All applicant data has been cleared successfully", tables_cleared, records_cleared
-        
+
     except Exception as e:
         if conn:
             conn.rollback()
             conn.close()
         return False, f"Error clearing data: {str(e)}", 0
+
+def get_complete_applicant_export(user_codes):
+    """
+    Export COMPLETE applicant data with ALL columns from ALL tables.
+    This includes all demographic info, application info, education history,
+    all test scores (TOEFL, IELTS, GRE, GMAT, etc.), and ratings.
+
+    Since applicants can have multiple institutions and test scores, this will
+    create multiple rows per applicant to capture all data.
+    """
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        if not user_codes:
+            return [], None
+        if not isinstance(user_codes, (list, tuple)):
+            user_codes = [user_codes]
+
+        # Build comprehensive query joining ALL tables
+        query = """
+        WITH applicant_base AS (
+            SELECT
+                -- Primary Key
+                ai.user_code,
+
+                -- Session Info
+                s.id as session_id,
+                s.program_code as session_program_code,
+                s.program as session_program_name,
+                s.session_abbrev,
+                s.year as session_year,
+                s.name as session_name,
+
+                -- Applicant Info (Demographics)
+                ai.interest_code,
+                ai.interest,
+                ai.title,
+                ai.family_name,
+                ai.given_name,
+                ai.middle_name,
+                ai.preferred_name,
+                ai.former_family_name,
+                ai.gender_code,
+                ai.gender,
+                ai.country_birth_code,
+                ai.country_birth,
+                ai.date_birth,
+                ai.age,
+                ai.country_citizenship_code,
+                ai.country_citizenship,
+                ai.dual_citizenship_code,
+                ai.dual_citizenship,
+                ai.primary_spoken_lang_code,
+                ai.primary_spoken_lang,
+                ai.other_spoken_lang_code,
+                ai.other_spoken_lang,
+                ai.visa_type_code,
+                ai.visa_type,
+                ai.country_code,
+                ai.country,
+                ai.address_line1,
+                ai.address_line2,
+                ai.city,
+                ai.province_state_region,
+                ai.postal_code,
+                ai.primary_telephone,
+                ai.secondary_telephone,
+                ai.email,
+                ai.aboriginal,
+                ai.first_nation,
+                ai.inuit,
+                ai.metis,
+                ai.aboriginal_not_specified,
+                ai.aboriginal_info,
+                ai.racialized,
+                ai.academic_history_code,
+                ai.academic_history,
+                ai.ubc_academic_history,
+
+                -- Program Info
+                pi.program_code as program_info_code,
+                pi.program as program_info_name,
+                pi.session as program_info_session,
+
+                -- Applicant Status
+                ast.student_number,
+                ast.app_start,
+                ast.submit_date,
+                ast.status_code as applicant_status_code,
+                ast.status as applicant_status,
+                ast.detail_status,
+
+                -- Application Info
+                app.sent as review_status,
+                app.full_name,
+                app.canadian,
+                app.english,
+                app.english_status,
+                app.english_description,
+                app.english_comment,
+                app.cs as cs_prerequisites,
+                app.stat as stat_prerequisites,
+                app.math as math_prerequisites,
+                app.additional_comments,
+                app.gpa as application_gpa,
+                app.highest_degree,
+                app.degree_area,
+                app.mds_v,
+                app.mds_cl,
+                app.mds_o,
+                app.scholarship,
+
+                -- Ratings (Aggregate all ratings into arrays)
+                COALESCE(
+                    (SELECT json_agg(json_build_object(
+                        'user_id', r.user_id,
+                        'rating', r.rating,
+                        'comment', r.user_comment,
+                        'created_at', r.created_at,
+                        'updated_at', r.updated_at
+                    ))
+                    FROM ratings r
+                    WHERE r.user_code = ai.user_code),
+                    '[]'::json
+                ) as ratings_data
+
+            FROM applicant_info ai
+            LEFT JOIN sessions s ON ai.session_id = s.id
+            LEFT JOIN program_info pi ON ai.user_code = pi.user_code
+            LEFT JOIN applicant_status ast ON ai.user_code = ast.user_code
+            LEFT JOIN application_info app ON ai.user_code = app.user_code
+            WHERE ai.user_code = ANY(%s)
+        ),
+        institutions_data AS (
+            SELECT
+                user_code,
+                json_agg(json_build_object(
+                    'institution_number', institution_number,
+                    'institution_code', institution_code,
+                    'full_name', full_name,
+                    'country', country,
+                    'start_date', start_date,
+                    'end_date', end_date,
+                    'program_study', program_study,
+                    'degree_confer_code', degree_confer_code,
+                    'degree_confer', degree_confer,
+                    'date_confer', date_confer,
+                    'credential_receive_code', credential_receive_code,
+                    'credential_receive', credential_receive,
+                    'expected_confer_date', expected_confer_date,
+                    'expected_credential_code', expected_credential_code,
+                    'expected_credential', expected_credential,
+                    'honours', honours,
+                    'fail_withdraw', fail_withdraw,
+                    'reason', reason,
+                    'gpa', gpa
+                ) ORDER BY institution_number) as institutions
+            FROM institution_info
+            WHERE user_code = ANY(%s)
+            GROUP BY user_code
+        ),
+        test_scores_data AS (
+            SELECT
+                ai.user_code,
+                -- TOEFL
+                COALESCE((SELECT json_agg(json_build_object(
+                    'toefl_number', toefl_number,
+                    'registration_num', registration_num,
+                    'date_written', date_written,
+                    'total_score', total_score,
+                    'listening', listening,
+                    'structure_written', structure_written,
+                    'reading', reading,
+                    'speaking', speaking,
+                    'mybest_total', mybest_total,
+                    'mybest_date', mybest_date,
+                    'mybest_listening', mybest_listening,
+                    'mybest_listening_date', mybest_listening_date,
+                    'mybest_writing', mybest_writing,
+                    'mybest_writing_date', mybest_writing_date,
+                    'mybest_reading', mybest_reading,
+                    'mybest_reading_date', mybest_reading_date,
+                    'mybest_speaking', mybest_speaking,
+                    'mybest_speaking_date', mybest_speaking_date
+                ) ORDER BY toefl_number) FROM toefl WHERE user_code = ai.user_code), '[]'::json) as toefl_scores,
+
+                -- IELTS
+                COALESCE((SELECT json_agg(json_build_object(
+                    'ielts_number', ielts_number,
+                    'candidate_num', candidate_num,
+                    'date_written', date_written,
+                    'total_band_score', total_band_score,
+                    'listening', listening,
+                    'reading', reading,
+                    'writing', writing,
+                    'speaking', speaking
+                ) ORDER BY ielts_number) FROM ielts WHERE user_code = ai.user_code), '[]'::json) as ielts_scores,
+
+                -- GRE
+                (SELECT json_build_object(
+                    'reg_num', reg_num,
+                    'date_written', date_written,
+                    'verbal', verbal,
+                    'verbal_below', verbal_below,
+                    'quantitative', quantitative,
+                    'quantitative_below', quantitative_below,
+                    'writing', writing,
+                    'writing_below', writing_below,
+                    'subject_tests', subject_tests,
+                    'subject_reg_num', subject_reg_num,
+                    'subject_date', subject_date,
+                    'subject_scaled_score', subject_scaled_score,
+                    'subject_below', subject_below
+                ) FROM gre WHERE user_code = ai.user_code) as gre_score,
+
+                -- GMAT
+                (SELECT json_build_object(
+                    'ref_num', ref_num,
+                    'date_written', date_written,
+                    'total', total,
+                    'integrated_reasoning', integrated_reasoning,
+                    'quantitative', quantitative,
+                    'verbal', verbal,
+                    'writing', writing
+                ) FROM gmat WHERE user_code = ai.user_code) as gmat_score,
+
+                -- MELAB
+                (SELECT json_build_object(
+                    'ref_num', ref_num,
+                    'date_written', date_written,
+                    'total', total
+                ) FROM melab WHERE user_code = ai.user_code) as melab_score,
+
+                -- PTE
+                (SELECT json_build_object(
+                    'ref_num', ref_num,
+                    'date_written', date_written,
+                    'total', total
+                ) FROM pte WHERE user_code = ai.user_code) as pte_score,
+
+                -- CAEL
+                (SELECT json_build_object(
+                    'ref_num', ref_num,
+                    'date_written', date_written,
+                    'reading', reading,
+                    'listening', listening,
+                    'writing', writing,
+                    'speaking', speaking
+                ) FROM cael WHERE user_code = ai.user_code) as cael_score,
+
+                -- CELPIP
+                (SELECT json_build_object(
+                    'ref_num', ref_num,
+                    'date_written', date_written,
+                    'listening', listening,
+                    'speaking', speaking,
+                    'reading_writing', reading_writing
+                ) FROM celpip WHERE user_code = ai.user_code) as celpip_score,
+
+                -- ALT ELPP
+                (SELECT json_build_object(
+                    'ref_num', ref_num,
+                    'date_written', date_written,
+                    'total', total,
+                    'test_type', test_type
+                ) FROM alt_elpp WHERE user_code = ai.user_code) as alt_elpp_score,
+
+                -- Duolingo
+                (SELECT json_build_object(
+                    'score', score,
+                    'description', description,
+                    'date_written', date_written
+                ) FROM duolingo WHERE user_code = ai.user_code) as duolingo_score
+
+            FROM applicant_info ai
+            WHERE ai.user_code = ANY(%s)
+        )
+        SELECT
+            ab.*,
+            COALESCE(id.institutions, '[]'::json) as institutions,
+            ts.toefl_scores,
+            ts.ielts_scores,
+            ts.gre_score,
+            ts.gmat_score,
+            ts.melab_score,
+            ts.pte_score,
+            ts.cael_score,
+            ts.celpip_score,
+            ts.alt_elpp_score,
+            ts.duolingo_score
+        FROM applicant_base ab
+        LEFT JOIN institutions_data id ON ab.user_code = id.user_code
+        LEFT JOIN test_scores_data ts ON ab.user_code = ts.user_code
+        ORDER BY ab.user_code
+        """
+
+        cursor.execute(query, (user_codes, user_codes, user_codes))
+        results = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return results, None
+
+    except Exception as e:
+        print(f"Error in get_complete_applicant_export: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        if conn:
+            conn.rollback()
+            conn.close()
+        return None, f"Database error: {str(e)}"
