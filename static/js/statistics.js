@@ -225,8 +225,8 @@ class StatisticsManager {
                     <span class="font-medium text-gray-900">${international}      
         (${internationalPercent}%)</span>                                             
                     </div>                                                          
-                    <div class="w-full bg-gray-200 rounded-full h-3">               
-                    <div class="bg-purple-500 h-3 rounded-full transition-all     
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="bg-green-600 h-3 rounded-full transition-all
         duration-500" style="width: ${internationalPercent}%"></div>                  
                     </div>                                                          
                 </div>                                                            
@@ -255,8 +255,8 @@ class StatisticsManager {
                     <span class="font-medium text-gray-900">${female}             
         (${femalePercent}%)</span>                                                    
                     </div>                                                          
-                    <div class="w-full bg-gray-200 rounded-full h-3">               
-                    <div class="bg-pink-500 h-3 rounded-full transition-all       
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="bg-red-500 h-3 rounded-full transition-all
         duration-500" style="width: ${femalePercent}%"></div>                         
                     </div>                                                          
                 </div>                                                            
