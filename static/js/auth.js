@@ -101,6 +101,9 @@ class AuthManager {
               <button id="uploadCsvMenuItem" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
                 Upload CSV
               </button>
+              <button id="exportApplicantDataMenuItem" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+                Export Applicant Data
+              </button>
               <button id="clearDataMenuItem" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
                 Clear All Data
               </button>
@@ -492,6 +495,7 @@ closeResetPasswordModal() {
   this.setupClearModal();
   this.setupDatabaseBackup();
   this.setupDatabaseImport();
+  this.setupExportApplicantData();
 }
 
 setupUploadModal() {
@@ -1173,5 +1177,19 @@ setupUploadModal() {
         importBtn.textContent = 'Import Database';
       }
     });
+  }
+
+  setupExportApplicantData() {
+    const exportMenuItem = document.getElementById('exportApplicantDataMenuItem');
+
+    if (exportMenuItem) {
+      exportMenuItem.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Call the export function from applicantsManager
+        if (window.applicantsManager) {
+          window.applicantsManager.showGlobalExportModal();
+        }
+      });
+    }
   }
 }

@@ -5081,4 +5081,440 @@ closeUploadModal() {
   if (uploadBtn) uploadBtn.disabled = true;
   if (message) message.classList.add('hidden');
 }
+
+showGlobalExportModal() {
+  // Create a temporary set to track selected applicants for this modal
+  const tempSelectedApplicants = new Set();
+  // Store applicants for search/sort functionality
+  this.currentExportApplicants = [];
+  this.currentExportSortBy = 'name'; // 'name' or 'status'
+
+  // Call the existing backend API with selected applicants
+  const exportFunction = async (selectedCodes, sections) => {
+    try {
+      const response = await fetch('/api/export/selected', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          user_codes: selectedCodes,
+          sections: sections
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.download = `applicants_export_${selectedCodes.length}_${dateStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      this.showMessage(`Successfully exported ${selectedCodes.length} applicant(s)`, 'success');
+      return true;
+    } catch (error) {
+      console.error('Export error:', error);
+      this.showMessage(`Failed to export: ${error.message}`, 'error');
+      return false;
+    }
+  };
+
+  // Reuse the existing modal structure but add applicant selection
+  this.createGlobalExportModal(tempSelectedApplicants, exportFunction);
+}
+
+createGlobalExportModal(tempSelectedApplicants, exportFunction) {
+  // Remove existing modal if present
+  const existingModal = document.getElementById('globalExportModal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'globalExportModal';
+  modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50';
+
+  modal.innerHTML = `
+    <div class="mx-auto p-6 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+        <h3 class="text-xl font-semibold text-gray-900">Export Applicant Data</h3>
+        <button class="global-export-modal-close text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mt-4">
+        <!-- Export All Applicants - All Data -->
+        <div class="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
+          <div class="flex items-center justify-between">
+            <div>
+              <h4 class="text-sm font-semibold text-purple-900 mb-1">Export Complete Database</h4>
+              <p class="text-xs text-purple-700">Export all applicants with all information</p>
+            </div>
+            <button id="exportAllEverythingBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium whitespace-nowrap">
+              Export Everything
+            </button>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-300 my-6"></div>
+
+        <!-- Search and Sort -->
+        <div class="mb-4 flex gap-3">
+          <input
+            type="text"
+            id="globalExportSearch"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Search applicants by name or user code..."
+          />
+          <select id="globalExportSort" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="name">Sort by Name</option>
+            <option value="status">Sort by Status</option>
+            <option value="code">Sort by User Code</option>
+          </select>
+        </div>
+
+        <!-- Applicant List -->
+        <div class="mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-medium text-gray-700">Select Applicants</label>
+            <div class="flex gap-2">
+              <button id="globalSelectAll" class="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+                Select All
+              </button>
+              <button id="globalClearAll" class="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                Clear All
+              </button>
+            </div>
+          </div>
+          <div class="border border-gray-300 rounded-lg" style="max-height: 250px; overflow-y: auto;">
+            <div id="globalExportApplicantsList"></div>
+          </div>
+          <p class="text-sm text-gray-600 mt-2">
+            <span class="font-semibold" id="globalSelectedCount">0</span> applicants selected
+          </p>
+        </div>
+
+        <!-- Export Sections (reuse existing structure) -->
+        <div class="mb-4">
+          <p class="text-sm text-gray-600 mb-3">Select data sections to export:</p>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" class="global-export-section w-4 h-4" value="personal" checked>
+              <span class="text-sm text-gray-700">Personal Info</span>
+            </label>
+            <label class="flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" class="global-export-section w-4 h-4" value="application" checked>
+              <span class="text-sm text-gray-700">Application Data</span>
+            </label>
+            <label class="flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" class="global-export-section w-4 h-4" value="education" checked>
+              <span class="text-sm text-gray-700">Education History</span>
+            </label>
+            <label class="flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" class="global-export-section w-4 h-4" value="test_scores">
+              <span class="text-sm text-gray-700">Test Scores</span>
+            </label>
+            <label class="flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" class="global-export-section w-4 h-4" value="ratings">
+              <span class="text-sm text-gray-700">Ratings & Comments</span>
+            </label>
+            <label class="flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" class="global-export-section w-4 h-4" value="prerequisites">
+              <span class="text-sm text-gray-700">Prerequisites & GPA</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button class="global-export-modal-close btn-ubc-outline">
+            Cancel
+          </button>
+          <button id="globalConfirmExport" class="btn-ubc">
+            Export Selected
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Setup event listeners
+  const closeButtons = modal.querySelectorAll('.global-export-modal-close');
+  closeButtons.forEach(btn => {
+    btn.addEventListener('click', () => modal.remove());
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+
+  // Load and render applicants
+  // Show loading state
+  const container = document.getElementById('globalExportApplicantsList');
+  if (container) {
+    container.innerHTML = '<div class="p-4 text-center text-gray-500">Loading applicants...</div>';
+  }
+
+  // Load applicants from API if needed
+  this.loadApplicantsForGlobalExport(tempSelectedApplicants);
+
+  // Export Everything button
+  document.getElementById('exportAllEverythingBtn').addEventListener('click', async () => {
+    await this.exportAllApplicantsAllData();
+  });
+
+  // Search functionality
+  document.getElementById('globalExportSearch').addEventListener('input', (e) => {
+    this.filterAndSortExportApplicants(tempSelectedApplicants);
+  });
+
+  // Sort functionality
+  document.getElementById('globalExportSort').addEventListener('change', (e) => {
+    this.currentExportSortBy = e.target.value;
+    this.filterAndSortExportApplicants(tempSelectedApplicants);
+  });
+
+  // Select all / Clear all
+  document.getElementById('globalSelectAll').addEventListener('click', () => {
+    document.querySelectorAll('.global-applicant-checkbox').forEach(cb => {
+      cb.checked = true;
+      tempSelectedApplicants.add(cb.value);
+    });
+    this.updateGlobalExportCount(tempSelectedApplicants);
+  });
+
+  document.getElementById('globalClearAll').addEventListener('click', () => {
+    document.querySelectorAll('.global-applicant-checkbox').forEach(cb => {
+      cb.checked = false;
+    });
+    tempSelectedApplicants.clear();
+    this.updateGlobalExportCount(tempSelectedApplicants);
+  });
+
+  // Export button
+  document.getElementById('globalConfirmExport').addEventListener('click', async () => {
+    const selectedSections = Array.from(document.querySelectorAll('.global-export-section:checked'))
+      .map(cb => cb.value);
+
+    if (tempSelectedApplicants.size === 0) {
+      this.showMessage('Please select at least one applicant', 'error');
+      return;
+    }
+
+    if (selectedSections.length === 0) {
+      this.showMessage('Please select at least one section', 'error');
+      return;
+    }
+
+    const success = await exportFunction(Array.from(tempSelectedApplicants), selectedSections);
+    if (success) {
+      modal.remove();
+    }
+  });
+}
+
+renderGlobalExportApplicants(applicants, tempSelectedApplicants) {
+  const container = document.getElementById('globalExportApplicantsList');
+  if (!container) return;
+
+  if (applicants.length === 0) {
+    container.innerHTML = '<div class="p-4 text-center text-gray-500">No applicants found</div>';
+    return;
+  }
+
+  container.innerHTML = applicants.map(applicant => {
+    const isChecked = tempSelectedApplicants.has(applicant.user_code);
+    // Capitalize names properly
+    const capitalizeName = (name) => {
+      if (!name) return '';
+      return name.split(' ').map(word =>
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      ).join(' ');
+    };
+    const givenName = capitalizeName(applicant.given_name);
+    const familyName = capitalizeName(applicant.family_name);
+    const fullName = `${givenName} ${familyName}`.trim() || 'N/A';
+
+    return `
+      <label class="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-200 last:border-b-0">
+        <input
+          type="checkbox"
+          class="global-applicant-checkbox w-4 h-4 text-blue-600 mr-3"
+          value="${applicant.user_code}"
+          ${isChecked ? 'checked' : ''}
+        />
+        <div class="flex-1">
+          <div class="font-medium text-gray-900">${fullName}</div>
+          <div class="text-sm text-gray-500">${applicant.user_code}</div>
+        </div>
+        <div class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
+          ${applicant.review_status || 'Not Reviewed'}
+        </div>
+      </label>
+    `;
+  }).join('');
+
+  // Add change listeners
+  container.querySelectorAll('.global-applicant-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        tempSelectedApplicants.add(e.target.value);
+      } else {
+        tempSelectedApplicants.delete(e.target.value);
+      }
+      this.updateGlobalExportCount(tempSelectedApplicants);
+    });
+  });
+
+  this.updateGlobalExportCount(tempSelectedApplicants);
+}
+
+updateGlobalExportCount(tempSelectedApplicants) {
+  const countElement = document.getElementById('globalSelectedCount');
+  if (countElement) {
+    countElement.textContent = tempSelectedApplicants.size;
+  }
+}
+
+async loadApplicantsForGlobalExport(tempSelectedApplicants) {
+  try {
+    // Use existing allApplicants if available, otherwise fetch
+    if (this.allApplicants && this.allApplicants.length > 0) {
+      this.currentExportApplicants = this.allApplicants;
+      this.filterAndSortExportApplicants(tempSelectedApplicants);
+    } else {
+      // Fetch applicants from API
+      const response = await fetch('/api/applicants');
+      const result = await response.json();
+
+      if (result.success && result.applicants) {
+        this.currentExportApplicants = result.applicants;
+        this.filterAndSortExportApplicants(tempSelectedApplicants);
+      } else {
+        const container = document.getElementById('globalExportApplicantsList');
+        if (container) {
+          container.innerHTML = '<div class="p-4 text-center text-gray-500">No applicants found</div>';
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error loading applicants:', error);
+    const container = document.getElementById('globalExportApplicantsList');
+    if (container) {
+      container.innerHTML = '<div class="p-4 text-center text-red-500">Error loading applicants</div>';
+    }
+  }
+}
+
+filterAndSortExportApplicants(tempSelectedApplicants) {
+  if (!this.currentExportApplicants || this.currentExportApplicants.length === 0) return;
+
+  const searchTerm = document.getElementById('globalExportSearch')?.value.toLowerCase() || '';
+
+  // Filter applicants
+  let filtered = this.currentExportApplicants.filter(app => {
+    const fullName = `${app.given_name || ''} ${app.family_name || ''}`.toLowerCase();
+    return fullName.includes(searchTerm) ||
+           (app.user_code || '').toLowerCase().includes(searchTerm);
+  });
+
+  // Sort applicants
+  const sortBy = this.currentExportSortBy || 'name';
+  filtered.sort((a, b) => {
+    if (sortBy === 'name') {
+      const nameA = `${a.family_name || ''} ${a.given_name || ''}`.trim().toLowerCase();
+      const nameB = `${b.family_name || ''} ${b.given_name || ''}`.trim().toLowerCase();
+      return nameA.localeCompare(nameB);
+    } else if (sortBy === 'status') {
+      const statusA = (a.review_status || 'Not Reviewed').toLowerCase();
+      const statusB = (b.review_status || 'Not Reviewed').toLowerCase();
+      return statusA.localeCompare(statusB);
+    } else if (sortBy === 'code') {
+      const codeA = a.user_code || '';
+      const codeB = b.user_code || '';
+      return codeA.localeCompare(codeB);
+    }
+    return 0;
+  });
+
+  this.renderGlobalExportApplicants(filtered, tempSelectedApplicants);
+}
+
+async exportAllApplicantsAllData() {
+  const btn = document.getElementById('exportAllEverythingBtn');
+  const originalHTML = btn.innerHTML;
+
+  btn.disabled = true;
+  btn.innerHTML = `
+    <svg class="w-5 h-5 animate-spin mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+    </svg>
+  `;
+
+  try {
+    // Get all applicant user codes
+    const applicants = this.currentExportApplicants?.length > 0
+      ? this.currentExportApplicants
+      : this.allApplicants || [];
+
+    if (applicants.length === 0) {
+      this.showMessage('No applicants available to export', 'error');
+      return;
+    }
+
+    const userCodes = applicants.map(a => a.user_code);
+
+    // Include ALL sections
+    const allSections = ['personal', 'application', 'education', 'test_scores', 'ratings', 'prerequisites'];
+
+    const response = await fetch('/api/export/selected', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        user_codes: userCodes,
+        sections: allSections
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Export failed');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.download = `complete_database_export_${userCodes.length}_applicants_${dateStr}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    this.showMessage(`Successfully exported complete data for all ${userCodes.length} applicants`, 'success');
+
+  } catch (error) {
+    console.error('Export error:', error);
+    this.showMessage(`Failed to export: ${error.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHTML;
+  }
+}
+
 }
