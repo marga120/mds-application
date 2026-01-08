@@ -5477,13 +5477,16 @@ async exportAllApplicantsAllData() {
 
     const userCodes = applicants.map(a => a.user_code);
 
-    // Call the new comprehensive export endpoint
-    const response = await fetch('/api/export/complete', {
+    // Include ALL sections
+    const allSections = ['personal', 'application', 'education', 'test_scores', 'ratings', 'prerequisites'];
+
+    const response = await fetch('/api/export/selected', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({
-        user_codes: userCodes
+        user_codes: userCodes,
+        sections: allSections
       })
     });
 
