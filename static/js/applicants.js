@@ -1372,8 +1372,8 @@ class ApplicantsManager {
     saveBtn.textContent = "Saving...";
 
     try {
-      // Save rating and comment if provided
-      if (rating) {
+      // Save rating and/or comment if either is provided
+      if (rating || comment) {
         const ratingResponse = await fetch(`/api/ratings/${userCode}`, {
           method: "POST",
           headers: {
@@ -1387,7 +1387,7 @@ class ApplicantsManager {
 
         const ratingResult = await ratingResponse.json();
         if (!ratingResult.success) {
-          this.showMessage(ratingResult.message || "Failed to save rating", "error");
+          this.showMessage(ratingResult.message || "Failed to save rating/comment", "error");
           return;
         }
       }
@@ -1433,6 +1433,7 @@ class ApplicantsManager {
         // Reload displays
         this.loadApplicationStatus(userCode);
         this.loadRatings(userCode);
+        this.loadMyRating(userCode);
         await this.loadStatusHistory(userCode);
         await this.loadApplicants();
       } else {
@@ -4449,17 +4450,14 @@ class ApplicantsManager {
     }
   }
 
-//    ###CHANGED------------------------------------------------------------------------------------------------  
 async initializeExportButton() {
     try {
       const response = await fetch("/api/auth/check-session");
       const result = await response.json();
 
       if (result.authenticated && result.user) {
-        this.currentUser = result.user;
-        
-        // "Export All" button logic is removed as requested.
-        // We rely on the bulk selection export button which appears when items are selected.
+        //Verify the user, assingmnet aswell
+        this.currentUser = result.user;        
       }
     } catch (error) {
       console.error("Error checking user permissions:", error);
@@ -4791,10 +4789,7 @@ async initializeExportButton() {
       <table class="modern-table">
         <thead>
           <tr>
-            <th style="width: 2.5%;">
-              <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4" onchange="window.applicantsManager.toggleAllApplicants(this.checked)">
-            </th>
-            <th style="width: 15%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('applicant')">
+            <th style="width: 20%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('applicant')">
               <div class="flex items-center justify-between">
                 <span>Applicant</span>
                 ${this.getSortIcon('applicant')}
@@ -4847,13 +4842,13 @@ async initializeExportButton() {
                 ${this.getSortIcon('last_updated')}
               </div>
             </th>
-            <th style="width: 11%;">Actions</th>
+            <th style="width: 8%;">Actions</th>
           </tr>
         </thead>
         <tbody>
           ${applicants.length === 0
             ? `<tr>
-                <td colspan="8" class="text-center py-8">
+                <td colspan="7" class="text-center py-8">
                   <div class="text-gray-500">
                     <h3 class="text-lg font-medium text-gray-900 mb-2">No results found</h3>
                     <p>No applicants match your filter criteria. Try selecting a different review status.</p>
@@ -4864,11 +4859,6 @@ async initializeExportButton() {
             .map(
               (applicant) => `
               <tr>
-                <td class="text-center">
-                  <input type="checkbox" class="applicant-checkbox w-4 h-4" 
-                           data-user-code="${applicant.user_code}"
-                           onchange="window.applicantsManager.toggleApplicantSelection('${applicant.user_code}', this.checked)">
-                </td>
                 <td>
                   <div class="applicant-card">
                     <div class="applicant-avatar">

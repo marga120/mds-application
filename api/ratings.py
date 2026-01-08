@@ -119,7 +119,7 @@ def add_or_update_ratings(user_code):
     @method: POST
     @param user_code: Unique identifier for the applicant (URL parameter)
     @param_type user_code: str
-    @param rating: Numerical rating value (JSON body, 0.0-10.0, one decimal)
+    @param rating: Optional numerical rating value (JSON body, 0.0-10.0, one decimal)
     @param_type rating: float
     @param comment: Optional comment about the applicant (JSON body)
     @param_type comment: str
@@ -127,16 +127,16 @@ def add_or_update_ratings(user_code):
     @return: JSON response with operation result
     @return_type: flask.Response
     @status_codes:
-        - 200: Rating added/updated successfully
+        - 200: Rating/comment added/updated successfully
         - 400: Invalid rating format or missing data
         - 401: Authentication required
         - 403: Access denied (Viewer user)
         - 500: Database error
 
     @validation:
-        - Rating must be between 0.0 and 10.0
-        - Rating can have maximum one decimal place
-        - Rating is required (comment is optional)
+        - At least one of rating or comment must be provided
+        - Rating must be between 0.0 and 10.0 (if provided)
+        - Rating can have maximum one decimal place (if provided)
 
     @db_tables: ratings
     @upsert: Uses PostgreSQL ON CONFLICT to update existing ratings
@@ -171,32 +171,34 @@ def add_or_update_ratings(user_code):
     ratings = data.get("rating")
     comment = data.get("comment", "")
 
-    if ratings is None or ratings == "":
-        return jsonify({"success": False, "message": "Rating is required"}), 400
+    # Allow either rating or comment (or both), but at least one must be provided
+    if (ratings is None or ratings == "") and not comment:
+        return jsonify({"success": False, "message": "Either rating or comment is required"}), 400
 
-    # Validate rating format
-    try:
-        ratings_float = float(ratings)
-        if ratings_float < 0.0 or ratings_float > 10.0:
-            return (
-                jsonify(
-                    {"success": False, "message": "Rating must be between 0.0 and 10.0"}
-                ),
-                400,
-            )
-        # Check decimal places
-        if round(ratings_float, 1) != ratings_float:
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "message": "Rating can only have one decimal place",
-                    }
-                ),
-                400,
-            )
-    except (ValueError, TypeError):
-        return jsonify({"success": False, "message": "Invalid rating format"}), 400
+    # Validate rating format if provided
+    if ratings is not None and ratings != "":
+        try:
+            ratings_float = float(ratings)
+            if ratings_float < 0.0 or ratings_float > 10.0:
+                return (
+                    jsonify(
+                        {"success": False, "message": "Rating must be between 0.0 and 10.0"}
+                    ),
+                    400,
+                )
+            # Check decimal places
+            if round(ratings_float, 1) != ratings_float:
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "message": "Rating can only have one decimal place",
+                        }
+                    ),
+                    400,
+                )
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "message": "Invalid rating format"}), 400
 
     success, message = add_or_update_user_ratings(
         user_code, current_user.id, ratings, comment
