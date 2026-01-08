@@ -256,7 +256,7 @@ class StatisticsManager {
         (${femalePercent}%)</span>                                                    
                     </div>                                                          
                     <div class="w-full bg-gray-200 rounded-full h-3">
-                    <div class="bg-red-500 h-3 rounded-full transition-all
+                    <div class="bg-blue-500 h-3 rounded-full transition-all
         duration-500" style="width: ${femalePercent}%"></div>                         
                     </div>                                                          
                 </div>                                                            
