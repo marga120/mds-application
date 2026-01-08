@@ -5154,6 +5154,21 @@ createGlobalExportModal(tempSelectedApplicants, exportFunction) {
       </div>
 
       <div class="mt-4">
+        <!-- Export All Applicants - All Data -->
+        <div class="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
+          <div class="flex items-center justify-between">
+            <div>
+              <h4 class="text-sm font-semibold text-purple-900 mb-1">Export Complete Database</h4>
+              <p class="text-xs text-purple-700">Export all applicants with all information</p>
+            </div>
+            <button id="exportAllEverythingBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium whitespace-nowrap">
+              Export Everything
+            </button>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-300 my-6"></div>
+
         <!-- Search and Sort -->
         <div class="mb-4 flex gap-3">
           <input
@@ -5221,12 +5236,12 @@ createGlobalExportModal(tempSelectedApplicants, exportFunction) {
           </div>
         </div>
 
-        <div class="flex gap-3">
-          <button id="globalConfirmExport" class="btn-ubc flex-1">
-            Export Selected
-          </button>
+        <div class="flex justify-end gap-3">
           <button class="global-export-modal-close btn-ubc-outline">
             Cancel
+          </button>
+          <button id="globalConfirmExport" class="btn-ubc">
+            Export Selected
           </button>
         </div>
       </div>
@@ -5254,6 +5269,11 @@ createGlobalExportModal(tempSelectedApplicants, exportFunction) {
 
   // Load applicants from API if needed
   this.loadApplicantsForGlobalExport(tempSelectedApplicants);
+
+  // Export Everything button
+  document.getElementById('exportAllEverythingBtn').addEventListener('click', async () => {
+    await this.exportAllApplicantsAllData();
+  });
 
   // Search functionality
   document.getElementById('globalExportSearch').addEventListener('input', (e) => {
@@ -5430,6 +5450,71 @@ filterAndSortExportApplicants(tempSelectedApplicants) {
   });
 
   this.renderGlobalExportApplicants(filtered, tempSelectedApplicants);
+}
+
+async exportAllApplicantsAllData() {
+  const btn = document.getElementById('exportAllEverythingBtn');
+  const originalHTML = btn.innerHTML;
+
+  btn.disabled = true;
+  btn.innerHTML = `
+    <svg class="w-5 h-5 animate-spin mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+    </svg>
+  `;
+
+  try {
+    // Get all applicant user codes
+    const applicants = this.currentExportApplicants?.length > 0
+      ? this.currentExportApplicants
+      : this.allApplicants || [];
+
+    if (applicants.length === 0) {
+      this.showMessage('No applicants available to export', 'error');
+      return;
+    }
+
+    const userCodes = applicants.map(a => a.user_code);
+
+    // Include ALL sections
+    const allSections = ['personal', 'application', 'education', 'test_scores', 'ratings', 'prerequisites'];
+
+    const response = await fetch('/api/export/selected', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        user_codes: userCodes,
+        sections: allSections
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Export failed');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.download = `complete_database_export_${userCodes.length}_applicants_${dateStr}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    this.showMessage(`Successfully exported complete data for all ${userCodes.length} applicants`, 'success');
+
+  } catch (error) {
+    console.error('Export error:', error);
+    this.showMessage(`Failed to export: ${error.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHTML;
+  }
 }
 
 }
