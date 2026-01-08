@@ -4813,7 +4813,7 @@ async initializeExportButton() {
                 <select
                   onchange="window.applicantsManager.filterByReviewStatus(this.value)"
                   class="text-xs border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                  style="max-width: 140px;"
+                  style="max-width: 140px;" 
                 >
                   <option value="" ${this.reviewStatusFilter === "" ? "selected" : ""}>All Statuses</option>
                   <option value="Not Reviewed" ${this.reviewStatusFilter === "Not Reviewed" ? "selected" : ""}>Not Reviewed</option>
@@ -4842,7 +4842,7 @@ async initializeExportButton() {
                 ${this.getSortIcon('last_updated')}
               </div>
             </th>
-            <th style="width: 8%;">Actions</th>
+            <th style="width: 6%;">View</th>
           </tr>
         </thead>
         <tbody>
