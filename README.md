@@ -1,8 +1,8 @@
 # MDS Application Management System
 
-A comprehensive Flask web application for managing Masters of Data Science (MDS) student applications at the University of British Columbia (UBC). This system provides role-based access control for admins, faculty, and viewers to efficiently process, review, and track student applications. 
+A comprehensive Flask web application for managing Masters of Data Science (MDS) student applications at the University of British Columbia (UBC). This system provides role-based access control for admins, faculty, and viewers to efficiently process, review, and track student applications.
 
-- **Last updated**: 8/26/2025
+- **Last updated**: 1/8/2026
 
 ## Table of Contents
 
@@ -119,6 +119,13 @@ The MDS Application Management System uses role-based access control with three 
   - Process and import large batches of applications
   - Delete and modify application records via the CSV
 
+- **Data Export** 
+  - Export complete database with all applicants and all data sections
+  - Selective export with search, filter, and applicant selection
+  - Choose specific data sections to export (Personal Info, Application Data, Test Scores, Ratings, etc.)
+  - Sort and filter applicants before export
+  - Downloads as CSV files with timestamp naming
+
 - **Student Review Process**
   - View all student applications
   - Update application statuses (Not Reviewed → Reviewed → Offer/Declined/etc.)
@@ -154,9 +161,10 @@ The MDS Application Management System uses role-based access control with three 
 
 - **Rating, Prerequisite, and Feedback**
   - Assign numerical ratings (0.0-10.0) to applicants
-  - Add detailed comments about student qualifications
+  - Add detailed comments about student qualifications (NEW - can save comments independently without rating)
   - View ratings from other Faculty members (aggregate scores)
   - Able to modify the student prerequisite courses
+  - Save All button properly persists ratings and comments together
 
 - **Application Status Tracking**
   - Monitor current application status for each student
@@ -226,7 +234,28 @@ The MDS Application Management System uses role-based access control with three 
 #### Navigation and Interface
 - **Dashboard**: Centralized view of current session applicants
 - **Search and Filter**: Find specific students by name, status, or criteria
-- **Account Settings** (NEW): Access via `/account` page
+- **Statistics Page**: Access via `/statistics` page
+- **Account Settings**: Access via `/account` page
+
+#### Statistics Page (NEW - All Users)
+All users can view comprehensive application analytics:
+
+- **Overall Statistics**
+  - Total submitted applications
+  - Total unsubmitted applications
+  - Domestic vs International applicant breakdown
+  - Gender distribution with visual bar charts
+
+- **Review Status Analytics**
+  - Visual breakdown by status (Not Reviewed, Reviewed by PPA, etc.)
+  - Percentage calculations for each status category
+  - Color-coded progress bars
+
+- **Filtering Options**
+  - Filter statistics by review status
+  - View submitted applications only
+  - View unsubmitted applications only
+  - Real-time chart updates based on filters
 
 #### Account Settings (NEW - All Users)
 All users can manage their own account through the Account Settings page:
@@ -302,10 +331,11 @@ mds-application/
 │   │   ├── input.css          # Tailwind CSS source
 │   │   └── output.css         # Compiled CSS (auto-generated)
 │   └── js/
-│       ├── applicants.js      # Main application logic
+│       ├── applicants.js      # Main application logic (includes export modal)
 │       ├── auth.js            # Authentication handling
-│       ├── account.js         # Account settings (NEW)
-│       ├── users.js           # User management for admins (NEW)
+│       ├── account.js         # Account settings 
+│       ├── users.js           # User management for admins 
+│       ├── statistics.js      # Statistics page logic 
 │       ├── sessions.js        # Session creation
 │       ├── logs.js            # Activity log viewer
 │       └── main.js            # Application entry point
@@ -313,8 +343,9 @@ mds-application/
 │   ├── create-session.html    # Session creation page
 │   ├── index.html             # Main application interface
 │   ├── login.html             # Login page
-│   ├── account.html           # Account settings page (NEW)
-│   ├── users.html             # User management page (NEW - Admin only)
+│   ├── account.html           # Account settings page 
+│   ├── users.html             # User management page (Admin only)
+│   ├── statistics.html        # Statistics page 
 │   ├── header.html            # Header component
 │   └── logs.html              # Activity logs page
 ├── utils/                      # Utility functions
@@ -374,12 +405,12 @@ mds-application/
 - `GET /check-session`: Session validation
 - `GET /user`: Current user information
 - `POST /register`: User creation (Admin only)
-- `GET /users`: List all users with search (Admin only) - NEW
-- `GET /user/<user_id>`: Get specific user details (Admin only) - NEW
-- `PUT /user/<user_id>`: Update user details (Admin only) - NEW
-- `DELETE /delete-user/<user_id>`: Delete user account (Admin only) - NEW
-- `POST /update-email`: Update current user's email - NEW
-- `POST /reset-password`: Change current user's password - NEW
+- `GET /users`: List all users with search (Admin only) 
+- `GET /user/<user_id>`: Get specific user details (Admin only)
+- `PUT /user/<user_id>`: Update user details (Admin only) 
+- `DELETE /delete-user/<user_id>`: Delete user account (Admin only)
+- `POST /update-email`: Update current user's email 
+- `POST /reset-password`: Change current user's password 
 
 #### Applicants (`/api/`)
 - `GET /applicant-status`: List all applicants with status
@@ -393,7 +424,10 @@ mds-application/
 #### Ratings (`/api/ratings/`)
 - `GET /<user_code>`: All ratings for applicant
 - `GET /<user_code>/my-rating`: Current user's rating
-- `POST /<user_code>`: Add/update rating (Faculty/Admin only)
+- `POST /<user_code>`: Add/update rating and/or comment (Faculty/Admin only) - supports comment-only saves
+
+#### Export (`/api/export/`)
+- `POST /selected`: Export selected applicants with chosen data sections (Admin only) 
 
 #### Sessions (`/api/sessions/`)
 - `GET /`: List all sessions
@@ -426,12 +460,15 @@ mds-application/
 |---------|-------|---------|--------|
 | View Applications | ✅ | ✅ | ✅ |
 | Upload CSV | ✅ | ❌ | ❌ |
+| Export Data | ✅ | ❌ | ❌ |
 | Rate Students | ✅ | ✅ | ❌ |
+| Add Comments | ✅ | ✅ | ❌ |
 | Change Status | ✅ | ❌ | ❌ |
 | Edit English Status | ✅ | ❌ | ❌ |
 | Manage Users | ✅ | ❌ | ❌ |
 | Create Sessions | ✅ | ❌ | ❌ |
 | View Logs | ✅ | ❌ | ❌ |
+| View Statistics | ✅ | ✅ | ✅ |
 
 ### Frontend Architecture
 
