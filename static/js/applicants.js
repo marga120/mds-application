@@ -5472,48 +5472,55 @@ async exportAllApplicantsAllData() {
   `;
 
   try {
-    // Get all applicant user codes
-    const applicants = this.currentExportApplicants?.length > 0
-      ? this.currentExportApplicants
-      : this.allApplicants || [];
-
-    if (applicants.length === 0) {
-      this.showMessage('No applicants available to export', 'error');
-      return;
-    }
-
-    const userCodes = applicants.map(a => a.user_code);
-
-    // Include ALL sections
-    const allSections = ['personal', 'application', 'education', 'test_scores', 'ratings', 'prerequisites'];
-
-    const response = await fetch('/api/export/selected', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        user_codes: userCodes,
-        sections: allSections
-      })
+    // Call the dedicated export all endpoint (GET request - no body needed)
+    const response = await fetch('/api/export/all', {
+      method: 'GET',
+      credentials: 'include'
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Export failed');
+      // Try to parse error message
+      let errorMessage = 'Export failed';
+      try {
+        const error = await response.json();
+        errorMessage = error.message || errorMessage;
+      } catch (e) {
+        // Response might not be JSON
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
+    // Get the CSV blob from response
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const dateStr = new Date().toISOString().slice(0, 10);
-    a.download = `complete_database_export_${userCodes.length}_applicants_${dateStr}.csv`;
+
+    // Extract filename from Content-Disposition header if available
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = `complete_database_export_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+      if (filenameMatch) {
+        filename = filenameMatch[1];
+      }
+    }
+
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
 
-    this.showMessage(`Successfully exported complete data for all ${userCodes.length} applicants`, 'success');
+    // Close the modal after successful export
+    const modal = document.getElementById('globalExportModal');
+    if (modal) {
+      modal.remove();
+    }
+
+    this.showMessage('Successfully exported complete database with all applicant data', 'success');
 
   } catch (error) {
     console.error('Export error:', error);

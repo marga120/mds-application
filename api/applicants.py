@@ -780,6 +780,114 @@ def _write_single_applicant_csv_sections(writer, applicant_data, sections=None):
     writer.writerow(['='*20, '='*20, '='*20])
     writer.writerow([])
 
+@applicants_api.route("/export/all", methods=["GET"])
+def export_all_applicants():
+    """
+    Export all applicants with complete data from all tables.
+
+    This endpoint retrieves absolutely every piece of information for every applicant
+    in the database, including demographics, test scores, institutions, ratings, etc.
+    It generates a comprehensive CSV file with 100+ columns.
+
+    @requires: Admin or Faculty authentication (Viewer access denied)
+    @method: GET
+
+    @return: CSV file download with all applicant data
+    @return_type: flask.Response (text/csv)
+    @status_codes:
+        - 200: CSV file generated successfully
+        - 403: Access denied (Viewer user)
+        - 404: No applicants found in database
+        - 500: Database or export error
+
+    @db_tables: All applicant-related tables (18+ tables)
+    @performance: This is an expensive operation - use sparingly
+    @logs: Activity logging with record count
+
+    @example:
+        GET /api/export/all
+
+        Response: CSV file download
+        Filename: complete_export_150_applicants_2026-01-09.csv
+    """
+    if not current_user.is_authenticated or current_user.is_viewer:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    try:
+        from models.applicants import get_all_applicants_complete_export
+
+        # Call the model function to get all data
+        applicants, error = get_all_applicants_complete_export()
+
+        if error:
+            return jsonify({"success": False, "message": error}), 500
+
+        if not applicants or len(applicants) == 0:
+            return jsonify({"success": False, "message": "No applicants found in database"}), 404
+
+        # Create CSV output
+        output = io.StringIO()
+
+        # Get headers from the first applicant's keys
+        headers = list(applicants[0].keys())
+        writer = csv.DictWriter(output, fieldnames=headers)
+        writer.writeheader()
+
+        # Helper function to clean None/NaN values
+        def clean_row(row):
+            """Convert None, NaN, and null values to empty strings for CSV export."""
+            cleaned = {}
+            for k, v in row.items():
+                # Handle None
+                if v is None:
+                    cleaned[k] = ''
+                # Handle string 'nan', 'NaN', 'none', 'null'
+                elif isinstance(v, str) and v.lower() in ['nan', 'none', 'null', '']:
+                    cleaned[k] = ''
+                # Handle float NaN
+                elif isinstance(v, float):
+                    import math
+                    if math.isnan(v):
+                        cleaned[k] = ''
+                    else:
+                        cleaned[k] = v
+                else:
+                    cleaned[k] = v
+            return cleaned
+
+        # Write all applicants to CSV
+        for applicant in applicants:
+            writer.writerow(clean_row(applicant))
+
+        # Log the activity
+        log_activity(
+            action_type="export",
+            target_entity="all_applicants",
+            target_id="complete_database",
+            additional_metadata={
+                "record_count": len(applicants),
+                "export_type": "complete_database_export",
+                "exported_by": current_user.email
+            }
+        )
+
+        # Prepare response
+        output.seek(0)
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+
+        # Generate filename with timestamp and count
+        filename = f'complete_export_{len(applicants)}_applicants_{datetime.now().strftime("%Y-%m-%d")}.csv'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+
+        return response
+
+    except Exception as e:
+        print(f"Export all error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"Export failed: {str(e)}"}), 500
+
 @applicants_api.route("/export/selected", methods=["POST"])
 def export_selected_applicants():
     """Export multiple selected applicants (horizontal, one row per applicant)."""
