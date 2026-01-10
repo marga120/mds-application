@@ -360,6 +360,9 @@ class ApplicantsManager {
       case "Send Offer to CoGS":
         badge.classList.add("bg-green-100", "text-green-800");
         break;
+      case "GPA Review @ CoGS":
+        badge.classList.add("bg-teal-100", "text-teal-800");
+        break;
       case "Offer Sent to CoGS":
         badge.classList.add("bg-blue-100", "text-blue-800");
         break;
@@ -875,6 +878,7 @@ class ApplicantsManager {
                   <label class="block text-sm font-medium text-gray-700 mb-2">Application Status</label>
                   <select id="prereqStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                     <option value="Not Reviewed">Not Reviewed</option>
+                    <option value="GPA Review @ CoGS">GPA Review @ CoGS</option>
                     <option value="Reviewed by PPA">Reviewed by PPA</option>
                     <option value="Need Jeff's Review">Need Jeff's Review</option>
                     <option value="Need Khalad's Review">Need Khalad's Review</option>
@@ -982,6 +986,7 @@ class ApplicantsManager {
               <label class="block text-sm font-medium text-gray-700 mb-2">Application Status</label>
               <select id="ratingsStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                 <option value="Not Reviewed">Not Reviewed</option>
+                <option value="GPA Review @ CoGS">GPA Review @ CoGS</option>
                 <option value="Reviewed by PPA">Reviewed by PPA</option>
                 <option value="Need Jeff's Review">Need Jeff's Review</option>
                 <option value="Need Khalad's Review">Need Khalad's Review</option>
@@ -1069,6 +1074,7 @@ class ApplicantsManager {
                       <div id="statusDropdownContainer">
                         <select id="statusSelect" class="input-ubc w-full text-base">
                           <option value="Not Reviewed">Not Reviewed</option>
+                          <option value="GPA Review @ CoGS">GPA Review @ CoGS</option>
                           <option value="Reviewed by PPA">Reviewed by PPA</option>
                           <option value="Need Jeff's Review">Need Jeff's Review</option>
                           <option value="Need Khalad's Review">Need Khalad's Review</option>
@@ -3478,6 +3484,10 @@ class ApplicantsManager {
         badge.classList.add("bg-green-100", "text-green-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-green-400";
         break;
+      case "GPA Review @ CoGS":
+        badge.classList.add("bg-teal-100", "text-teal-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-teal-400";
+        break;
       case "Offer Sent to CoGS":
         badge.classList.add("bg-blue-100", "text-blue-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-blue-400";
@@ -4818,6 +4828,7 @@ async initializeExportButton() {
                 >
                   <option value="" ${this.reviewStatusFilter === "" ? "selected" : ""}>All Statuses</option>
                   <option value="Not Reviewed" ${this.reviewStatusFilter === "Not Reviewed" ? "selected" : ""}>Not Reviewed</option>
+                  <option value="GPA Review @ CoGS" ${this.reviewStatusFilter === "GPA Review @ CoGS" ? "selected" : ""}>GPA Review @ CoGS</option>
                   <option value="Reviewed by PPA" ${this.reviewStatusFilter === "Reviewed by PPA" ? "selected" : ""}>Reviewed by PPA</option>
                   <option value="Need Jeff's Review" ${this.reviewStatusFilter === "Need Jeff's Review" ? "selected" : ""}>Need Jeff's Review</option>
                   <option value="Need Khalad's Review" ${this.reviewStatusFilter === "Need Khalad's Review" ? "selected" : ""}>Need Khalad's Review</option>

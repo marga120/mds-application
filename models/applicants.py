@@ -2149,9 +2149,6 @@ def get_all_applicants_complete_export():
     - English proficiency status
     - Scholarship and offer information
 
-    This is the most comprehensive export query, joining ALL tables and
-    retrieving ALL columns without any filtering.
-
     @return: Tuple of (applicants_list, error_message)
     @return_type: tuple[list[dict], None] or tuple[None, str]
 

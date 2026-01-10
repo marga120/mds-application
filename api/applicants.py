@@ -412,6 +412,7 @@ def update_applicant_status(user_code):
     # Validate status values
     valid_statuses = [
         "Not Reviewed",
+        "GPA Review @ CoGS",
         "Reviewed by PPA",
         "Need Jeff's Review",
         "Need Khalad's Review",
