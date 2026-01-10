@@ -780,58 +780,6 @@ def _write_single_applicant_csv_sections(writer, applicant_data, sections=None):
     writer.writerow(['='*20, '='*20, '='*20])
     writer.writerow([])
 
-
-@applicants_api.route("/export/single/<user_code>", methods=["POST"])
-def export_single_applicant(user_code):
-    """Export single applicant data to CSV with optional section filtering."""
-    
-    if not current_user.is_authenticated or current_user.is_viewer:
-        return jsonify({"success": False, "message": "Access denied"}), 403
-
-    try:
-        from models.applicants import get_single_applicant_for_export
-        
-        data = request.get_json() or {}
-        sections = data.get('sections', None)
-        
-        applicant_data, error = get_single_applicant_for_export(user_code, include_sections=sections)
-        
-        if error:
-            return jsonify({"success": False, "message": error}), 500
-        
-        # Create CSV
-        output = io.StringIO()
-        writer = csv.writer(output)
-        
-        # Call the helper function to write vertically
-        _write_single_applicant_csv_sections(writer, applicant_data, sections)
-        
-        # Log the export
-        log_activity(
-            action_type="export",
-            target_entity="single_applicant",
-            target_id=user_code,
-            additional_metadata={"sections": sections or "all"}
-        )
-        
-        # Create response
-        output.seek(0)
-        response = make_response(output.getvalue())
-        response.headers['Content-Type'] = 'text/csv'
-        
-        sections_str = '_'.join(sections) if sections else 'complete'
-        filename = f'applicant_{user_code}_{sections_str}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
-        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
-        
-        return response
-        
-    except Exception as e:
-        print(f"Export error: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": f"Export failed: {str(e)}"}), 500
-
-
 @applicants_api.route("/export/selected", methods=["POST"])
 def export_selected_applicants():
     """Export multiple selected applicants (horizontal, one row per applicant)."""

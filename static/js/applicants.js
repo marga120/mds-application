@@ -22,6 +22,7 @@ class ApplicantsManager {
     this.initializeExportButton();
     window.applicantsManager = this;
     this.initializeClearDataButton();
+    this.checkExportModalFlag();
   }
 
   initializeEventListeners() {
@@ -4858,7 +4859,8 @@ async initializeExportButton() {
             : applicants
             .map(
               (applicant) => `
-              <tr>
+              <tr class="applicant-row-clickable" style="cursor: pointer;"
+                  onclick="window.applicantsManager.showApplicantModal('${applicant.user_code}', '${applicant.given_name} ${applicant.family_name}')">
                 <td>
                   <div class="applicant-card">
                     <div class="applicant-avatar">
@@ -4909,9 +4911,9 @@ async initializeExportButton() {
                     ${this.formatLastChanged(applicant.seconds_since_update)}
                   </span>
                 </td>
-                <td>
+                <td onclick="event.stopPropagation()">
                   <div class="relative">
-                    <button class="btn-actions" data-user-code="${applicant.user_code}" 
+                    <button class="btn-actions" data-user-code="${applicant.user_code}"
                             data-user-name="${applicant.given_name} ${applicant.family_name}"
                             onclick="window.applicantsManager.showActionsMenu(event, '${applicant.user_code}', '${applicant.given_name} ${applicant.family_name}')">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4947,20 +4949,13 @@ async initializeExportButton() {
     const menu = document.createElement('div');
     menu.className = 'actions-dropdown absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50';
     menu.innerHTML = `
-    <button class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150 flex items-center gap-2 rounded-t-lg"
+    <button class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150 flex items-center gap-2 rounded-lg"
             onclick="window.applicantsManager.showApplicantModal('${userCode}', '${userName}')">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
       </svg>
       View Details
-    </button>
-    <button class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150 flex items-center gap-2 rounded-b-lg"
-            onclick="window.applicantsManager.showExportOptionsModal('${userCode}', '${userName}')">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-      </svg>
-      Export Applicant
     </button>
   `;
 
@@ -5080,6 +5075,18 @@ closeUploadModal() {
   if (fileStatus) fileStatus.textContent = 'No file chosen';
   if (uploadBtn) uploadBtn.disabled = true;
   if (message) message.classList.add('hidden');
+}
+
+checkExportModalFlag() {
+  // Check if we should open the export modal (e.g., redirected from another page)
+  const shouldOpenExport = localStorage.getItem('openExportModal');
+  if (shouldOpenExport === 'true') {
+    localStorage.removeItem('openExportModal');
+    // Wait a bit for data to load before opening modal
+    setTimeout(() => {
+      this.showGlobalExportModal();
+    }, 500);
+  }
 }
 
 showGlobalExportModal() {

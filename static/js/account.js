@@ -24,10 +24,13 @@ class AccountManager {
 
   initializeEventListeners() {
     // Personal Settings
-    document.getElementById("updateEmailForm").addEventListener("submit", (e) => { e.preventDefault(); this.handleUpdateEmail(); });
+    // Update Email 
+    // document.getElementById("updateEmailForm").addEventListener("submit", (e) => { e.preventDefault(); this.handleUpdateEmail(); });
     document.getElementById("changePasswordForm").addEventListener("submit", (e) => { e.preventDefault(); this.handleChangePassword(); });
   }
   //Personal Settings
+  // Update Email 
+  /*
   async handleUpdateEmail() {
     const newEmail = document.getElementById("newEmail").value;
     const password = document.getElementById("emailPassword").value;
@@ -44,6 +47,7 @@ class AccountManager {
         if(result.success) this.loadUserInfo();
     } catch (e) { console.error(e); }
   }
+  */
 
   async handleChangePassword() {
     const current = document.getElementById("currentPasswordAccount").value;
