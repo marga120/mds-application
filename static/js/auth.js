@@ -1188,6 +1188,11 @@ setupUploadModal() {
         // Call the export function from applicantsManager
         if (window.applicantsManager) {
           window.applicantsManager.showGlobalExportModal();
+        } else {
+          // If applicantsManager is not available (on other pages), redirect to home page
+          // and set a flag to open the export modal after page load
+          localStorage.setItem('openExportModal', 'true');
+          window.location.href = '/';
         }
       });
     }

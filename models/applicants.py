@@ -1963,128 +1963,6 @@ def update_english_status(user_code, english_status):
             conn.close()
         return False, f"Database error: {str(e)}"
     
-    ###CHANGED------------------------------------------------------------------------------------------------
-def get_single_applicant_for_export(user_code, include_sections=None):
-    """
-    Fetch comprehensive data for a single applicant, structured by section.
-    Retrieves all application-related data for a specific applicant. The data
-    is compiled from multiple tables and returned as a dictionary nested by
-    section. Optionally, the 'include_sections' parameter can be used to
-    limit the returned data to specific sections (e.g., 'personal', 'ratings').
-
-    @param user_code: Unique identifier for the applicant
-    @param_type user_code: str
-    @param include_sections: An iterable (e.g., list or set) of section names
-                             to include. If None, all sections are included.
-    @param_type include_sections: iterable[str] or None
-    @return: A tuple containing the applicant's data dictionary and an error
-             message. On success, (result_dict, None). On failure,
-             (None, error_message).
-    @return_type: tuple[dict | None, str | None]
-    @validation: Validates that user_code exists in applicant_info.
-    @db_tables: applicant_info, applicant_status, application_info,
-                test_scores, institutions, ratings, "user"
-    @example:
-        # Fetch all data for one applicant
-        data, error = get_single_applicant_for_export("12345")
-        if not error:
-            print(data['basic']['given_name'])
-
-        # Fetch only basic info and ratings
-        data, error = get_single_applicant_for_export(
-            "67890",
-            include_sections=['basic', 'ratings']
-        )
-    """
-    conn = get_db_connection()
-    if not conn:
-        return None, "Database connection failed"
-
-    try:
-        result = {}
-        
-        # basic applicant info
-        applicant_info, error = get_applicant_info_by_code(user_code)
-        if error or not applicant_info:
-            return None, error or "Applicant not found"
-        #grab basic info, put into result arr
-        result['basic'] = {
-            'user_code': user_code,
-            'given_name': applicant_info.get('given_name'),
-            'family_name': applicant_info.get('family_name'),
-            'email': applicant_info.get('email')
-        }
-        
-        # Personal Information
-        if not include_sections or 'personal' in include_sections:
-            # Get status info separately
-            cursor = conn.cursor(cursor_factory=RealDictCursor)
-            cursor.execute("""
-                SELECT student_number, app_start, submit_date, status, detail_status
-                FROM applicant_status
-                WHERE user_code = %s
-            """, (user_code,))
-            status_info = cursor.fetchone()
-            cursor.close()
-            
-            # Combine applicant_info with status_info
-            result['personal'] = {**applicant_info, **(status_info or {})}
-        
-        # Application Information - use existing getter
-        if not include_sections or 'application' in include_sections:
-            app_info, _ = get_applicant_application_info_by_code(user_code)
-            result['application'] = app_info
-        
-        # Prerequisites - already part of application_info
-        if not include_sections or 'prerequisites' in include_sections:
-            if 'application' not in result:
-                app_info, _ = get_applicant_application_info_by_code(user_code)
-            else:
-                app_info = result['application']
-            
-            result['prerequisites'] = {
-                'cs': app_info.get('cs') if app_info else None,
-                'stat': app_info.get('stat') if app_info else None,
-                'math': app_info.get('math') if app_info else None,
-                'gpa': app_info.get('gpa') if app_info else None
-            }
-        
-        # Test Scores - use existing getter
-        if not include_sections or 'test_scores' in include_sections:
-            test_scores, _ = get_applicant_test_scores_by_code(user_code)
-            result['test_scores'] = test_scores or {}
-        
-        # Institutions - use existing getter
-        if not include_sections or 'institutions' in include_sections:
-            institutions, _ = get_applicant_institutions_by_code(user_code)
-            result['institutions'] = institutions or []
-        
-        # Ratings and Comments - only unique query needed
-        if not include_sections or 'ratings' in include_sections:
-            cursor = conn.cursor(cursor_factory=RealDictCursor)
-            cursor.execute("""
-                SELECT 
-                    r.rating, r.user_comment, r.created_at, r.updated_at,
-                    u.first_name, u.last_name, u.email as reviewer_email
-                FROM ratings r
-                JOIN "user" u ON r.user_id = u.id
-                WHERE r.user_code = %s
-                ORDER BY r.created_at DESC
-            """, (user_code,))
-            result['ratings'] = cursor.fetchall()
-            cursor.close()
-        
-        conn.close()
-        return result, None
-
-    except Exception as e:
-        if conn:
-            conn.close()
-        print(f"Error in get_single_applicant_for_export: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return None, f"Database error: {str(e)}"
-
 
 def get_selected_applicants_for_export(user_codes, sections=None):
     """
@@ -2254,6 +2132,381 @@ def get_selected_applicants_for_export(user_codes, sections=None):
         import traceback
         traceback.print_exc()
         return None, f"Database error: {str(e)}"
+
+
+def get_all_applicants_complete_export():
+    """
+    Fetch every single piece of information for all applicants in the database.
+
+    Retrieves absolutely all data from all applicant-related tables including:
+    - Basic applicant information (demographics, contact, citizenship)
+    - Application status and submission details
+    - Session and program information
+    - All test scores (TOEFL, IELTS, GRE, GMAT, Duolingo, etc.)
+    - Institution history (aggregated as JSON)
+    - Ratings and comments from all faculty (aggregated as JSON)
+    - Prerequisites and GPA information
+    - English proficiency status
+    - Scholarship and offer information
+
+    @return: Tuple of (applicants_list, error_message)
+    @return_type: tuple[list[dict], None] or tuple[None, str]
+
+    @db_tables: applicant_info, applicant_status, application_info, sessions,
+                program_info, institution_info, ratings, user, toefl, ielts,
+                melab, pte, cael, celpip, alt_elpp, gre, gmat, duolingo
+
+    @joins: Comprehensive LEFT JOINs across all tables, with JSON aggregations
+            for one-to-many and many-to-many relationships
+
+    @aggregations:
+        - institution_info: JSON array of all institutions per applicant
+        - ratings: JSON array of all ratings/comments with reviewer info
+        - toefl: JSON array of all TOEFL scores
+        - ielts: JSON array of all IELTS scores
+        - All other test scores as individual records
+
+    @ordering: Results sorted alphabetically by family_name, then given_name
+
+    @performance: This query is expensive - it joins 18+ tables and aggregates
+                  large amounts of data. Use sparingly, typically only for
+                  complete database exports.
+
+    @example:
+        applicants, error = get_all_applicants_complete_export()
+        if error:
+            print(f"Export failed: {error}")
+        else:
+            print(f"Exported {len(applicants)} applicants with complete data")
+            # Each applicant dict contains 100+ fields
+    """
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        query = """
+            SELECT
+                -- ========== BASIC IDENTIFICATION ==========
+                ai.user_code AS "User Code",
+                ast.student_number AS "Student Number",
+
+                -- ========== SESSION & PROGRAM INFO ==========
+                s.id AS "Session ID",
+                s.program_code AS "Program Code",
+                s.program AS "Program",
+                s.session_abbrev AS "Session Abbreviation",
+                s.year AS "Session Year",
+                s.name AS "Session Name",
+                s.description AS "Session Description",
+                pi.program_code AS "Program Info Code",
+                pi.program AS "Program Info Name",
+                pi.session AS "Program Info Session",
+
+                -- ========== PERSONAL INFORMATION ==========
+                ai.interest_code AS "Interest Code",
+                ai.interest AS "Source of Interest",
+                ai.title AS "Title",
+                ai.family_name AS "Family Name",
+                ai.given_name AS "Given Name",
+                ai.middle_name AS "Middle Name",
+                ai.preferred_name AS "Preferred Name",
+                ai.former_family_name AS "Former Family Name",
+                ai.gender_code AS "Gender Code",
+                ai.gender AS "Gender",
+                ai.country_birth_code AS "Country of Birth Code",
+                ai.country_birth AS "Country of Birth",
+                TO_CHAR(ai.date_birth, 'YYYY-MM-DD') AS "Date of Birth",
+                ai.age AS "Age",
+                CASE
+                    WHEN ai.age < 18 THEN 'Under 18'
+                    WHEN ai.age BETWEEN 18 AND 24 THEN '18-24'
+                    WHEN ai.age BETWEEN 25 AND 34 THEN '25-34'
+                    WHEN ai.age BETWEEN 35 AND 44 THEN '35-44'
+                    WHEN ai.age BETWEEN 45 AND 54 THEN '45-54'
+                    WHEN ai.age >= 55 THEN '55+'
+                    ELSE NULL
+                END AS "Age Range",
+
+                -- ========== CITIZENSHIP & VISA ==========
+                ai.country_citizenship_code AS "Country of Citizenship Code",
+                ai.country_citizenship AS "Country of Citizenship",
+                ai.dual_citizenship_code AS "Dual Citizenship Code",
+                ai.dual_citizenship AS "Dual Citizenship",
+                ai.visa_type_code AS "Visa Type Code",
+                ai.visa_type AS "Visa Type",
+
+                -- ========== LANGUAGE ==========
+                ai.primary_spoken_lang_code AS "Primary Language Code",
+                ai.primary_spoken_lang AS "Primary Spoken Language",
+                ai.other_spoken_lang_code AS "Other Language Code",
+                ai.other_spoken_lang AS "Other Spoken Language",
+
+                -- ========== CONTACT INFORMATION ==========
+                ai.country_code AS "Current Country Code",
+                ai.country AS "Current Country",
+                ai.address_line1 AS "Address Line 1",
+                ai.address_line2 AS "Address Line 2",
+                ai.city AS "City",
+                ai.province_state_region AS "Province/State/Region",
+                ai.postal_code AS "Postal Code",
+                ai.primary_telephone AS "Primary Telephone",
+                ai.secondary_telephone AS "Secondary Telephone",
+                ai.email AS "Email",
+
+                -- ========== DIVERSITY & BACKGROUND ==========
+                ai.aboriginal AS "Aboriginal",
+                ai.first_nation AS "First Nation",
+                ai.inuit AS "Inuit",
+                ai.metis AS "Metis",
+                ai.aboriginal_not_specified AS "Aboriginal Not Specified",
+                ai.aboriginal_info AS "Aboriginal Information",
+                ai.racialized AS "Racialized",
+                ai.academic_history_code AS "Academic History Code",
+                ai.academic_history AS "Academic History",
+                ai.ubc_academic_history AS "UBC Academic History",
+
+                -- ========== APPLICATION STATUS ==========
+                TO_CHAR(ast.app_start, 'YYYY-MM-DD') AS "Application Start Date",
+                TO_CHAR(ast.submit_date, 'YYYY-MM-DD') AS "Application Submit Date",
+                ast.status_code AS "Application Status Code",
+                ast.status AS "Application Status",
+                ast.detail_status AS "Application Detail Status",
+
+                -- ========== APPLICATION REVIEW INFO ==========
+                app.sent AS "Review Status",
+                app.full_name AS "Full Name",
+                app.canadian AS "Canadian",
+                app.english AS "English Proficiency Met",
+                app.english_status AS "English Status",
+                app.english_description AS "English Description",
+                app.english_comment AS "English Comment",
+
+                -- ========== PREREQUISITES & ACADEMICS ==========
+                app.cs AS "Computer Science Prerequisite",
+                app.stat AS "Statistics Prerequisite",
+                app.math AS "Mathematics Prerequisite",
+                app.additional_comments AS "Additional Comments",
+                app.gpa AS "GPA",
+                app.highest_degree AS "Highest Degree",
+                app.degree_area AS "Degree Area",
+
+                -- ========== MDS PROGRAM APPLICATIONS ==========
+                app.mds_v AS "Applied MDS Vancouver",
+                app.mds_cl AS "Applied MDS Computational Linguistics",
+                app.mds_o AS "Applied MDS Okanagan",
+
+                -- ========== SCHOLARSHIP & OFFERS ==========
+                app.scholarship AS "Scholarship Status",
+                CASE
+                    WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined')
+                    THEN 'Yes'
+                    ELSE 'No'
+                END AS "Offer Sent",
+                CASE
+                    WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined')
+                    THEN app.sent
+                    ELSE NULL
+                END AS "Offer Status",
+
+                -- ========== TOEFL SCORES (Aggregated as JSON) ==========
+                COALESCE(
+                    (SELECT JSON_AGG(
+                        JSON_BUILD_OBJECT(
+                            'registration_number', t.registration_num,
+                            'date_written', TO_CHAR(t.date_written, 'YYYY-MM-DD'),
+                            'total_score', t.total_score,
+                            'listening', t.listening,
+                            'structure_written', t.structure_written,
+                            'reading', t.reading,
+                            'speaking', t.speaking,
+                            'mybest_total', t.mybest_total,
+                            'mybest_date', TO_CHAR(t.mybest_date, 'YYYY-MM-DD'),
+                            'mybest_listening', t.mybest_listening,
+                            'mybest_listening_date', TO_CHAR(t.mybest_listening_date, 'YYYY-MM-DD'),
+                            'mybest_writing', t.mybest_writing,
+                            'mybest_writing_date', TO_CHAR(t.mybest_writing_date, 'YYYY-MM-DD'),
+                            'mybest_reading', t.mybest_reading,
+                            'mybest_reading_date', TO_CHAR(t.mybest_reading_date, 'YYYY-MM-DD'),
+                            'mybest_speaking', t.mybest_speaking,
+                            'mybest_speaking_date', TO_CHAR(t.mybest_speaking_date, 'YYYY-MM-DD')
+                        ) ORDER BY t.date_written DESC
+                    ) FROM toefl t WHERE t.user_code = ai.user_code),
+                    '[]'::json
+                ) AS "TOEFL Scores",
+
+                -- ========== IELTS SCORES (Aggregated as JSON) ==========
+                COALESCE(
+                    (SELECT JSON_AGG(
+                        JSON_BUILD_OBJECT(
+                            'candidate_number', i.candidate_num,
+                            'date_written', TO_CHAR(i.date_written, 'YYYY-MM-DD'),
+                            'total_band_score', i.total_band_score,
+                            'listening', i.listening,
+                            'reading', i.reading,
+                            'writing', i.writing,
+                            'speaking', i.speaking
+                        ) ORDER BY i.date_written DESC
+                    ) FROM ielts i WHERE i.user_code = ai.user_code),
+                    '[]'::json
+                ) AS "IELTS Scores",
+
+                -- ========== MELAB SCORES ==========
+                melab.ref_num AS "MELAB Reference Number",
+                TO_CHAR(melab.date_written, 'YYYY-MM-DD') AS "MELAB Date Written",
+                melab.total AS "MELAB Total Score",
+
+                -- ========== PTE SCORES ==========
+                pte.ref_num AS "PTE Reference Number",
+                TO_CHAR(pte.date_written, 'YYYY-MM-DD') AS "PTE Date Written",
+                pte.total AS "PTE Total Score",
+
+                -- ========== CAEL SCORES ==========
+                cael.ref_num AS "CAEL Reference Number",
+                TO_CHAR(cael.date_written, 'YYYY-MM-DD') AS "CAEL Date Written",
+                cael.reading AS "CAEL Reading",
+                cael.listening AS "CAEL Listening",
+                cael.writing AS "CAEL Writing",
+                cael.speaking AS "CAEL Speaking",
+
+                -- ========== CELPIP SCORES ==========
+                celpip.ref_num AS "CELPIP Reference Number",
+                TO_CHAR(celpip.date_written, 'YYYY-MM-DD') AS "CELPIP Date Written",
+                celpip.listening AS "CELPIP Listening",
+                celpip.speaking AS "CELPIP Speaking",
+                celpip.reading_writing AS "CELPIP Reading/Writing",
+
+                -- ========== ALT ELPP SCORES ==========
+                alt_elpp.ref_num AS "Alt ELPP Reference Number",
+                TO_CHAR(alt_elpp.date_written, 'YYYY-MM-DD') AS "Alt ELPP Date Written",
+                alt_elpp.total AS "Alt ELPP Total Score",
+                alt_elpp.test_type AS "Alt ELPP Test Type",
+
+                -- ========== DUOLINGO SCORES ==========
+                duolingo.score AS "Duolingo Score",
+                duolingo.description AS "Duolingo Description",
+                TO_CHAR(duolingo.date_written, 'YYYY-MM-DD') AS "Duolingo Date Written",
+
+                -- ========== GRE SCORES ==========
+                gre.reg_num AS "GRE Registration Number",
+                TO_CHAR(gre.date_written, 'YYYY-MM-DD') AS "GRE Date Written",
+                gre.verbal AS "GRE Verbal",
+                gre.verbal_below AS "GRE Verbal Percentile Below",
+                gre.quantitative AS "GRE Quantitative",
+                gre.quantitative_below AS "GRE Quantitative Percentile Below",
+                gre.writing AS "GRE Analytical Writing",
+                gre.writing_below AS "GRE Writing Percentile Below",
+                gre.subject_tests AS "GRE Subject Tests",
+                gre.subject_reg_num AS "GRE Subject Registration Number",
+                TO_CHAR(gre.subject_date, 'YYYY-MM-DD') AS "GRE Subject Date",
+                gre.subject_scaled_score AS "GRE Subject Scaled Score",
+                gre.subject_below AS "GRE Subject Percentile Below",
+
+                -- ========== GMAT SCORES ==========
+                gmat.ref_num AS "GMAT Reference Number",
+                TO_CHAR(gmat.date_written, 'YYYY-MM-DD') AS "GMAT Date Written",
+                gmat.total AS "GMAT Total Score",
+                gmat.integrated_reasoning AS "GMAT Integrated Reasoning",
+                gmat.quantitative AS "GMAT Quantitative",
+                gmat.verbal AS "GMAT Verbal",
+                gmat.writing AS "GMAT Analytical Writing",
+
+                -- ========== INSTITUTION HISTORY (Aggregated as JSON) ==========
+                COALESCE(
+                    (SELECT JSON_AGG(
+                        JSON_BUILD_OBJECT(
+                            'institution_number', inst.institution_number,
+                            'institution_code', inst.institution_code,
+                            'institution_name', inst.full_name,
+                            'country', inst.country,
+                            'start_date', TO_CHAR(inst.start_date, 'YYYY-MM-DD'),
+                            'end_date', TO_CHAR(inst.end_date, 'YYYY-MM-DD'),
+                            'program_of_study', inst.program_study,
+                            'degree_conferred_code', inst.degree_confer_code,
+                            'degree_conferred', inst.degree_confer,
+                            'date_conferred', TO_CHAR(inst.date_confer, 'YYYY-MM-DD'),
+                            'credential_received_code', inst.credential_receive_code,
+                            'credential_received', inst.credential_receive,
+                            'expected_confer_date', TO_CHAR(inst.expected_confer_date, 'YYYY-MM-DD'),
+                            'expected_credential_code', inst.expected_credential_code,
+                            'expected_credential', inst.expected_credential,
+                            'honours', inst.honours,
+                            'fail_withdraw', inst.fail_withdraw,
+                            'reason', inst.reason,
+                            'gpa', inst.gpa
+                        ) ORDER BY inst.institution_number
+                    ) FROM institution_info inst WHERE inst.user_code = ai.user_code),
+                    '[]'::json
+                ) AS "Institution History",
+
+                -- ========== RATINGS & COMMENTS (Aggregated as JSON) ==========
+                COALESCE(
+                    (SELECT JSON_AGG(
+                        JSON_BUILD_OBJECT(
+                            'rating', r.rating,
+                            'comment', r.user_comment,
+                            'reviewer_first_name', u.first_name,
+                            'reviewer_last_name', u.last_name,
+                            'reviewer_email', u.email,
+                            'created_at', TO_CHAR(r.created_at, 'YYYY-MM-DD HH24:MI:SS'),
+                            'updated_at', TO_CHAR(r.updated_at, 'YYYY-MM-DD HH24:MI:SS')
+                        ) ORDER BY r.created_at DESC
+                    ) FROM ratings r
+                    JOIN "user" u ON r.user_id = u.id
+                    WHERE r.user_code = ai.user_code),
+                    '[]'::json
+                ) AS "Ratings and Comments",
+
+                -- ========== AVERAGE RATING ==========
+                (SELECT ROUND(AVG(r.rating), 2)
+                 FROM ratings r
+                 WHERE r.user_code = ai.user_code AND r.rating IS NOT NULL) AS "Average Rating",
+
+                -- ========== RATING COUNT ==========
+                (SELECT COUNT(*)
+                 FROM ratings r
+                 WHERE r.user_code = ai.user_code AND r.rating IS NOT NULL) AS "Number of Ratings",
+
+                -- ========== TIMESTAMPS ==========
+                TO_CHAR(ai.created_at, 'YYYY-MM-DD HH24:MI:SS') AS "Applicant Info Created At",
+                TO_CHAR(ai.updated_at, 'YYYY-MM-DD HH24:MI:SS') AS "Applicant Info Updated At",
+                TO_CHAR(ast.created_at, 'YYYY-MM-DD HH24:MI:SS') AS "Status Created At",
+                TO_CHAR(ast.updated_at, 'YYYY-MM-DD HH24:MI:SS') AS "Status Updated At"
+
+            FROM applicant_info ai
+            LEFT JOIN applicant_status ast ON ai.user_code = ast.user_code
+            LEFT JOIN application_info app ON ai.user_code = app.user_code
+            LEFT JOIN sessions s ON ai.session_id = s.id
+            LEFT JOIN program_info pi ON ai.user_code = pi.user_code
+            LEFT JOIN melab ON ai.user_code = melab.user_code
+            LEFT JOIN pte ON ai.user_code = pte.user_code
+            LEFT JOIN cael ON ai.user_code = cael.user_code
+            LEFT JOIN celpip ON ai.user_code = celpip.user_code
+            LEFT JOIN alt_elpp ON ai.user_code = alt_elpp.user_code
+            LEFT JOIN gre ON ai.user_code = gre.user_code
+            LEFT JOIN gmat ON ai.user_code = gmat.user_code
+            LEFT JOIN duolingo ON ai.user_code = duolingo.user_code
+            ORDER BY ai.family_name, ai.given_name
+        """
+
+        cursor.execute(query)
+        applicants = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return applicants, None
+
+    except Exception as e:
+        if conn:
+            conn.close()
+        print(f"Error in get_all_applicants_complete_export: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None, f"Database error: {str(e)}"
+
+
 def clear_all_applicant_data():
     """
     Clear all applicant data from the database.
