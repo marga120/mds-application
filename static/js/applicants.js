@@ -22,6 +22,7 @@ class ApplicantsManager {
     this.initializeExportButton();
     window.applicantsManager = this;
     this.initializeClearDataButton();
+    this.checkExportModalFlag();
   }
 
   initializeEventListeners() {
@@ -358,6 +359,9 @@ class ApplicantsManager {
         break;
       case "Send Offer to CoGS":
         badge.classList.add("bg-green-100", "text-green-800");
+        break;
+      case "GPA Review @ CoGS":
+        badge.classList.add("bg-teal-100", "text-teal-800");
         break;
       case "Offer Sent to CoGS":
         badge.classList.add("bg-blue-100", "text-blue-800");
@@ -874,6 +878,7 @@ class ApplicantsManager {
                   <label class="block text-sm font-medium text-gray-700 mb-2">Application Status</label>
                   <select id="prereqStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                     <option value="Not Reviewed">Not Reviewed</option>
+                    <option value="GPA Review @ CoGS">GPA Review @ CoGS</option>
                     <option value="Reviewed by PPA">Reviewed by PPA</option>
                     <option value="Need Jeff's Review">Need Jeff's Review</option>
                     <option value="Need Khalad's Review">Need Khalad's Review</option>
@@ -981,6 +986,7 @@ class ApplicantsManager {
               <label class="block text-sm font-medium text-gray-700 mb-2">Application Status</label>
               <select id="ratingsStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                 <option value="Not Reviewed">Not Reviewed</option>
+                <option value="GPA Review @ CoGS">GPA Review @ CoGS</option>
                 <option value="Reviewed by PPA">Reviewed by PPA</option>
                 <option value="Need Jeff's Review">Need Jeff's Review</option>
                 <option value="Need Khalad's Review">Need Khalad's Review</option>
@@ -1068,6 +1074,7 @@ class ApplicantsManager {
                       <div id="statusDropdownContainer">
                         <select id="statusSelect" class="input-ubc w-full text-base">
                           <option value="Not Reviewed">Not Reviewed</option>
+                          <option value="GPA Review @ CoGS">GPA Review @ CoGS</option>
                           <option value="Reviewed by PPA">Reviewed by PPA</option>
                           <option value="Need Jeff's Review">Need Jeff's Review</option>
                           <option value="Need Khalad's Review">Need Khalad's Review</option>
@@ -3477,6 +3484,10 @@ class ApplicantsManager {
         badge.classList.add("bg-green-100", "text-green-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-green-400";
         break;
+      case "GPA Review @ CoGS":
+        badge.classList.add("bg-teal-100", "text-teal-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-teal-400";
+        break;
       case "Offer Sent to CoGS":
         badge.classList.add("bg-blue-100", "text-blue-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-blue-400";
@@ -4813,10 +4824,11 @@ async initializeExportButton() {
                 <select
                   onchange="window.applicantsManager.filterByReviewStatus(this.value)"
                   class="text-xs border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                  style="max-width: 140px;"
+                  style="max-width: 140px;" 
                 >
                   <option value="" ${this.reviewStatusFilter === "" ? "selected" : ""}>All Statuses</option>
                   <option value="Not Reviewed" ${this.reviewStatusFilter === "Not Reviewed" ? "selected" : ""}>Not Reviewed</option>
+                  <option value="GPA Review @ CoGS" ${this.reviewStatusFilter === "GPA Review @ CoGS" ? "selected" : ""}>GPA Review @ CoGS</option>
                   <option value="Reviewed by PPA" ${this.reviewStatusFilter === "Reviewed by PPA" ? "selected" : ""}>Reviewed by PPA</option>
                   <option value="Need Jeff's Review" ${this.reviewStatusFilter === "Need Jeff's Review" ? "selected" : ""}>Need Jeff's Review</option>
                   <option value="Need Khalad's Review" ${this.reviewStatusFilter === "Need Khalad's Review" ? "selected" : ""}>Need Khalad's Review</option>
@@ -4842,7 +4854,7 @@ async initializeExportButton() {
                 ${this.getSortIcon('last_updated')}
               </div>
             </th>
-            <th style="width: 8%;">Actions</th>
+            <th style="width: 6%;">View</th>
           </tr>
         </thead>
         <tbody>
@@ -4858,7 +4870,8 @@ async initializeExportButton() {
             : applicants
             .map(
               (applicant) => `
-              <tr>
+              <tr class="applicant-row-clickable" style="cursor: pointer;"
+                  onclick="window.applicantsManager.showApplicantModal('${applicant.user_code}', '${applicant.given_name} ${applicant.family_name}')">
                 <td>
                   <div class="applicant-card">
                     <div class="applicant-avatar">
@@ -4909,9 +4922,9 @@ async initializeExportButton() {
                     ${this.formatLastChanged(applicant.seconds_since_update)}
                   </span>
                 </td>
-                <td>
+                <td onclick="event.stopPropagation()">
                   <div class="relative">
-                    <button class="btn-actions" data-user-code="${applicant.user_code}" 
+                    <button class="btn-actions" data-user-code="${applicant.user_code}"
                             data-user-name="${applicant.given_name} ${applicant.family_name}"
                             onclick="window.applicantsManager.showActionsMenu(event, '${applicant.user_code}', '${applicant.given_name} ${applicant.family_name}')">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4947,20 +4960,13 @@ async initializeExportButton() {
     const menu = document.createElement('div');
     menu.className = 'actions-dropdown absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50';
     menu.innerHTML = `
-    <button class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150 flex items-center gap-2 rounded-t-lg"
+    <button class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150 flex items-center gap-2 rounded-lg"
             onclick="window.applicantsManager.showApplicantModal('${userCode}', '${userName}')">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
       </svg>
       View Details
-    </button>
-    <button class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150 flex items-center gap-2 rounded-b-lg"
-            onclick="window.applicantsManager.showExportOptionsModal('${userCode}', '${userName}')">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-      </svg>
-      Export Applicant
     </button>
   `;
 
@@ -5080,6 +5086,18 @@ closeUploadModal() {
   if (fileStatus) fileStatus.textContent = 'No file chosen';
   if (uploadBtn) uploadBtn.disabled = true;
   if (message) message.classList.add('hidden');
+}
+
+checkExportModalFlag() {
+  // Check if we should open the export modal (e.g., redirected from another page)
+  const shouldOpenExport = localStorage.getItem('openExportModal');
+  if (shouldOpenExport === 'true') {
+    localStorage.removeItem('openExportModal');
+    // Wait a bit for data to load before opening modal
+    setTimeout(() => {
+      this.showGlobalExportModal();
+    }, 500);
+  }
 }
 
 showGlobalExportModal() {
@@ -5465,48 +5483,55 @@ async exportAllApplicantsAllData() {
   `;
 
   try {
-    // Get all applicant user codes
-    const applicants = this.currentExportApplicants?.length > 0
-      ? this.currentExportApplicants
-      : this.allApplicants || [];
-
-    if (applicants.length === 0) {
-      this.showMessage('No applicants available to export', 'error');
-      return;
-    }
-
-    const userCodes = applicants.map(a => a.user_code);
-
-    // Include ALL sections
-    const allSections = ['personal', 'application', 'education', 'test_scores', 'ratings', 'prerequisites'];
-
-    const response = await fetch('/api/export/selected', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        user_codes: userCodes,
-        sections: allSections
-      })
+    // Call the dedicated export all endpoint (GET request - no body needed)
+    const response = await fetch('/api/export/all', {
+      method: 'GET',
+      credentials: 'include'
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Export failed');
+      // Try to parse error message
+      let errorMessage = 'Export failed';
+      try {
+        const error = await response.json();
+        errorMessage = error.message || errorMessage;
+      } catch (e) {
+        // Response might not be JSON
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
+    // Get the CSV blob from response
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const dateStr = new Date().toISOString().slice(0, 10);
-    a.download = `complete_database_export_${userCodes.length}_applicants_${dateStr}.csv`;
+
+    // Extract filename from Content-Disposition header if available
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = `complete_database_export_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+      if (filenameMatch) {
+        filename = filenameMatch[1];
+      }
+    }
+
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
 
-    this.showMessage(`Successfully exported complete data for all ${userCodes.length} applicants`, 'success');
+    // Close the modal after successful export
+    const modal = document.getElementById('globalExportModal');
+    if (modal) {
+      modal.remove();
+    }
+
+    this.showMessage('Successfully exported complete database with all applicant data', 'success');
 
   } catch (error) {
     console.error('Export error:', error);
