@@ -361,7 +361,7 @@ class ApplicantsManager {
         badge.classList.add("bg-green-100", "text-green-800");
         break;
       case "GPA Review @ CoGS":
-        badge.classList.add("bg-teal-100", "text-teal-800");
+        badge.classList.add("bg-indigo-100", "text-indigo-800");
         break;
       case "Offer Sent to CoGS":
         badge.classList.add("bg-blue-100", "text-blue-800");
@@ -3485,8 +3485,8 @@ class ApplicantsManager {
         dot.className = "w-2 h-2 rounded-full mr-2 bg-green-400";
         break;
       case "GPA Review @ CoGS":
-        badge.classList.add("bg-teal-100", "text-teal-800");
-        dot.className = "w-2 h-2 rounded-full mr-2 bg-teal-400";
+        badge.classList.add("bg-indigo-100", "text-indigo-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-indigo-400";
         break;
       case "Offer Sent to CoGS":
         badge.classList.add("bg-blue-100", "text-blue-800");
@@ -4871,7 +4871,7 @@ async initializeExportButton() {
             .map(
               (applicant) => `
               <tr class="applicant-row-clickable" style="cursor: pointer;"
-                  onclick="window.applicantsManager.showApplicantModal('${applicant.user_code}', '${applicant.given_name} ${applicant.family_name}')">
+                  onclick="window.applicantsManager.showApplicantModal('${applicant.user_code}', '${(applicant.given_name + ' ' + applicant.family_name).replace(/'/g, "\\'")}')">
                 <td>
                   <div class="applicant-card">
                     <div class="applicant-avatar">
@@ -4961,7 +4961,7 @@ async initializeExportButton() {
     menu.className = 'actions-dropdown absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50';
     menu.innerHTML = `
     <button class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150 flex items-center gap-2 rounded-lg"
-            onclick="window.applicantsManager.showApplicantModal('${userCode}', '${userName}')">
+            onclick="window.applicantsManager.showApplicantModal('${userCode}', '${userName.replace(/'/g, "\\'")}')">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
