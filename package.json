@@ -6,7 +6,7 @@
   "scripts": {
     "build-css": "npx @tailwindcss/cli -i ./static/css/input.css -o ./static/css/output.css --watch",
     "build-css-once": "npx @tailwindcss/cli -i ./static/css/input.css -o ./static/css/output.css",
-    "flask": "python main.py",
+    "flask": "python3 main.py",
     "dev": "npm-run-all --parallel build-css flask",
     "start": "npm run dev"
   },
