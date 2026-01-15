@@ -50,7 +50,7 @@ class StatisticsManager {
       const unsubmitted = this.applicants.filter(a => this.isUnsubmittedStatus(a.status)).length;                                                                    
                                                                                                                 
       // Domestic vs International                                                                              
-      const domestic = this.applicants.filter(a => a.canadian === "Yes").length;                                
+      const domestic = this.applicants.filter(a => (a.canadian === "Yes" || a.visa === "PERM")).length;                                
       const international = total - domestic;                                                                   
                                                                                                                 
       // Gender Distribution                                                                                    
@@ -177,7 +177,7 @@ class StatisticsManager {
                                                                                     
         // Calculate Domestic vs International                                      
         const domestic = filteredApplicants.filter(a => a.canadian ===              
-        "Yes").length;                                                                
+        "Yes" || a.visa === "PERM").length;                                                                
         const international = total - domestic;                                     
         const domesticPercent = ((domestic / total) * 100).toFixed(1);              
         const internationalPercent = ((international / total) * 100).toFixed(1);    
@@ -256,7 +256,7 @@ class StatisticsManager {
         (${femalePercent}%)</span>                                                    
                     </div>                                                          
                     <div class="w-full bg-gray-200 rounded-full h-3">
-                    <div class="bg-blue-500 h-3 rounded-full transition-all
+                    <div class="bg-pink-500 h-3 rounded-full transition-all
         duration-500" style="width: ${femalePercent}%"></div>                         
                     </div>                                                          
                 </div>                                                            
