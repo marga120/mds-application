@@ -5183,15 +5183,15 @@ createGlobalExportModal(tempSelectedApplicants, exportFunction) {
       </div>
 
       <div class="mt-4">
-        <!-- Export All Applicants - All Data -->
+        <!-- Export All - Quick Export -->
         <div class="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
           <div class="flex items-center justify-between">
             <div>
-              <h4 class="text-sm font-semibold text-purple-900 mb-1">Export Complete Database</h4>
+              <h4 class="text-sm font-semibold text-purple-900 mb-1">Export All</h4>
               <p class="text-xs text-purple-700">Export all applicants with all information</p>
             </div>
-            <button id="exportAllEverythingBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium whitespace-nowrap">
-              Export Everything
+            <button id="exportAllBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium whitespace-nowrap">
+              Export All
             </button>
           </div>
         </div>
@@ -5234,43 +5234,12 @@ createGlobalExportModal(tempSelectedApplicants, exportFunction) {
           </p>
         </div>
 
-        <!-- Export Sections (reuse existing structure) -->
-        <div class="mb-4">
-          <p class="text-sm text-gray-600 mb-3">Select data sections to export:</p>
-          <div class="grid grid-cols-2 gap-2">
-            <label class="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" class="global-export-section w-4 h-4" value="personal" checked>
-              <span class="text-sm text-gray-700">Personal Info</span>
-            </label>
-            <label class="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" class="global-export-section w-4 h-4" value="application" checked>
-              <span class="text-sm text-gray-700">Application Data</span>
-            </label>
-            <label class="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" class="global-export-section w-4 h-4" value="education" checked>
-              <span class="text-sm text-gray-700">Education History</span>
-            </label>
-            <label class="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" class="global-export-section w-4 h-4" value="test_scores">
-              <span class="text-sm text-gray-700">Test Scores</span>
-            </label>
-            <label class="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" class="global-export-section w-4 h-4" value="ratings">
-              <span class="text-sm text-gray-700">Ratings & Comments</span>
-            </label>
-            <label class="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" class="global-export-section w-4 h-4" value="prerequisites">
-              <span class="text-sm text-gray-700">Prerequisites & GPA</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="flex justify-end gap-3">
+        <div class="flex justify-end gap-3 mt-6">
           <button class="global-export-modal-close btn-ubc-outline">
             Cancel
           </button>
           <button id="globalConfirmExport" class="btn-ubc">
-            Export Selected
+            Export for Marketing
           </button>
         </div>
       </div>
@@ -5299,8 +5268,8 @@ createGlobalExportModal(tempSelectedApplicants, exportFunction) {
   // Load applicants from API if needed
   this.loadApplicantsForGlobalExport(tempSelectedApplicants);
 
-  // Export Everything button
-  document.getElementById('exportAllEverythingBtn').addEventListener('click', async () => {
+  // Export All button
+  document.getElementById('exportAllBtn').addEventListener('click', async () => {
     await this.exportAllApplicantsAllData();
   });
 
@@ -5332,22 +5301,14 @@ createGlobalExportModal(tempSelectedApplicants, exportFunction) {
     this.updateGlobalExportCount(tempSelectedApplicants);
   });
 
-  // Export button
+  // Export for Marketing button
   document.getElementById('globalConfirmExport').addEventListener('click', async () => {
-    const selectedSections = Array.from(document.querySelectorAll('.global-export-section:checked'))
-      .map(cb => cb.value);
-
     if (tempSelectedApplicants.size === 0) {
       this.showMessage('Please select at least one applicant', 'error');
       return;
     }
 
-    if (selectedSections.length === 0) {
-      this.showMessage('Please select at least one section', 'error');
-      return;
-    }
-
-    const success = await exportFunction(Array.from(tempSelectedApplicants), selectedSections);
+    const success = await exportFunction(Array.from(tempSelectedApplicants), ['personal', 'application', 'education']);
     if (success) {
       modal.remove();
     }
@@ -5482,16 +5443,18 @@ filterAndSortExportApplicants(tempSelectedApplicants) {
 }
 
 async exportAllApplicantsAllData() {
-  const btn = document.getElementById('exportAllEverythingBtn');
-  const originalHTML = btn.innerHTML;
+  const btn = document.getElementById('exportAllBtn');
+  const originalHTML = btn ? btn.innerHTML : '';
 
-  btn.disabled = true;
-  btn.innerHTML = `
-    <svg class="w-5 h-5 animate-spin mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-    </svg>
-  `;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `
+      <svg class="w-5 h-5 animate-spin mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+    `;
+  }
 
   try {
     // Call the dedicated export all endpoint (GET request - no body needed)
@@ -5548,8 +5511,10 @@ async exportAllApplicantsAllData() {
     console.error('Export error:', error);
     this.showMessage(`Failed to export: ${error.message}`, 'error');
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = originalHTML;
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHTML;
+    }
   }
 }
 
