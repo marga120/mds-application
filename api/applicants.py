@@ -368,7 +368,7 @@ def update_applicant_status(user_code):
     @param_type user_code: str
     @param status: New application status (JSON body)
     @param_type status: str
-    @valid_statuses: ["Not Reviewed", "Reviewed", "Waitlist", "Declined", "Send Offer to CoGS", "Offer Sent to CoGS", "Offer Sent to Student", "Offer Accepted", "Offer Declined"]
+    @valid_statuses: ["Not Reviewed", "Reviewed", "Waitlist", "Declined", "Send Offer to CoGS", "Offer Sent to CoGS", "Offer Sent to Student", "Offer Accepted", "Offer Declined", "Deferred"]
 
     @return: JSON response with operation result
     @return_type: flask.Response
@@ -422,7 +422,8 @@ def update_applicant_status(user_code):
         "Offer Sent to CoGS",
         "Offer Sent to Student",
         "Offer Accepted",
-        "Offer Declined"
+        "Offer Declined",
+        "Deferred"
     ]
     if status not in valid_statuses:
         return jsonify({"success": False, "message": "Invalid status value"}), 400

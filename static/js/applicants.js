@@ -231,7 +231,7 @@ class ApplicantsManager {
 
       if (result.success) {
         this.allApplicants = result.applicants;
-        this.displayApplicants(this.allApplicants);
+        this.filterApplicants();
       } else {
         container.innerHTML = `<div class="no-data">Error: ${result.message}</div>`;
       }
@@ -386,6 +386,9 @@ class ApplicantsManager {
         break;
       case "Offer Declined":
         badge.classList.add("bg-orange-100", "text-orange-800");
+        break;
+      case "Deferred":
+        badge.classList.add("bg-red-100", "text-red-800");
         break;
       default:
         badge.classList.add("bg-gray-100", "text-gray-800");
@@ -889,6 +892,7 @@ class ApplicantsManager {
                     <option value="Offer Sent to Student">Offer Sent to Student</option>
                     <option value="Offer Accepted">Offer Accepted</option>
                     <option value="Offer Declined">Offer Declined</option>
+                    <option value="Deferred">Deferred</option>
                   </select>
                 </div>
 
@@ -997,6 +1001,7 @@ class ApplicantsManager {
                 <option value="Offer Sent to Student">Offer Sent to Student</option>
                 <option value="Offer Accepted">Offer Accepted</option>
                 <option value="Offer Declined">Offer Declined</option>
+                <option value="Deferred">Deferred</option>
               </select>
             </div>
 
@@ -1085,6 +1090,7 @@ class ApplicantsManager {
                           <option value="Offer Sent to Student">Offer Sent to Student</option>
                           <option value="Offer Accepted">Offer Accepted</option>
                           <option value="Offer Declined">Offer Declined</option>
+                          <option value="Deferred">Deferred</option>
                         </select>
                       </div>
                     </div>
@@ -3520,6 +3526,10 @@ class ApplicantsManager {
         badge.classList.add("bg-orange-100", "text-orange-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-orange-400";
         break;
+      case "Deferred":
+        badge.classList.add("bg-red-100", "text-red-800");
+        dot.className = "w-2 h-2 rounded-full mr-2 bg-red-400";
+        break;  
       default:
         badge.classList.add("bg-gray-100", "text-gray-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-gray-400";
@@ -4839,6 +4849,7 @@ async initializeExportButton() {
                   <option value="Offer Sent to Student" ${this.reviewStatusFilter === "Offer Sent to Student" ? "selected" : ""}>Offer Sent to Student</option>
                   <option value="Offer Accepted" ${this.reviewStatusFilter === "Offer Accepted" ? "selected" : ""}>Offer Accepted</option>
                   <option value="Offer Declined" ${this.reviewStatusFilter === "Offer Declined" ? "selected" : ""}>Offer Declined</option>
+                  <option value="Deferred" ${this.reviewStatusFilter === "Deferred" ? "selected" : ""}>Deferred</option>
                 </select>
               </div>
             </th>
