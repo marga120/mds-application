@@ -2047,10 +2047,10 @@ def get_selected_applicants_for_export(user_codes, sections=None):
             # Admission Review - NO if not reviewed, yes otherwise
             "CASE WHEN COALESCE(app.sent, 'Not Reviewed') = 'Not Reviewed' THEN 'NO' ELSE 'YES' END AS \"Admission Review\"",
 
-            # Offer Sent  Updated to match schema values
+            # Offer Sent  
             "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN 'Y' ELSE '' END AS \"Offer Sent\"",
 
-            # Offer Status  Updated to match schema values
+            # Offer Status  
             "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN COALESCE(app.sent, '') ELSE '' END AS \"Offer Status\"",
 
             # Scholarship - yes only if scholarship offered, blank otherwise
