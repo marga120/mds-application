@@ -1024,7 +1024,8 @@ def get_all_applicant_status():
                 latest_log.created_at as review_status_updated_at,
                 CASE WHEN ai.canadian = true THEN 'Yes' ELSE 'No' END as canadian,
                 si.gender,
-                si.country_citizenship as citizenship_country
+                si.country_citizenship as citizenship_country,
+                si.visa_type_code as visa
             FROM applicant_status ss
             LEFT JOIN applicant_info si ON ss.user_code = si.user_code
             LEFT JOIN ratings r ON ss.user_code = r.user_code
@@ -1040,7 +1041,7 @@ def get_all_applicant_status():
             GROUP BY ss.user_code, si.family_name, si.given_name, si.email,
                      ss.student_number, ss.app_start, ss.submit_date,
                      ss.status_code, ss.status, ss.detail_status, ss.updated_at,
-                     ai.sent, ai.canadian, si.gender, si.country_citizenship, latest_log.created_at
+                     ai.sent, ai.canadian, si.gender, si.country_citizenship, si.visa_type_code, latest_log.created_at
             ORDER BY ss.submit_date DESC, si.family_name
         """
         )
