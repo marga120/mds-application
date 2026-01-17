@@ -2013,8 +2013,8 @@ def get_selected_applicants_for_export(user_codes, sections=None):
             select_parts.extend([
                 "s.program_code as \"Program Code\"",
                 "s.session_abbrev as \"Session\"",
-                "TO_CHAR(ast.app_start, 'YYYY-MM-DD') as \"Application Start Date\"",
-                "TO_CHAR(ast.submit_date, 'YYYY-MM-DD') as \"Submitted Date\"",
+                "TO_CHAR(ast.app_start, 'DD-MM-YYYY') as \"Application Start Date\"",
+                "TO_CHAR(ast.submit_date, 'DD-MM-YYYY') as \"Submitted Date\"",
                 "ast.status_code as \"Status Code\"",
                 "ast.status as \"Status\""
             ])
@@ -2045,13 +2045,13 @@ def get_selected_applicants_for_export(user_codes, sections=None):
         # 4. Admin / Offer Status (Application)
         select_parts.extend([
             # Admission Review - NO if not reviewed, yes otherwise
-            "CASE WHEN COALESCE(app.sent, 'Not Reviewed') = 'Not Reviewed' THEN 'NO' ELSE 'YES' END AS \"Admission Review\"",
+            "CASE WHEN COALESCE(app.sent, 'Not Reviewed') = 'Not Reviewed' THEN 'N' ELSE 'Y' END AS \"Admission Review\"",
 
-            # Offer Sent  Updated to match schema values
+            # Offer Sent  
             "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN 'Y' ELSE '' END AS \"Offer Sent\"",
 
-            # Offer Status  Updated to match schema values
-            "CASE WHEN app.sent IN ('Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined') THEN COALESCE(app.sent, '') ELSE '' END AS \"Offer Status\"",
+            # Offer Status - Only show Accepted, Deferred, Declined
+            "CASE WHEN app.sent = 'Offer Accepted' THEN 'Accepted' WHEN app.sent = 'Offer Deferred' THEN 'Deferred' WHEN app.sent = 'Offer Declined' THEN 'Declined' ELSE '' END AS \"Offer Status\"",
 
             # Scholarship - yes only if scholarship offered, blank otherwise
             "CASE WHEN app.scholarship = 'Yes' THEN 'yes' ELSE '' END AS \"Scholarship Offered\""
@@ -2067,15 +2067,24 @@ def get_selected_applicants_for_export(user_codes, sections=None):
                 # Years Since Degree
                 "COALESCE(CAST((EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) AS TEXT), '') as \"Years Since Degree\"",
 
-                # Years Since Degree Grouped (The Date of the last degree year shifted to current year: YYYY-MM-DD)
-                """COALESCE(TO_CHAR(
-                    (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code) +
-                    MAKE_INTERVAL(years => (EXTRACT(YEAR FROM CURRENT_DATE)::int - EXTRACT(YEAR FROM (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code))::int)),
-                    'YYYY-MM-DD'
-                ), '') as "Years Since Degree Grouped"
+                # Years Since Degree Grouped (0, 1-2, 3-5, 6+)
+                """CASE
+                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 0 THEN '0'
+                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 2 THEN '1-2'
+                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 5 THEN '3-5'
+                    WHEN (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code) IS NOT NULL THEN '6+'
+                    ELSE ''
+                END as "Years Since Degree Grouped"
                 """,
 
-                "COALESCE(CAST(app.highest_degree AS TEXT), '') as \"Level of Education\"",
+                """CASE
+                    WHEN app.highest_degree ILIKE '%%Doc%%' OR app.highest_degree ILIKE '%%PhD%%' OR app.highest_degree = 'MD' THEN 'Doctorate'
+                    WHEN app.highest_degree ILIKE '%%Mast%%' OR app.highest_degree ILIKE '%%MD/MS%%' THEN 'Master''s'
+                    WHEN app.highest_degree ILIKE '%%Bach%%' THEN 'Bachelor''s'
+                    WHEN app.highest_degree IS NOT NULL AND app.highest_degree != '' THEN 'Bachelor''s'
+                    ELSE ''
+                END as "Level of Education"
+                """,
                 "COALESCE(CAST(app.degree_area AS TEXT), '') as \"Subject of Degree\"",
                 
                 # Subject Grouped (Specific categories)
