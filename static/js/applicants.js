@@ -19,6 +19,7 @@ class ApplicantsManager {
     this.loadApplicants();
     this.initializeActionButtons();
     this.selectedApplicants = new Set();
+    this.applicantCache = new Map(); // Cache for prefetched applicant data
     this.initializeExportButton();
     window.applicantsManager = this;
     this.initializeClearDataButton();
@@ -1467,21 +1468,64 @@ class ApplicantsManager {
     document.getElementById("commentTextarea").value = "";
   }
 
+  // Prefetch applicant info data on hover (does not render, just caches)
+  async prefetchApplicantInfo(userCode) {
+    // Skip if already cached or currently fetching
+    if (this.applicantCache.has(userCode)) {
+      return;
+    }
+
+    // Mark as fetching to prevent duplicate requests
+    this.applicantCache.set(userCode, { status: 'fetching' });
+
+    try {
+      const [applicantResponse, applicationInfoResponse] = await Promise.all([
+        fetch(`/api/applicant-info/${userCode}`),
+        fetch(`/api/applicant-application-info/${userCode}`)
+      ]);
+
+      const applicantResult = await applicantResponse.json();
+      const applicationInfoResult = await applicationInfoResponse.json();
+
+      // Store the fetched data in cache
+      this.applicantCache.set(userCode, {
+        status: 'ready',
+        applicantInfo: applicantResult,
+        applicationInfo: applicationInfoResult
+      });
+    } catch (error) {
+      // Remove from cache on error so it can be retried
+      this.applicantCache.delete(userCode);
+      console.error('Prefetch failed for applicant:', userCode, error);
+    }
+  }
+
   async loadApplicantInfo(userCode) {
     try {
-      const response = await fetch(`/api/applicant-info/${userCode}`);
-      const result = await response.json();
+      let result;
+      let applicationInfoResult;
+
+      // Check if data is in cache and ready
+      const cached = this.applicantCache.get(userCode);
+      if (cached && cached.status === 'ready') {
+        result = cached.applicantInfo;
+        applicationInfoResult = cached.applicationInfo;
+      } else {
+        // Fetch fresh data if not cached
+        const [applicantResponse, applicationInfoResponse] = await Promise.all([
+          fetch(`/api/applicant-info/${userCode}`),
+          fetch(`/api/applicant-application-info/${userCode}`)
+        ]); 
+        result = await applicantResponse.json();
+        applicationInfoResult = await applicationInfoResponse.json();
+      }
 
       const container = document.getElementById("applicantInfoContainer");
 
       if (result.success && result.applicant) {
         const applicant = result.applicant;
 
-        // NEW CODE - Load application_info data
-        const applicationInfoResponse = await fetch(
-          `/api/applicant-application-info/${userCode}`
-        );
-        const applicationInfoResult = await applicationInfoResponse.json();
+        // Extract application info
         const applicationInfo = applicationInfoResult.success
           ? applicationInfoResult.application_info
           : null;
@@ -4882,6 +4926,7 @@ async initializeExportButton() {
             .map(
               (applicant) => `
               <tr class="applicant-row-clickable" style="cursor: pointer;"
+                  onmouseenter="window.applicantsManager.prefetchApplicantInfo('${applicant.user_code}')"
                   onclick="window.applicantsManager.showApplicantModal('${applicant.user_code}', '${(applicant.given_name + ' ' + applicant.family_name).replace(/'/g, "\\'")}')">
                 <td>
                   <div class="applicant-card">
