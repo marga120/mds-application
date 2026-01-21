@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MDS Application</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="{{ url_for('static', filename='css/output.css') }}" as="style">
+    <link rel="preload" href="{{ url_for('static', filename='js/auth.js') }}" as="script">
+    <link rel="preload" href="{{ url_for('static', filename='js/applicants.js') }}" as="script">
+    
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/output.css') }}"
@@ -267,9 +273,9 @@
       </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/sessions.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/applicants.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/sessions.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/applicants.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/main.js') }}"></script>
   </body>
 </html>
