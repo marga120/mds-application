@@ -96,64 +96,139 @@ class StatisticsManager {
             return;
         }
 
-        // Count applicants by review_status and calculate average ratings
+        // Define the canonical status order (same as the dropdown in applicants.js)
+        const canonicalStatusOrder = [
+            "Not Reviewed",
+            "GPA Review @ CoGS",
+            "Reviewed by PPA",
+            "Need Jeff's Review",
+            "Need Khalad's Review",
+            "Waitlist",
+            "Declined",
+            "Send Offer to CoGS",
+            "Offer Sent to CoGS",
+            "Offer Sent to Student",
+            "Offer Accepted",
+            "Offer Declined",
+            "Deferred"
+        ];
+
+        // Initialize all statuses with zero counts
         const statusData = {};
+        canonicalStatusOrder.forEach(status => {
+            statusData[status] = {
+                count: 0,
+                totalRating: 0,
+                ratedCount: 0
+            };
+        });
+
+        // Initialize Submitted/Unsubmitted counts
+        let submittedCount = 0;
+        let unsubmittedCount = 0;
+        let submittedTotalRating = 0;
+        let submittedRatedCount = 0;
+        let unsubmittedTotalRating = 0;
+        let unsubmittedRatedCount = 0;
+
+        // Count applicants by review_status and calculate average ratings
         let totalWithStatus = 0;
 
         this.applicants.forEach(applicant => {
             const status = applicant.review_status || "Not Reviewed";
             
-            if (!statusData[status]) {
-                statusData[status] = {
-                    count: 0,
-                    totalRating: 0,
-                    ratedCount: 0
-                };
+            // Count submitted/unsubmitted
+            if (this.isSubmittedStatus(applicant.status)) {
+                submittedCount++;
+                if (applicant.overall_rating && !isNaN(applicant.overall_rating)) {
+                    submittedTotalRating += parseFloat(applicant.overall_rating);
+                    submittedRatedCount++;
+                }
+            } else if (this.isUnsubmittedStatus(applicant.status)) {
+                unsubmittedCount++;
+                if (applicant.overall_rating && !isNaN(applicant.overall_rating)) {
+                    unsubmittedTotalRating += parseFloat(applicant.overall_rating);
+                    unsubmittedRatedCount++;
+                }
             }
             
-            statusData[status].count++;
-            totalWithStatus++;
-            
-            // Add rating if exists
-            if (applicant.overall_rating && !isNaN(applicant.overall_rating)) {
-                statusData[status].totalRating += parseFloat(applicant.overall_rating);
-                statusData[status].ratedCount++;
+            // Only count if the status is in our canonical list
+            if (statusData[status]) {
+                statusData[status].count++;
+                totalWithStatus++;
+                
+                // Add rating if exists
+                if (applicant.overall_rating && !isNaN(applicant.overall_rating)) {
+                    statusData[status].totalRating += parseFloat(applicant.overall_rating);
+                    statusData[status].ratedCount++;
+                }
             }
         });
 
-        // Convert to array and sort by count (descending)
-        const sortedStatuses = Object.entries(statusData)
-            .sort((a, b) => b[1].count - a[1].count);
+        // Use the canonical order instead of sorting by count
+        const orderedStatuses = canonicalStatusOrder.map(status => [status, statusData[status]]);
 
-        // If no data
-        if (sortedStatuses.length === 0) {
-            container.innerHTML = '<div class="text-center text-gray-500 py-4">No data available</div>';
-            return;
-        }
+        // Calculate submitted/unsubmitted percentages and averages
+        const totalApplicants = this.applicants.length;
+        const submittedPercentage = totalApplicants > 0 
+            ? ((submittedCount / totalApplicants) * 100).toFixed(1) 
+            : '0.0';
+        const unsubmittedPercentage = totalApplicants > 0 
+            ? ((unsubmittedCount / totalApplicants) * 100).toFixed(1) 
+            : '0.0';
+        const submittedAvgRating = submittedRatedCount > 0 
+            ? (submittedTotalRating / submittedRatedCount).toFixed(1)
+            : '-';
+        const unsubmittedAvgRating = unsubmittedRatedCount > 0 
+            ? (unsubmittedTotalRating / unsubmittedRatedCount).toFixed(1)
+            : '-';
+
+        // Generate HTML for Submitted/Unsubmitted at the top
+        const submittedUnsubmittedHtml = `
+            <div class="cursor-pointer hover:bg-blue-50 hover:shadow-sm px-2 py-1.5 rounded transition-all duration-200 status-item" data-status="Submitted Applications">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-gray-700 font-medium truncate" title="Submitted Applications">Submitted Applications</span>
+                    <span class="text-gray-600 ml-2 flex-shrink-0">${submittedCount} (${submittedPercentage}%)${submittedAvgRating !== '-' ? ` • ${submittedAvgRating}★` : ''}</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                    <div class="bg-green-500 h-1.5 rounded-full transition-all duration-500" style="width: ${submittedPercentage}%"></div>
+                </div>
+            </div>
+            <div class="cursor-pointer hover:bg-blue-50 hover:shadow-sm px-2 py-1.5 rounded transition-all duration-200 status-item" data-status="Unsubmitted Applications">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-gray-700 font-medium truncate" title="Unsubmitted Applications">Unsubmitted Applications</span>
+                    <span class="text-gray-600 ml-2 flex-shrink-0">${unsubmittedCount} (${unsubmittedPercentage}%)${unsubmittedAvgRating !== '-' ? ` • ${unsubmittedAvgRating}★` : ''}</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                    <div class="bg-gray-400 h-1.5 rounded-full transition-all duration-500" style="width: ${unsubmittedPercentage}%"></div>
+                </div>
+            </div>
+        `;
 
         // Generate HTML for status bars (similar to country bars)
-        const html = sortedStatuses.map(([status, data]) => {
-            const percentage = ((data.count / totalWithStatus) * 100).toFixed(1);
+        const reviewStatusHtml = orderedStatuses.map(([status, data]) => {
+            const percentage = totalWithStatus > 0 
+                ? ((data.count / totalWithStatus) * 100).toFixed(1) 
+                : '0.0';
             const avgRating = data.ratedCount > 0 
                 ? (data.totalRating / data.ratedCount).toFixed(1)
                 : '-';
             const barColor = this.getBarColor(status);
             
             return `
-                <div class="cursor-pointer hover:bg-blue-50 hover:shadow-sm p-2 rounded transition-all duration-200 status-item" data-status="${status}">
-                    <div class="flex justify-between text-xs mb-1">
+                <div class="cursor-pointer hover:bg-blue-50 hover:shadow-sm px-2 py-1.5 rounded transition-all duration-200 status-item" data-status="${status}">
+                    <div class="flex justify-between items-center text-xs">
                         <span class="text-gray-700 font-medium truncate" title="${status}">${status}</span>
-                        <span class="text-gray-600 ml-2 flex-shrink-0">${data.count} (${percentage}%)</span>
+                        <span class="text-gray-600 ml-2 flex-shrink-0">${data.count} (${percentage}%)${avgRating !== '-' ? ` • ${avgRating}★` : ''}</span>
                     </div>
-                    ${avgRating !== '-' ? `<div class="text-xs text-gray-500 mb-1">Avg: ${avgRating}/10.0</div>` : ''}
-                    <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div class="${barColor} h-2 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
+                    <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                        <div class="${barColor} h-1.5 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
                     </div>
                 </div>
             `;
         }).join('');
 
-        container.innerHTML = html;
+        container.innerHTML = submittedUnsubmittedHtml + reviewStatusHtml;
         
         // Add click handlers to status items
         this.setupStatusRowClickHandlers();
