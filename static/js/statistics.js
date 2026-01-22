@@ -17,6 +17,7 @@ class StatisticsManager {
         await this.loadApplicants();
         this.setupEventListeners();
         this.displayOverallStatistics();
+        this.displayStatusBreakdown();
         this.displayStatusStatistics(""); // Load "All Statuses" by default
      }
 
@@ -83,9 +84,153 @@ class StatisticsManager {
           document.getElementById("genderNotSpecifiedBar").style.width = notSpecifiedPercent + "%";             
       }                                                                                                         
                                                                                                                 
-      // Display country distribution                                                                           
-      this.displayCountryDistribution(this.applicants);                                                         
+      // Display country distribution
+      this.displayCountryDistribution(this.applicants);
   }   
+
+    displayStatusBreakdown() {
+        const container = document.getElementById("statusBreakdownList");
+        
+        if (!container) {
+            console.error("Status breakdown container not found");
+            return;
+        }
+
+        // Count applicants by review_status and calculate average ratings
+        const statusData = {};
+        let totalWithStatus = 0;
+
+        this.applicants.forEach(applicant => {
+            const status = applicant.review_status || "Not Reviewed";
+            
+            if (!statusData[status]) {
+                statusData[status] = {
+                    count: 0,
+                    totalRating: 0,
+                    ratedCount: 0
+                };
+            }
+            
+            statusData[status].count++;
+            totalWithStatus++;
+            
+            // Add rating if exists
+            if (applicant.overall_rating && !isNaN(applicant.overall_rating)) {
+                statusData[status].totalRating += parseFloat(applicant.overall_rating);
+                statusData[status].ratedCount++;
+            }
+        });
+
+        // Convert to array and sort by count (descending)
+        const sortedStatuses = Object.entries(statusData)
+            .sort((a, b) => b[1].count - a[1].count);
+
+        // If no data
+        if (sortedStatuses.length === 0) {
+            container.innerHTML = '<div class="text-center text-gray-500 py-4">No data available</div>';
+            return;
+        }
+
+        // Generate HTML for status bars (similar to country bars)
+        const html = sortedStatuses.map(([status, data]) => {
+            const percentage = ((data.count / totalWithStatus) * 100).toFixed(1);
+            const avgRating = data.ratedCount > 0 
+                ? (data.totalRating / data.ratedCount).toFixed(1)
+                : '-';
+            const barColor = this.getBarColor(status);
+            
+            return `
+                <div class="cursor-pointer hover:bg-blue-50 hover:shadow-sm p-2 rounded transition-all duration-200 status-item" data-status="${status}">
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-700 font-medium truncate" title="${status}">${status}</span>
+                        <span class="text-gray-600 ml-2 flex-shrink-0">${data.count} (${percentage}%)</span>
+                    </div>
+                    ${avgRating !== '-' ? `<div class="text-xs text-gray-500 mb-1">Avg: ${avgRating}/10.0</div>` : ''}
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="${barColor} h-2 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = html;
+        
+        // Add click handlers to status items
+        this.setupStatusRowClickHandlers();
+    }
+
+    setupStatusRowClickHandlers() {
+        const statusItems = document.querySelectorAll('.status-item');
+        statusItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const status = item.getAttribute('data-status');
+                
+                // Set the dropdown value
+                const statusFilter = document.getElementById('statusFilter');
+                if (statusFilter) {
+                    statusFilter.value = status;
+                    
+                    // Trigger the change event to update the statistics
+                    this.displayStatusStatistics(status);
+                    
+                    // Scroll to the status statistics section
+                    const statusStatsSection = document.getElementById('statusStats');
+                    if (statusStatsSection) {
+                        statusStatsSection.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                        });
+                    }
+                }
+            });
+        });
+    }
+
+    // Helper method to determine status badge color
+    getStatusColor(status) {
+        const statusLower = (status || "").toLowerCase();
+        
+        if (statusLower.includes("accepted")) {
+            return "bg-green-100 text-green-800";
+        } else if (statusLower.includes("offer sent") || statusLower.includes("send offer")) {
+            return "bg-blue-100 text-blue-800";
+        } else if (statusLower.includes("declined")) {
+            return "bg-red-100 text-red-800";
+        } else if (statusLower.includes("waitlist")) {
+            return "bg-yellow-100 text-yellow-800";
+        } else if (statusLower.includes("deferred")) {
+            return "bg-purple-100 text-purple-800";
+        } else if (statusLower.includes("review")) {
+            return "bg-orange-100 text-orange-800";
+        } else if (statusLower.includes("not reviewed")) {
+            return "bg-gray-100 text-gray-800";
+        } else {
+            return "bg-indigo-100 text-indigo-800";
+        }
+    }
+
+    // Helper method to determine progress bar color
+    getBarColor(status) {
+        const statusLower = (status || "").toLowerCase();
+        
+        if (statusLower.includes("accepted")) {
+            return "bg-green-500";
+        } else if (statusLower.includes("offer sent") || statusLower.includes("send offer")) {
+            return "bg-blue-500";
+        } else if (statusLower.includes("declined")) {
+            return "bg-red-500";
+        } else if (statusLower.includes("waitlist")) {
+            return "bg-yellow-500";
+        } else if (statusLower.includes("deferred")) {
+            return "bg-purple-500";
+        } else if (statusLower.includes("review")) {
+            return "bg-orange-500";
+        } else if (statusLower.includes("not reviewed")) {
+            return "bg-gray-400";
+        } else {
+            return "bg-indigo-500";
+        }
+    }
 
     async loadApplicants() {
         //Loading applicants grabs the current data.

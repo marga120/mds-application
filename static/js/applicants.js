@@ -19,6 +19,7 @@ class ApplicantsManager {
     this.loadApplicants();
     this.initializeActionButtons();
     this.selectedApplicants = new Set();
+    this.applicantCache = new Map(); // Cache for prefetched applicant data
     this.initializeExportButton();
     window.applicantsManager = this;
     this.initializeClearDataButton();
@@ -1246,8 +1247,17 @@ class ApplicantsManager {
 
   async loadRatings(userCode) {
     try {
-      const response = await fetch(`/api/ratings/${userCode}`);
-      const result = await response.json();
+      let result;
+      
+      // Check if data is in cache and ready
+      const cached = this.applicantCache.get(userCode);
+      if (cached && cached.status === 'ready' && cached.ratings) {
+        result = cached.ratings;
+      } else {
+        // Fetch fresh data if not cached
+        const response = await fetch(`/api/ratings/${userCode}`);
+        result = await response.json();
+      }
 
       const container = document.getElementById("ratingsContainer");
 
@@ -1308,8 +1318,17 @@ class ApplicantsManager {
 
   async loadPrerequisitesSummary(userCode) {
     try {
-      const response = await fetch(`/api/applicant-application-info/${userCode}`);
-      const result = await response.json();
+      let result;
+      
+      // Check if data is in cache and ready
+      const cached = this.applicantCache.get(userCode);
+      if (cached && cached.status === 'ready' && cached.applicationInfo) {
+        result = cached.applicationInfo;
+      } else {
+        // Fetch fresh data if not cached
+        const response = await fetch(`/api/applicant-application-info/${userCode}`);
+        result = await response.json();
+      }
 
       if (result.success && result.application_info) {
         const appInfo = result.application_info;
@@ -1333,8 +1352,17 @@ class ApplicantsManager {
 
   async loadMyRating(userCode) {
     try {
-      const response = await fetch(`/api/ratings/${userCode}/my-rating`);
-      const result = await response.json();
+      let result;
+      
+      // Check if data is in cache and ready
+      const cached = this.applicantCache.get(userCode);
+      if (cached && cached.status === 'ready' && cached.myRating) {
+        result = cached.myRating;
+      } else {
+        // Fetch fresh data if not cached
+        const response = await fetch(`/api/ratings/${userCode}/my-rating`);
+        result = await response.json();
+      }
 
       if (result.success && result.rating) {
         document.getElementById("ratingInput").value =
@@ -1467,21 +1495,93 @@ class ApplicantsManager {
     document.getElementById("commentTextarea").value = "";
   }
 
+  // Prefetch all applicant modal data on hover (does not render, just caches)
+  async prefetchApplicantInfo(userCode) {
+    // Skip if already cached or currently fetching
+    if (this.applicantCache.has(userCode)) {
+      return;
+    }
+
+    // Mark as fetching to prevent duplicate requests
+    this.applicantCache.set(userCode, { status: 'fetching' });
+
+    try {
+      // Fetch all modal data in parallel for maximum speed
+      const [
+        applicantResponse,
+        applicationInfoResponse,
+        ratingsResponse,
+        myRatingResponse,
+        testScoresResponse,
+        institutionsResponse
+      ] = await Promise.all([
+        fetch(`/api/applicant-info/${userCode}`),
+        fetch(`/api/applicant-application-info/${userCode}`),
+        fetch(`/api/ratings/${userCode}`),
+        fetch(`/api/ratings/${userCode}/my-rating`),
+        fetch(`/api/applicant-test-scores/${userCode}`),
+        fetch(`/api/applicant-institutions/${userCode}`)
+      ]);
+
+      const [
+        applicantResult,
+        applicationInfoResult,
+        ratingsResult,
+        myRatingResult,
+        testScoresResult,
+        institutionsResult
+      ] = await Promise.all([
+        applicantResponse.json(),
+        applicationInfoResponse.json(),
+        ratingsResponse.json(),
+        myRatingResponse.json(),
+        testScoresResponse.json(),
+        institutionsResponse.json()
+      ]);
+
+      // Store all fetched data in cache
+      this.applicantCache.set(userCode, {
+        status: 'ready',
+        applicantInfo: applicantResult,
+        applicationInfo: applicationInfoResult,
+        ratings: ratingsResult,
+        myRating: myRatingResult,
+        testScores: testScoresResult,
+        institutions: institutionsResult
+      });
+    } catch (error) {
+      // Remove from cache on error so it can be retried
+      this.applicantCache.delete(userCode);
+      console.error('Prefetch failed for applicant:', userCode, error);
+    }
+  }
+
   async loadApplicantInfo(userCode) {
     try {
-      const response = await fetch(`/api/applicant-info/${userCode}`);
-      const result = await response.json();
+      let result;
+      let applicationInfoResult;
+
+      // Check if data is in cache and ready
+      const cached = this.applicantCache.get(userCode);
+      if (cached && cached.status === 'ready') {
+        result = cached.applicantInfo;
+        applicationInfoResult = cached.applicationInfo;
+      } else {
+        // Fetch fresh data if not cached
+        const [applicantResponse, applicationInfoResponse] = await Promise.all([
+          fetch(`/api/applicant-info/${userCode}`),
+          fetch(`/api/applicant-application-info/${userCode}`)
+        ]); 
+        result = await applicantResponse.json();
+        applicationInfoResult = await applicationInfoResponse.json();
+      }
 
       const container = document.getElementById("applicantInfoContainer");
 
       if (result.success && result.applicant) {
         const applicant = result.applicant;
 
-        // NEW CODE - Load application_info data
-        const applicationInfoResponse = await fetch(
-          `/api/applicant-application-info/${userCode}`
-        );
-        const applicationInfoResult = await applicationInfoResponse.json();
+        // Extract application info
         const applicationInfo = applicationInfoResult.success
           ? applicationInfoResult.application_info
           : null;
@@ -1705,21 +1805,29 @@ class ApplicantsManager {
 
   async loadTestScores(userCode) {
     try {
-      const response = await fetch(`/api/applicant-test-scores/${userCode}`);
-      const result = await response.json();
+      let result;
+      let applicationInfo = null;
+      
+      // Check if data is in cache and ready
+      const cached = this.applicantCache.get(userCode);
+      if (cached && cached.status === 'ready' && cached.testScores && cached.applicationInfo) {
+        result = cached.testScores;
+        applicationInfo = cached.applicationInfo.success ? cached.applicationInfo.application_info : null;
+      } else {
+        // Fetch fresh data if not cached
+        const [testScoresResponse, englishStatusResponse] = await Promise.all([
+          fetch(`/api/applicant-test-scores/${userCode}`),
+          fetch(`/api/applicant-application-info/${userCode}`)
+        ]);
+        result = await testScoresResponse.json();
+        const englishStatusResult = await englishStatusResponse.json();
+        applicationInfo = englishStatusResult.success ? englishStatusResult.application_info : null;
+      }
 
       const container = document.getElementById("testScoresContainer");
 
       if (result.success && result.test_scores) {
         const scores = result.test_scores;
-
-        const englishStatusResponse = await fetch(
-          `/api/applicant-application-info/${userCode}`
-        );
-        const englishStatusResult = await englishStatusResponse.json();
-        const applicationInfo = englishStatusResult.success
-          ? englishStatusResult.application_info
-          : null;
 
         container.innerHTML = `
           <div class="pr-2">
@@ -2766,8 +2874,23 @@ class ApplicantsManager {
 
   async loadInstitutionInfo(userCode) {
     try {
-      const response = await fetch(`/api/applicant-institutions/${userCode}`);
-      const result = await response.json();
+      let result;
+      let applicantResult;
+      
+      // Check if data is in cache and ready
+      const cached = this.applicantCache.get(userCode);
+      if (cached && cached.status === 'ready' && cached.institutions && cached.applicantInfo) {
+        result = cached.institutions;
+        applicantResult = cached.applicantInfo;
+      } else {
+        // Fetch fresh data if not cached
+        const [institutionsResponse, applicantResponse] = await Promise.all([
+          fetch(`/api/applicant-institutions/${userCode}`),
+          fetch(`/api/applicant-info/${userCode}`)
+        ]);
+        result = await institutionsResponse.json();
+        applicantResult = await applicantResponse.json();
+      }
 
       const container = document.getElementById("institutionInfoContainer");
 
@@ -2776,11 +2899,6 @@ class ApplicantsManager {
         result.institutions &&
         result.institutions.length > 0
       ) {
-        // First, get applicant info to check UBC attendance
-        const applicantResponse = await fetch(
-          `/api/applicant-info/${userCode}`
-        );
-        const applicantResult = await applicantResponse.json();
 
         let ubcSection = "";
         if (applicantResult.success && applicantResult.applicant) {
@@ -3180,10 +3298,17 @@ class ApplicantsManager {
 
   async loadApplicationStatus(userCode) {
     try {
-      const response = await fetch(
-        `/api/applicant-application-info/${userCode}`
-      );
-      const result = await response.json();
+      let result;
+      
+      // Check if data is in cache and ready
+      const cached = this.applicantCache.get(userCode);
+      if (cached && cached.status === 'ready' && cached.applicationInfo) {
+        result = cached.applicationInfo;
+      } else {
+        // Fetch fresh data if not cached
+        const response = await fetch(`/api/applicant-application-info/${userCode}`);
+        result = await response.json();
+      }
 
       if (result.success && result.application_info) {
         const currentStatus = result.application_info.sent || "Not Reviewed";
@@ -3538,10 +3663,17 @@ class ApplicantsManager {
 
   async loadPrerequisites(userCode) {
     try {
-      const response = await fetch(
-        `/api/applicant-application-info/${userCode}`
-      );
-      const result = await response.json();
+      let result;
+      
+      // Check if data is in cache and ready
+      const cached = this.applicantCache.get(userCode);
+      if (cached && cached.status === 'ready' && cached.applicationInfo) {
+        result = cached.applicationInfo;
+      } else {
+        // Fetch fresh data if not cached
+        const response = await fetch(`/api/applicant-application-info/${userCode}`);
+        result = await response.json();
+      }
 
       if (result.success && result.application_info) {
         const appInfo = result.application_info;
@@ -3583,8 +3715,17 @@ class ApplicantsManager {
 
   async loadScholarship(userCode) {
     try {
-      const response = await fetch(`/api/applicant-application-info/${userCode}`);
-      const result = await response.json();
+      let result;
+      
+      // Check if data is in cache and ready
+      const cached = this.applicantCache.get(userCode);
+      if (cached && cached.status === 'ready' && cached.applicationInfo) {
+        result = cached.applicationInfo;
+      } else {
+        // Fetch fresh data if not cached
+        const response = await fetch(`/api/applicant-application-info/${userCode}`);
+        result = await response.json();
+      }
 
       if (result.success && result.application_info) {
         const scholarship = result.application_info.scholarship || "Undecided";
@@ -4882,6 +5023,7 @@ async initializeExportButton() {
             .map(
               (applicant) => `
               <tr class="applicant-row-clickable" style="cursor: pointer;"
+                  onmouseenter="window.applicantsManager.prefetchApplicantInfo('${applicant.user_code}')"
                   onclick="window.applicantsManager.showApplicantModal('${applicant.user_code}', '${(applicant.given_name + ' ' + applicant.family_name).replace(/'/g, "\\'")}')">
                 <td>
                   <div class="applicant-card">

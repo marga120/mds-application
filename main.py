@@ -8,7 +8,7 @@ session management, and handles application startup including database
 initialization. This serves as the central hub for the entire web application.
 """
 
-from flask import Flask, render_template, redirect, url_for, session
+from flask import Flask, render_template, redirect, url_for, session, request
 from flask_cors import CORS
 from flask_login import LoginManager, login_required, current_user
 import os
@@ -112,6 +112,17 @@ def logs_page():
 @app.errorhandler(401)
 def unauthorized(error):
     return redirect(url_for("login_page"))
+
+
+# Cache headers for static files
+@app.after_request
+def add_cache_headers(response):
+    """Add cache headers for static files to improve performance"""
+    if request.path.startswith('/static/'):
+        # Cache static files for 1 year (browser will use cached version)
+        # Files are cache-busted by changing the filename or adding query params when updated
+        response.headers['Cache-Control'] = 'public, max-age=31536000'
+    return response
 
 @app.route('/account')
 @login_required
