@@ -2069,11 +2069,12 @@ def get_selected_applicants_for_export(user_codes, sections=None):
                 "COALESCE(CAST((EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) AS TEXT), '') as \"Years Since Degree\"",
 
                 # Years Since Degree Grouped (0, 1-2, 3-5, 6+)
+                # Note: Using Excel formula format ="value" to force text without visible characters
                 """CASE
-                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 0 THEN '0'
-                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 2 THEN '1-2'
-                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 5 THEN '3-5'
-                    WHEN (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code) IS NOT NULL THEN '6+'
+                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 0 THEN '="0"'
+                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 2 THEN '="1-2"'
+                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 5 THEN '="3-5"'
+                    WHEN (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code) IS NOT NULL THEN '="6+"'
                     ELSE ''
                 END as "Years Since Degree Grouped"
                 """,
@@ -2279,8 +2280,8 @@ def get_all_applicants_complete_export():
                 ai.ubc_academic_history AS "UBC Academic History",
 
                 -- ========== APPLICATION STATUS ==========
-                TO_CHAR(ast.app_start, 'YYYY-MM-DD') AS "Application Start Date",
-                TO_CHAR(ast.submit_date, 'YYYY-MM-DD') AS "Application Submit Date",
+                TO_CHAR(ast.app_start, 'DD-MM-YYYY') AS "Application Start Date",
+                TO_CHAR(ast.submit_date, 'DD-MM-YYYY') AS "Application Submit Date",
                 ast.status_code AS "Application Status Code",
                 ast.status AS "Application Status",
                 ast.detail_status AS "Application Detail Status",
@@ -2302,6 +2303,52 @@ def get_all_applicants_complete_export():
                 app.gpa AS "GPA",
                 app.highest_degree AS "Highest Degree",
                 app.degree_area AS "Degree Area",
+
+                -- ========== EDUCATION METRICS ==========
+                -- Year of Last Degree
+                COALESCE(
+                    CAST(
+                        (SELECT EXTRACT(YEAR FROM MAX(date_confer)) 
+                         FROM institution_info 
+                         WHERE user_code = ai.user_code) 
+                    AS TEXT), 
+                    ''
+                ) AS "Year of Last Degree",
+
+                -- Years Since Degree (raw number)
+                COALESCE(
+                    CAST(
+                        (EXTRACT(YEAR FROM CURRENT_DATE) - 
+                         (SELECT EXTRACT(YEAR FROM MAX(date_confer)) 
+                          FROM institution_info 
+                          WHERE user_code = ai.user_code)) 
+                    AS TEXT), 
+                    ''
+                ) AS "Years Since Degree",
+
+                -- Years Since Degree Grouped (using Excel formula format to preserve dashes)
+                CASE
+                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - 
+                          (SELECT EXTRACT(YEAR FROM MAX(date_confer)) 
+                           FROM institution_info 
+                           WHERE user_code = ai.user_code)) <= 0 
+                    THEN '="0"'
+                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - 
+                          (SELECT EXTRACT(YEAR FROM MAX(date_confer)) 
+                           FROM institution_info 
+                           WHERE user_code = ai.user_code)) <= 2 
+                    THEN '="1-2"'
+                    WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - 
+                          (SELECT EXTRACT(YEAR FROM MAX(date_confer)) 
+                           FROM institution_info 
+                           WHERE user_code = ai.user_code)) <= 5 
+                    THEN '="3-5"'
+                    WHEN (SELECT MAX(date_confer) 
+                          FROM institution_info 
+                          WHERE user_code = ai.user_code) IS NOT NULL 
+                    THEN '="6+"'
+                    ELSE ''
+                END AS "Years Since Degree Grouped",
 
                 -- ========== MDS PROGRAM APPLICATIONS ==========
                 app.mds_v AS "Applied MDS Vancouver",
