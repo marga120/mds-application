@@ -188,7 +188,7 @@ class StatisticsManager {
             <div class="cursor-pointer hover:bg-blue-50 hover:shadow-sm px-2 py-1.5 rounded transition-all duration-200 status-item" data-status="Submitted Applications">
                 <div class="flex justify-between items-center text-xs">
                     <span class="text-gray-700 font-medium truncate" title="Submitted Applications">Submitted Applications</span>
-                    <span class="text-gray-600 ml-2 flex-shrink-0">${submittedCount} (${submittedPercentage}%)${submittedAvgRating !== '-' ? ` • ${submittedAvgRating}★` : ''}</span>
+                    <span class="text-gray-600 ml-2 flex-shrink-0">${submittedCount} (${submittedPercentage}%)</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                     <div class="bg-green-500 h-1.5 rounded-full transition-all duration-500" style="width: ${submittedPercentage}%"></div>
@@ -197,7 +197,7 @@ class StatisticsManager {
             <div class="cursor-pointer hover:bg-blue-50 hover:shadow-sm px-2 py-1.5 rounded transition-all duration-200 status-item" data-status="Unsubmitted Applications">
                 <div class="flex justify-between items-center text-xs">
                     <span class="text-gray-700 font-medium truncate" title="Unsubmitted Applications">Unsubmitted Applications</span>
-                    <span class="text-gray-600 ml-2 flex-shrink-0">${unsubmittedCount} (${unsubmittedPercentage}%)${unsubmittedAvgRating !== '-' ? ` • ${unsubmittedAvgRating}★` : ''}</span>
+                    <span class="text-gray-600 ml-2 flex-shrink-0">${unsubmittedCount} (${unsubmittedPercentage}%)</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                     <div class="bg-gray-400 h-1.5 rounded-full transition-all duration-500" style="width: ${unsubmittedPercentage}%"></div>
@@ -219,7 +219,7 @@ class StatisticsManager {
                 <div class="cursor-pointer hover:bg-blue-50 hover:shadow-sm px-2 py-1.5 rounded transition-all duration-200 status-item" data-status="${status}">
                     <div class="flex justify-between items-center text-xs">
                         <span class="text-gray-700 font-medium truncate" title="${status}">${status}</span>
-                        <span class="text-gray-600 ml-2 flex-shrink-0">${data.count} (${percentage}%)${avgRating !== '-' ? ` • ${avgRating}★` : ''}</span>
+                        <span class="text-gray-600 ml-2 flex-shrink-0">${data.count} (${percentage}%)</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                         <div class="${barColor} h-1.5 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
