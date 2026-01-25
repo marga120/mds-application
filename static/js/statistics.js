@@ -248,7 +248,7 @@ class StatisticsManager {
                         <span class="text-gray-600 ml-2 flex-shrink-0">${data.count} (${percentage}%)</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                        <div class="${barColor} h-1.5 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
+                        <div class="h-1.5 rounded-full transition-all duration-500" style="width: ${percentage}%; background-color: ${barColor};"></div>
                     </div>
                 </div>
             `;
@@ -289,25 +289,10 @@ class StatisticsManager {
 
     // Helper method to determine status badge color
     getStatusColor(status) {
-        const statusLower = (status || "").toLowerCase();
+        const statusConfig = this.statusOptions.find(s => s.status_name === status);
+        const color = statusConfig ? statusConfig.badge_color : 'gray';
         
-        if (statusLower.includes("accepted")) {
-            return "bg-green-100 text-green-800";
-        } else if (statusLower.includes("offer sent") || statusLower.includes("send offer")) {
-            return "bg-blue-100 text-blue-800";
-        } else if (statusLower.includes("declined")) {
-            return "bg-red-100 text-red-800";
-        } else if (statusLower.includes("waitlist")) {
-            return "bg-yellow-100 text-yellow-800";
-        } else if (statusLower.includes("deferred")) {
-            return "bg-purple-100 text-purple-800";
-        } else if (statusLower.includes("review")) {
-            return "bg-orange-100 text-orange-800";
-        } else if (statusLower.includes("not reviewed")) {
-            return "bg-gray-100 text-gray-800";
-        } else {
-            return "bg-indigo-100 text-indigo-800";
-        }
+        return `bg-${color}-100 text-${color}-800`;
     }
 
     // Helper method to determine progress bar color
@@ -316,8 +301,20 @@ class StatisticsManager {
         const statusConfig = this.statusOptions.find(s => s.status_name === status);
         const color = statusConfig ? statusConfig.badge_color : 'gray';
         
-        // Return Tailwind class for progress bars (darker shade)
-        return `bg-${color}-500`;
+        const colorMap = {
+            'gray': '#6B7280',      // gray-500
+            'red': '#EF4444',       // red-500
+            'yellow': '#F59E0B',    // yellow-500
+            'green': '#10B981',     // green-500
+            'blue': '#3B82F6',      // blue-500
+            'indigo': '#6366F1',    // indigo-500
+            'purple': '#A855F7',    // purple-500
+            'pink': '#EC4899',      // pink-500
+            'orange': '#F97316',    // orange-500
+            'teal': '#14B8A6'       // teal-500
+        };
+        
+        return colorMap[color] || colorMap['gray'];
     }
 
     async loadApplicants() {

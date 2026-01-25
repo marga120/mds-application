@@ -1450,6 +1450,8 @@ class ApplicantsManager {
       if (statusResult.success) {
         this.showMessage("All information saved successfully", "success");
 
+        this.applicantCache.delete(userCode);
+
         // Update the status tab label
         const statusTabLabel = document.getElementById("statusTabLabel");
         if (statusTabLabel) {
@@ -1459,8 +1461,7 @@ class ApplicantsManager {
         // Sync all status selects across all tabs
         this.syncAllStatusSelects(status);
 
-        // Reload displays
-        this.loadApplicationStatus(userCode);
+        await this.loadApplicationStatus(userCode);
         this.loadRatings(userCode);
         this.loadMyRating(userCode);
         await this.loadStatusHistory(userCode);
@@ -3446,6 +3447,7 @@ class ApplicantsManager {
 
       if (result.success) {
         this.showMessage(result.message, "success");
+        this.applicantCache.delete(userCode);
 
         // Update tab label
         document.getElementById("statusTabLabel").textContent = newStatus;
@@ -3453,8 +3455,7 @@ class ApplicantsManager {
         // Sync all status selects
         this.syncAllStatusSelects(newStatus);
 
-        // Reload the entire status display
-        this.loadApplicationStatus(userCode);
+        await this.loadApplicationStatus(userCode);
 
         // Reload status history immediately
         await this.loadStatusHistory(userCode);
@@ -3937,6 +3938,9 @@ class ApplicantsManager {
           true
         );
         
+        // Clear cache to force fresh data
+        this.applicantCache.delete(userCode);
+        
         // Update the status tab label
         const statusTabLabel = document.getElementById("statusTabLabel");
         if (statusTabLabel) {
@@ -3946,8 +3950,7 @@ class ApplicantsManager {
         // Sync all status selects across all tabs
         this.syncAllStatusSelects(status);
 
-        // Reload the entire status display
-        this.loadApplicationStatus(userCode);
+        await this.loadApplicationStatus(userCode);
 
         // Reload status history
         await this.loadStatusHistory(userCode);
@@ -4972,7 +4975,7 @@ async initializeExportButton() {
                   style="max-width: 140px;" 
                 >
                   <option value="" ${this.reviewStatusFilter === "" ? "selected" : ""}>All Statuses</option>
-                  ${this.statusOptions.map(status => 
+                  ${(this.statusOptions || []).map(status => 
                     `<option value="${status.status_name}" ${this.reviewStatusFilter === status.status_name ? "selected" : ""}>${status.status_name}</option>`
                   ).join('')}
                 </select>

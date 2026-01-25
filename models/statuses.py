@@ -211,7 +211,8 @@ def update_status(status_id, status_name=None, badge_color=None, display_order=N
     Update an existing review status.
 
     Updates only the provided fields for a status record, automatically
-    updating the updated_at timestamp.
+    updating the updated_at timestamp. If status_name is changed, also updates
+    all applicants who have that status to use the new name.
 
     @param status_id: ID of the status to update
     @param_type status_id: int
@@ -232,8 +233,8 @@ def update_status(status_id, status_name=None, badge_color=None, display_order=N
         - Cannot update is_default via this function
         - At least one field must be provided for update
 
-    @db_tables: status_configuration
-    @updates: Single row matching status_id
+    @db_tables: status_configuration, application_info
+    @updates: Single row in status_configuration, potentially multiple rows in application_info
 
     @example:
         success, msg = update_status(1, status_name="Reviewed")
@@ -245,7 +246,18 @@ def update_status(status_id, status_name=None, badge_color=None, display_order=N
         return False, "Database connection failed"
     
     try:
-        cursor = conn.cursor()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # If renaming, get the old name first to update applicants
+        old_status_name = None
+        if status_name is not None:
+            cursor.execute(
+                "SELECT status_name FROM status_configuration WHERE id = %s",
+                (status_id,)
+            )
+            result = cursor.fetchone()
+            if result:
+                old_status_name = result['status_name']
         
         updates = []
         params = []
@@ -264,6 +276,7 @@ def update_status(status_id, status_name=None, badge_color=None, display_order=N
             params.append(is_active)
         
         if not updates:
+            conn.close()
             return False, "No fields provided for update"
         
         updates.append("updated_at = CURRENT_TIMESTAMP")
@@ -281,11 +294,27 @@ def update_status(status_id, status_name=None, badge_color=None, display_order=N
             conn.close()
             return False, f"Status with ID {status_id} not found"
         
+        # If status name changed, update all applicants with the old status to the new status
+        applicants_updated = 0
+        if old_status_name and status_name and old_status_name != status_name:
+            cursor.execute(
+                """
+                UPDATE application_info
+                SET sent = %s
+                WHERE sent = %s
+                """,
+                (status_name, old_status_name)
+            )
+            applicants_updated = cursor.rowcount
+        
         conn.commit()
         cursor.close()
         conn.close()
 
-        return True, f"Status updated successfully"
+        if applicants_updated > 0:
+            return True, f"Status updated successfully and {applicants_updated} applicant(s) updated to new status name"
+        else:
+            return True, f"Status updated successfully"
 
     except Exception as e:
         if conn:
