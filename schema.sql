@@ -107,11 +107,23 @@ CREATE TABLE IF NOT EXISTS applicant_status(
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create status_configuration table for dynamic review statuses
+CREATE TABLE IF NOT EXISTS status_configuration (
+    id SERIAL PRIMARY KEY,
+    status_name VARCHAR(100) UNIQUE NOT NULL,
+    display_order INTEGER DEFAULT 0,
+    badge_color VARCHAR(50) DEFAULT 'gray',
+    is_active BOOLEAN DEFAULT TRUE,
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create application_info table
 -- canadian determined by country_citizenship and dual_citizenship if they have 'Canada' as value
 CREATE TABLE IF NOT EXISTS application_info (
     user_code VARCHAR(10) PRIMARY KEY REFERENCES applicant_info(user_code),
-    sent VARCHAR(100) DEFAULT 'Not Reviewed' CHECK (sent IN ('Not Reviewed', 'GPA Review @ CoGS', 'Reviewed by PPA', 'Need Jeff''s Review', 'Need Khalad''s Review', 'Waitlist', 'Declined', 'Send Offer to CoGS', 'Offer Sent to CoGS', 'Offer Sent to Student', 'Offer Accepted', 'Offer Declined','Deferred')),
+    sent VARCHAR(100) DEFAULT 'Not Reviewed',
     full_name VARCHAR(100),
     canadian BOOLEAN,
     english BOOLEAN,
@@ -587,3 +599,20 @@ WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser3@example.com');
 INSERT INTO "user" (first_name, last_name, email, password, role_user_id) 
 SELECT 'Test4', 'User4', 'testuser4@example.com', '$2b$12$mJpl.O3Y12Ti66e8NEENMerKi7obcA3glVon5ZayXT7pMCheIcFbq', 3
 WHERE NOT EXISTS (SELECT 1 FROM "user" WHERE email = 'testuser4@example.com');
+
+-- Insert default review statuses with colors (matching applicants.js color scheme)
+INSERT INTO status_configuration (status_name, display_order, badge_color, is_active, is_default) VALUES
+('Not Reviewed', 1, 'gray', TRUE, TRUE),
+('GPA Review @ CoGS', 2, 'indigo', TRUE, FALSE),
+('Reviewed by PPA', 3, 'indigo', TRUE, FALSE),
+('Need Jeff''s Review', 4, 'purple', TRUE, FALSE),
+('Need Khalad''s Review', 5, 'pink', TRUE, FALSE),
+('Waitlist', 6, 'yellow', TRUE, FALSE),
+('Declined', 7, 'red', TRUE, FALSE),
+('Send Offer to CoGS', 8, 'green', TRUE, FALSE),
+('Offer Sent to CoGS', 9, 'blue', TRUE, FALSE),
+('Offer Sent to Student', 10, 'purple', TRUE, FALSE),
+('Offer Accepted', 11, 'green', TRUE, FALSE),
+('Offer Declined', 12, 'orange', TRUE, FALSE),
+('Deferred', 13, 'red', TRUE, FALSE)
+ON CONFLICT (status_name) DO NOTHING;

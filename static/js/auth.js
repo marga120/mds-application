@@ -73,9 +73,12 @@ class AuthManager {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
             </button>
-            <div id="usersDropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-              <a href="/users" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+            <div id="usersDropdownMenu" class="hidden absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+              <a href="/users" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-md">
                 Manage Users
+              </a>
+              <a href="/status-config" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-md">
+                Update Review Statuses
               </a>
             </div>
           </div>
