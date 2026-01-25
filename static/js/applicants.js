@@ -14,16 +14,73 @@ class ApplicantsManager {
     this.sortColumn = null;
     this.sortDirection = 'asc';
     this.reviewStatusFilter = ""; // Track selected review status filter
+    this.statusOptions = []; // Cache for dynamic status options
+    this.statusesLoaded = false; // Track if statuses are loaded
     this.initializeEventListeners();
     this.loadSessionName();
+    this.init(); // Call async init
+  }
+
+  async init() {
+    await this.loadStatuses(); // Wait for statuses to load first
     this.loadApplicants();
     this.initializeActionButtons();
     this.selectedApplicants = new Set();
-    this.applicantCache = new Map(); // Cache for prefetched applicant data
+    this.applicantCache = new Map();
     this.initializeExportButton();
     window.applicantsManager = this;
     this.initializeClearDataButton();
     this.checkExportModalFlag();
+  }
+
+  async loadStatuses() {
+    try {
+      const response = await fetch('/api/statuses');
+      const result = await response.json();
+      
+      if (result.success) {
+        this.statusOptions = result.statuses;
+        this.statusesLoaded = true;
+        console.log('Loaded statuses:', this.statusOptions);
+      } else {
+        console.error('Failed to load statuses:', result.message);
+        this.statusOptions = [];
+      }
+    } catch (error) {
+      console.error('Error loading statuses:', error);
+      this.statusOptions = [];
+    }
+  }
+
+  async ensureStatusesLoaded() {
+    if (!this.statusesLoaded) {
+      await this.loadStatuses();
+    }
+  }
+
+  populateStatusDropdown(selectElement) {
+    if (!selectElement) {
+      console.warn('populateStatusDropdown: selectElement is null');
+      return;
+    }
+    
+    if (!this.statusesLoaded || this.statusOptions.length === 0) {
+      console.warn('populateStatusDropdown: statuses not loaded yet');
+      return;
+    }
+    
+    // Clear existing options
+    selectElement.innerHTML = '';
+    
+    // Populate with dynamic options
+    this.statusOptions.forEach(status => {
+      const option = document.createElement('option');
+      option.value = status.status_name;
+      option.textContent = status.status_name;
+      selectElement.appendChild(option);
+    });
+    
+    console.log(`Populated ${selectElement.id} with ${this.statusOptions.length} statuses`);
   }
 
   initializeEventListeners() {
@@ -350,50 +407,12 @@ class ApplicantsManager {
     
     badge.className = "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium";
     
-    // Add status-specific styling matching updateStatusBadge colors
-    switch (status) {
-      case "Not Reviewed":
-        badge.classList.add("bg-gray-100", "text-gray-800");
-        break;
-      case "Waitlist":
-        badge.classList.add("bg-yellow-100", "text-yellow-800");
-        break;
-      case "Send Offer to CoGS":
-        badge.classList.add("bg-green-100", "text-green-800");
-        break;
-      case "GPA Review @ CoGS":
-        badge.classList.add("bg-indigo-100", "text-indigo-800");
-        break;
-      case "Offer Sent to CoGS":
-        badge.classList.add("bg-blue-100", "text-blue-800");
-        break;
-      case "Offer Sent to Student":
-        badge.classList.add("bg-purple-100", "text-purple-800");
-        break;
-      case "Reviewed by PPA":
-        badge.classList.add("bg-indigo-100", "text-indigo-800");
-        break;
-      case "Need Jeff's Review":
-        badge.classList.add("bg-purple-100", "text-purple-800");
-        break;
-      case "Need Khalad's Review":
-        badge.classList.add("bg-pink-100", "text-pink-800");
-        break;
-      case "Declined":
-        badge.classList.add("bg-red-100", "text-red-800");
-        break;
-      case "Offer Accepted":
-        badge.classList.add("bg-green-100", "text-green-800");
-        break;
-      case "Offer Declined":
-        badge.classList.add("bg-orange-100", "text-orange-800");
-        break;
-      case "Deferred":
-        badge.classList.add("bg-red-100", "text-red-800");
-        break;
-      default:
-        badge.classList.add("bg-gray-100", "text-gray-800");
-    }
+    // Get color from cached status options
+    const statusConfig = this.statusOptions.find(s => s.status_name === status);
+    const color = statusConfig ? statusConfig.badge_color : 'gray';
+    
+    // Apply dynamic color classes
+    badge.classList.add(`bg-${color}-100`, `text-${color}-800`);
     
     badge.appendChild(document.createTextNode(status));
     
@@ -639,6 +658,11 @@ class ApplicantsManager {
     modal.classList.remove("hidden");
     modal.classList.add("flex");
 
+    // Populate status dropdowns with dynamic options
+    this.populateStatusDropdown(document.getElementById("statusSelect"));
+    this.populateStatusDropdown(document.getElementById("prereqStatusSelect"));
+    this.populateStatusDropdown(document.getElementById("ratingsStatusSelect"));
+
     // Load applicant info and ratings
     this.loadApplicantInfo(userCode);
 
@@ -881,19 +905,7 @@ class ApplicantsManager {
                 <div class="mt-6">
                   <label class="block text-sm font-medium text-gray-700 mb-2">Application Status</label>
                   <select id="prereqStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                    <option value="Not Reviewed">Not Reviewed</option>
-                    <option value="GPA Review @ CoGS">GPA Review @ CoGS</option>
-                    <option value="Reviewed by PPA">Reviewed by PPA</option>
-                    <option value="Need Jeff's Review">Need Jeff's Review</option>
-                    <option value="Need Khalad's Review">Need Khalad's Review</option>
-                    <option value="Waitlist">Waitlist</option>
-                    <option value="Declined">Declined</option>
-                    <option value="Send Offer to CoGS">Send Offer to CoGS</option>
-                    <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
-                    <option value="Offer Sent to Student">Offer Sent to Student</option>
-                    <option value="Offer Accepted">Offer Accepted</option>
-                    <option value="Offer Declined">Offer Declined</option>
-                    <option value="Deferred">Deferred</option>
+                    <!-- Populated dynamically from API -->
                   </select>
                 </div>
 
@@ -990,19 +1002,7 @@ class ApplicantsManager {
             <div class="mt-6">
               <label class="block text-sm font-medium text-gray-700 mb-2">Application Status</label>
               <select id="ratingsStatusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                <option value="Not Reviewed">Not Reviewed</option>
-                <option value="GPA Review @ CoGS">GPA Review @ CoGS</option>
-                <option value="Reviewed by PPA">Reviewed by PPA</option>
-                <option value="Need Jeff's Review">Need Jeff's Review</option>
-                <option value="Need Khalad's Review">Need Khalad's Review</option>
-                <option value="Waitlist">Waitlist</option>
-                <option value="Declined">Declined</option>
-                <option value="Send Offer to CoGS">Send Offer to CoGS</option>
-                <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
-                <option value="Offer Sent to Student">Offer Sent to Student</option>
-                <option value="Offer Accepted">Offer Accepted</option>
-                <option value="Offer Declined">Offer Declined</option>
-                <option value="Deferred">Deferred</option>
+                <!-- Populated dynamically from API -->
               </select>
             </div>
 
@@ -1079,19 +1079,7 @@ class ApplicantsManager {
                       <label class="block text-sm font-medium text-gray-700 mb-2">Select New Status</label>
                       <div id="statusDropdownContainer">
                         <select id="statusSelect" class="input-ubc w-full text-base">
-                          <option value="Not Reviewed">Not Reviewed</option>
-                          <option value="GPA Review @ CoGS">GPA Review @ CoGS</option>
-                          <option value="Reviewed by PPA">Reviewed by PPA</option>
-                          <option value="Need Jeff's Review">Need Jeff's Review</option>
-                          <option value="Need Khalad's Review">Need Khalad's Review</option>
-                          <option value="Waitlist">Waitlist</option>
-                          <option value="Declined">Declined</option>
-                          <option value="Send Offer to CoGS">Send Offer to CoGS</option>
-                          <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
-                          <option value="Offer Sent to Student">Offer Sent to Student</option>
-                          <option value="Offer Accepted">Offer Accepted</option>
-                          <option value="Offer Declined">Offer Declined</option>
-                          <option value="Deferred">Deferred</option>
+                          <!-- Populated dynamically from API -->
                         </select>
                       </div>
                     </div>
@@ -3298,6 +3286,12 @@ class ApplicantsManager {
 
   async loadApplicationStatus(userCode) {
     try {
+      // FIRST: Populate all status dropdowns with options from API
+      await this.ensureStatusesLoaded();
+      this.populateStatusDropdown(document.getElementById("statusSelect"));
+      this.populateStatusDropdown(document.getElementById("prereqStatusSelect"));
+      this.populateStatusDropdown(document.getElementById("ratingsStatusSelect"));
+
       let result;
       
       // Check if data is in cache and ready
@@ -4978,19 +4972,9 @@ async initializeExportButton() {
                   style="max-width: 140px;" 
                 >
                   <option value="" ${this.reviewStatusFilter === "" ? "selected" : ""}>All Statuses</option>
-                  <option value="Not Reviewed" ${this.reviewStatusFilter === "Not Reviewed" ? "selected" : ""}>Not Reviewed</option>
-                  <option value="GPA Review @ CoGS" ${this.reviewStatusFilter === "GPA Review @ CoGS" ? "selected" : ""}>GPA Review @ CoGS</option>
-                  <option value="Reviewed by PPA" ${this.reviewStatusFilter === "Reviewed by PPA" ? "selected" : ""}>Reviewed by PPA</option>
-                  <option value="Need Jeff's Review" ${this.reviewStatusFilter === "Need Jeff's Review" ? "selected" : ""}>Need Jeff's Review</option>
-                  <option value="Need Khalad's Review" ${this.reviewStatusFilter === "Need Khalad's Review" ? "selected" : ""}>Need Khalad's Review</option>
-                  <option value="Waitlist" ${this.reviewStatusFilter === "Waitlist" ? "selected" : ""}>Waitlist</option>
-                  <option value="Declined" ${this.reviewStatusFilter === "Declined" ? "selected" : ""}>Declined</option>
-                  <option value="Send Offer to CoGS" ${this.reviewStatusFilter === "Send Offer to CoGS" ? "selected" : ""}>Send Offer to CoGS</option>
-                  <option value="Offer Sent to CoGS" ${this.reviewStatusFilter === "Offer Sent to CoGS" ? "selected" : ""}>Offer Sent to CoGS</option>
-                  <option value="Offer Sent to Student" ${this.reviewStatusFilter === "Offer Sent to Student" ? "selected" : ""}>Offer Sent to Student</option>
-                  <option value="Offer Accepted" ${this.reviewStatusFilter === "Offer Accepted" ? "selected" : ""}>Offer Accepted</option>
-                  <option value="Offer Declined" ${this.reviewStatusFilter === "Offer Declined" ? "selected" : ""}>Offer Declined</option>
-                  <option value="Deferred" ${this.reviewStatusFilter === "Deferred" ? "selected" : ""}>Deferred</option>
+                  ${this.statusOptions.map(status => 
+                    `<option value="${status.status_name}" ${this.reviewStatusFilter === status.status_name ? "selected" : ""}>${status.status_name}</option>`
+                  ).join('')}
                 </select>
               </div>
             </th>

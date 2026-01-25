@@ -16,13 +16,11 @@
     {% include 'header.html' %}
 
     <div class="max-w-7xl mx-auto px-4 py-8">
-        <!-- Page Header -->
         <div class="mb-8">
             <h1 class="text-3xl font-bold text-ubc-blue">Application Statistics</h1>
             <p class="text-gray-600 mt-2">Overview of application data and trends</p>
         </div>
 
-        <!-- Overall Statistics Section -->
         <section class="mb-8">
             <h2 class="text-2xl font-semibold text-gray-800 mb-4">Overall Statistics</h2>
 
@@ -160,19 +158,7 @@
                     <option value="">All Statuses</option>
                     <option value="Submitted Applications">Submitted Applications</option>
                     <option value="Unsubmitted Applications">Unsubmitted Applications</option>
-                    <option value="Not Reviewed">Not Reviewed</option>
-                    <option value="GPA Review @ CoGS">GPA Review @ CoGS</option>
-                    <option value="Reviewed by PPA">Reviewed by PPA</option>
-                    <option value="Need Jeff's Review">Need Jeff's Review</option>
-                    <option value="Need Khalad's Review">Need Khalad's Review</option>
-                    <option value="Waitlist">Waitlist</option>
-                    <option value="Declined">Declined</option>
-                    <option value="Send Offer to CoGS">Send Offer to CoGS</option>
-                    <option value="Offer Sent to CoGS">Offer Sent to CoGS</option>
-                    <option value="Offer Sent to Student">Offer Sent to Student</option>
-                    <option value="Offer Accepted">Offer Accepted</option>
-                    <option value="Offer Declined">Offer Declined</option>
-                    <option value="Deferred">Deferred</option>
+                    <!-- Additional status options populated dynamically from API -->
                 </select>
             </div>
 

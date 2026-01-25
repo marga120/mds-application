@@ -383,3 +383,114 @@ def delete_status_route(status_id):
     )
     
     return jsonify({"success": True, "message": message})
+
+
+@statuses_bp.route('/api/admin/statuses/reorder', methods=['POST'])
+@login_required
+def reorder_statuses_route():
+    """
+    Batch update display_order for multiple statuses (Admin only).
+    
+    Updates the display_order field for multiple statuses in a single transaction.
+    Used for drag-and-drop reordering in the admin interface.
+    
+    @http_method: POST
+    @route: /api/admin/statuses/reorder
+    @auth: Required (Admin only)
+    
+    @body_param statuses: List of {id, display_order} objects
+    @body_param_type statuses: list[dict]
+    
+    @return: JSON response with success status
+    @return_type: application/json
+    
+    @validation:
+        - Must be Admin user
+        - statuses array required
+        - Each status must have 'id' and 'display_order'
+    
+    @activity_log: Logs bulk reorder operation
+    
+    @request_structure:
+        {
+            "statuses": [
+                {"id": 1, "display_order": 1},
+                {"id": 2, "display_order": 2},
+                {"id": 3, "display_order": 3}
+            ]
+        }
+    
+    @response_structure:
+        Success:
+        {
+            "success": true,
+            "message": "Statuses reordered successfully"
+        }
+    
+    @http_codes:
+        200: Statuses reordered successfully
+        400: Invalid request data
+        403: Access denied (non-Admin)
+        500: Database error
+    
+    @example:
+        fetch('/api/admin/statuses/reorder', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                statuses: [{id: 1, display_order: 2}, {id: 2, display_order: 1}]
+            })
+        }).then(res => res.json());
+    """
+    if not current_user.is_authenticated or not current_user.is_admin:
+        return jsonify({"success": False, "message": "Access denied. Admin privileges required."}), 403
+    
+    data = request.get_json()
+    statuses = data.get('statuses', [])
+    
+    if not statuses or not isinstance(statuses, list):
+        return jsonify({"success": False, "message": "statuses array is required"}), 400
+    
+    for status in statuses:
+        if 'id' not in status or 'display_order' not in status:
+            return jsonify({"success": False, "message": "Each status must have 'id' and 'display_order'"}), 400
+    from utils.database import get_db_connection
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"success": False, "message": "Database connection failed"}), 500
+    
+    try:
+        cursor = conn.cursor()
+        
+        for status in statuses:
+            cursor.execute(
+                """
+                UPDATE status_configuration
+                SET display_order = %s, updated_at = NOW()
+                WHERE id = %s
+                """,
+                (status['display_order'], status['id'])
+            )
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        log_activity(
+            action_type="reorder_statuses",
+            target_entity="status_configuration",
+            target_id="bulk",
+            additional_metadata={
+                "count": len(statuses),
+                "reordered_by": current_user.email,
+                "status_ids": [s['id'] for s in statuses]
+            }
+        )
+        
+        return jsonify({"success": True, "message": "Statuses reordered successfully"})
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return jsonify({"success": False, "message": f"Database error: {str(e)}"}), 500

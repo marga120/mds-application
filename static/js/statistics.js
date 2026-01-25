@@ -10,10 +10,13 @@
 class StatisticsManager {
     constructor() {
         this.applicants = []
+        this.statusOptions = []; // Cache for dynamic status options
         this.init();
     }
 
     async init() {
+        await this.loadStatuses(); // Load statuses first
+        this.populateStatusFilter(); // Populate the status filter dropdown
         await this.loadApplicants();
         this.setupEventListeners();
         this.displayOverallStatistics();
@@ -21,7 +24,45 @@ class StatisticsManager {
         this.displayStatusStatistics(""); // Load "All Statuses" by default
      }
 
-    // Helper methods to match applicants.js logic
+    async loadStatuses() {
+        try {
+            const response = await fetch('/api/statuses');
+            const result = await response.json();
+            
+            if (result.success && result.statuses) {
+                this.statusOptions = result.statuses;
+                console.log('Statistics: Loaded statuses:', this.statusOptions);
+            } else {
+                console.error('Statistics: Failed to load statuses:', result.message);
+                this.statusOptions = [];
+            }
+        } catch (error) {
+            console.error('Statistics: Error loading statuses:', error);
+            this.statusOptions = [];
+        }
+    }
+
+    populateStatusFilter() {
+        const statusFilter = document.getElementById('statusFilter');
+        if (!statusFilter) {
+            console.warn('statusFilter dropdown not found');
+            return;
+        }
+
+        const existingOptions = Array.from(statusFilter.options).map(opt => opt.value);
+
+        this.statusOptions.forEach(status => {
+            if (!existingOptions.includes(status.status_name)) {
+                const option = document.createElement('option');
+                option.value = status.status_name;
+                option.textContent = status.status_name;
+                statusFilter.appendChild(option);
+            }
+        });
+
+        console.log('Statistics: Populated statusFilter with', this.statusOptions.length, 'statuses');
+    }
+
     isSubmittedStatus(status) {
         // Match the logic from applicants.js getStatusBadge()
         if (!status || status === "N/A" || status.toLowerCase().includes("unsubmitted")) {
@@ -31,7 +72,6 @@ class StatisticsManager {
     }
 
     isUnsubmittedStatus(status) {
-        // Match the logic from applicants.js getStatusBadge()
         if (!status || status === "N/A" || status.toLowerCase().includes("unsubmitted")) {
             return true;
         }
@@ -96,22 +136,8 @@ class StatisticsManager {
             return;
         }
 
-        // Define the canonical status order (same as the dropdown in applicants.js)
-        const canonicalStatusOrder = [
-            "Not Reviewed",
-            "GPA Review @ CoGS",
-            "Reviewed by PPA",
-            "Need Jeff's Review",
-            "Need Khalad's Review",
-            "Waitlist",
-            "Declined",
-            "Send Offer to CoGS",
-            "Offer Sent to CoGS",
-            "Offer Sent to Student",
-            "Offer Accepted",
-            "Offer Declined",
-            "Deferred"
-        ];
+        // Use dynamic status options from API
+        const canonicalStatusOrder = this.statusOptions.map(s => s.status_name);
 
         // Initialize all statuses with zero counts
         const statusData = {};
@@ -286,25 +312,12 @@ class StatisticsManager {
 
     // Helper method to determine progress bar color
     getBarColor(status) {
-        const statusLower = (status || "").toLowerCase();
+        // Get color from cached status options
+        const statusConfig = this.statusOptions.find(s => s.status_name === status);
+        const color = statusConfig ? statusConfig.badge_color : 'gray';
         
-        if (statusLower.includes("accepted")) {
-            return "bg-green-500";
-        } else if (statusLower.includes("offer sent") || statusLower.includes("send offer")) {
-            return "bg-blue-500";
-        } else if (statusLower.includes("declined")) {
-            return "bg-red-500";
-        } else if (statusLower.includes("waitlist")) {
-            return "bg-yellow-500";
-        } else if (statusLower.includes("deferred")) {
-            return "bg-purple-500";
-        } else if (statusLower.includes("review")) {
-            return "bg-orange-500";
-        } else if (statusLower.includes("not reviewed")) {
-            return "bg-gray-400";
-        } else {
-            return "bg-indigo-500";
-        }
+        // Return Tailwind class for progress bars (darker shade)
+        return `bg-${color}-500`;
     }
 
     async loadApplicants() {

@@ -56,15 +56,15 @@ class StatusManager {
                 : '<span class="text-gray-400">○</span>';
             
             return `
-                <div class="flex items-center justify-between p-4 bg-white border rounded-lg hover:shadow-sm transition-shadow" data-id="${status.id}">
+                <div class="status-item flex items-center justify-between p-4 bg-white border rounded-lg hover:shadow-sm transition-shadow cursor-move" 
+                     data-id="${status.id}" 
+                     data-order="${status.display_order}"
+                     draggable="true">
                     <div class="flex items-center gap-4 flex-1">
-                        <div class="flex flex-col items-center gap-1">
-                            <button class="text-gray-400 hover:text-gray-600 ${index === 0 ? 'invisible' : ''}" onclick="statusManager.moveStatus(${status.id}, 'up')">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
-                            </button>
-                            <button class="text-gray-400 hover:text-gray-600 ${index === this.statuses.length - 1 ? 'invisible' : ''}" onclick="statusManager.moveStatus(${status.id}, 'down')">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
-                            </button>
+                        <div class="flex flex-col items-center gap-1 drag-handle">
+                            <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M7 2a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V4a2 2 0 00-2-2H7zm3 14a1 1 0 100-2 1 1 0 000 2zm0-4a1 1 0 100-2 1 1 0 000 2zm0-4a1 1 0 100-2 1 1 0 000 2z"/>
+                            </svg>
                         </div>
                         <span class="text-lg">${activeIcon}</span>
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${colorClass}">
@@ -85,6 +85,7 @@ class StatusManager {
         }).join('');
 
         container.innerHTML = html;
+        this.setupDragAndDrop();
     }
 
     showAddForm() {
@@ -177,29 +178,108 @@ class StatusManager {
         }
     }
 
+    setupDragAndDrop() {
+        const statusItems = document.querySelectorAll('.status-item');
+        let draggedElement = null;
+        
+        statusItems.forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                draggedElement = item;
+                item.classList.add('opacity-50');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', item.innerHTML);
+            });
+            
+            item.addEventListener('dragend', (e) => {
+                item.classList.remove('opacity-50');
+                // Remove all drag-over highlighting
+                statusItems.forEach(i => i.classList.remove('border-blue-500', 'border-2'));
+            });
+            
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                
+                if (draggedElement !== item) {
+                    item.classList.add('border-blue-500', 'border-2');
+                }
+            });
+            
+            item.addEventListener('dragleave', (e) => {
+                item.classList.remove('border-blue-500', 'border-2');
+            });
+            
+            item.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                item.classList.remove('border-blue-500', 'border-2');
+                
+                if (draggedElement !== item) {
+                    const draggedId = parseInt(draggedElement.dataset.id);
+                    const targetId = parseInt(item.dataset.id);
+                    
+                    await this.reorderStatuses(draggedId, targetId);
+                }
+            });
+        });
+    }
+    
+    async reorderStatuses(draggedId, targetId) {
+        // Find the dragged and target statuses
+        const draggedIndex = this.statuses.findIndex(s => s.id === draggedId);
+        const targetIndex = this.statuses.findIndex(s => s.id === targetId);
+        
+        if (draggedIndex === -1 || targetIndex === -1) return;
+        
+        // Create new order array
+        const newStatuses = [...this.statuses];
+        const [draggedStatus] = newStatuses.splice(draggedIndex, 1);
+        newStatuses.splice(targetIndex, 0, draggedStatus);
+        
+        // Update display_order for all affected statuses
+        const updates = newStatuses.map((status, index) => ({
+            id: status.id,
+            display_order: index + 1
+        }));
+        
+        try {
+            // Send batch update to server
+            const response = await fetch('/api/admin/statuses/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ statuses: updates })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showSuccess('Status order updated successfully');
+                await this.loadStatuses();
+            } else {
+                this.showError(result.message || 'Failed to reorder statuses');
+            }
+        } catch (error) {
+            this.showError('Error reordering statuses: ' + error.message);
+        }
+    }
+
     async moveStatus(id, direction) {
         const index = this.statuses.findIndex(s => s.id === id);
         if (index === -1) return;
 
-        const newOrder = direction === 'up' ? index : index + 2;
-        
-        try {
-            const response = await fetch(`/api/admin/statuses/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ display_order: newOrder })
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                await this.loadStatuses();
-            } else {
-                this.showError(result.message);
-            }
-        } catch (error) {
-            this.showError('Error reordering status: ' + error.message);
+        // Calculate target index
+        let targetIndex;
+        if (direction === 'up') {
+            if (index === 0) return; // Already at top
+            targetIndex = index - 1;
+        } else {
+            if (index === this.statuses.length - 1) return; // Already at bottom
+            targetIndex = index + 1;
         }
+        
+        // Use the same reorder logic
+        await this.reorderStatuses(this.statuses[index].id, this.statuses[targetIndex].id);
     }
 
     getColorClass(color) {
