@@ -1,0 +1,113 @@
+<!--
+    Status Configuration Page
+    
+    Admin-only interface for managing application review statuses. Allows creating,
+    editing, deleting, and reordering status options that appear in all dropdowns.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status Configuration - MDS Application Management</title>
+    <link href="{{ url_for('static', filename='css/output.css') }}" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    {% include 'header.html' %}
+
+    <div class="max-w-5xl mx-auto px-4 py-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-ubc-blue">Status Configuration</h1>
+            <p class="text-gray-600 mt-2">Manage application review status options</p>
+        </div>
+
+        <!-- Add Status Button -->
+        <div class="mb-6">
+            <button id="addStatusBtn" class="btn-ubc">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Add Status
+            </button>
+        </div>
+
+        <!-- Status Form (Hidden by default) -->
+        <div id="statusForm" class="hidden mb-6 bg-white rounded-lg shadow p-6">
+            <h2 id="formTitle" class="text-xl font-semibold text-gray-800 mb-4">Add New Status</h2>
+            
+            <div class="space-y-4">
+                <!-- Status Name -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Status Name</label>
+                    <input type="text" id="statusName" class="input-ubc w-full" placeholder="e.g., Under Review">
+                </div>
+
+                <!-- Badge Color -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Badge Color</label>
+                    <select id="badgeColor" class="input-ubc w-full">
+                        <option value="gray">Gray</option>
+                        <option value="red">Red</option>
+                        <option value="yellow">Yellow</option>
+                        <option value="green">Green</option>
+                        <option value="blue">Blue</option>
+                        <option value="indigo">Indigo</option>
+                        <option value="purple">Purple</option>
+                        <option value="pink">Pink</option>
+                        <option value="orange">Orange</option>
+                        <option value="teal">Teal</option>
+                    </select>
+                </div>
+
+                <!-- Active Checkbox -->
+                <div class="flex items-center">
+                    <input type="checkbox" id="isActive" class="w-4 h-4 text-ubc-blue border-gray-300 rounded focus:ring-ubc-blue">
+                    <label for="isActive" class="ml-2 text-sm text-gray-700">Active (visible in dropdowns)</label>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex gap-3 pt-4">
+                    <button id="saveStatusBtn" class="btn-ubc">Save</button>
+                    <button id="cancelStatusBtn" class="btn-ubc-outline">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statuses List -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-800">Review Statuses</h2>
+                <p class="text-sm text-gray-600 mt-1">Drag to reorder, click to edit. Default status cannot be deleted.</p>
+            </div>
+            <div id="statusesList" class="p-6 space-y-3">
+                <div class="text-center text-gray-500 py-8">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="text-sm font-semibold text-blue-900 mb-2">Notes:</h3>
+            <ul class="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                <li>Inactive statuses are hidden from dropdowns but retain historical data</li>
+                <li>Deleting a status moves all affected applicants to the default status</li>
+                <li>The default status (Not Reviewed) cannot be deleted</li>
+                <li>Changes take effect immediately across the application</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification" class="hidden fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg">
+        <span id="notificationMessage"></span>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/statuses.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            new AuthManager();
+        });
+    </script>
+</body>
+</html>

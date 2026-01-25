@@ -6,6 +6,7 @@ Statuses are stored in the status_configuration table and used for application r
 """
 
 from utils.database import get_db_connection
+from psycopg2.extras import RealDictCursor
 import pandas as pd
 from datetime import datetime
 
@@ -27,7 +28,38 @@ def get_all_statuses():
         - Ordered by display_order ASC
         - Used by frontend to populate status dropdowns
     """
-    pass
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+    
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute(
+            """
+            SELECT
+                s.id,
+                s.status_name,
+                s.display_order,
+                s.badge_color,
+                s.is_active,
+                s.is_default,
+                s.created_at,
+                s.updated_at
+            FROM status_configuration AS s
+            WHERE s.is_active = TRUE
+            ORDER BY s.display_order ASC 
+            """
+        )
+        statuses = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        return statuses, None 
+
+    except Exception as e:
+        if conn:
+            conn.close()
+        return None, f"Database error: {str(e)}"
 
 
 def get_all_statuses_admin():

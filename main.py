@@ -24,6 +24,7 @@ from api.ratings import ratings_api
 from api.logs import logs_api
 from api.test_scores import test_scores_api
 from api.database import database_api
+from api.statuses import statuses_bp
 
 # Import user model for Flask-Login
 from models.users import get_user_by_id
@@ -61,6 +62,7 @@ app.register_blueprint(ratings_api, url_prefix="/api")
 app.register_blueprint(logs_api, url_prefix="/api")
 app.register_blueprint(test_scores_api, url_prefix="/api")
 app.register_blueprint(database_api, url_prefix="/api")
+app.register_blueprint(statuses_bp)
 
 
 # Web routes (that render templates)
@@ -106,6 +108,15 @@ def logs_page():
     if not current_user.is_authenticated or not current_user.is_admin:
         return redirect(url_for("index"))  # Redirect non-admin users to main page
     return render_template("logs.html")
+
+
+@app.route("/status-config")
+@login_required
+def status_config_page():
+    """Status configuration page (Admin only)"""
+    if not current_user.is_authenticated or not current_user.is_admin:
+        return redirect(url_for("index"))  # Redirect non-admin users to main page
+    return render_template("status-config.html")
 
 
 # Error handlers
