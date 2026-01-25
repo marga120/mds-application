@@ -409,26 +409,17 @@ def update_applicant_status(user_code):
     if not status:
         return jsonify({"success": False, "message": "Status is required"}), 400
 
-    # Validate status values
-    valid_statuses = [
-        "Not Reviewed",
-        "GPA Review @ CoGS",
-        "Reviewed by PPA",
-        "Need Jeff's Review",
-        "Need Khalad's Review",
-        "Waitlist",
-        "Declined",
-        "Send Offer to CoGS",
-        "Offer Sent to CoGS",
-        "Offer Sent to Student",
-        "Offer Accepted",
-        "Offer Declined",
-        "Deferred"
-    ]
-    if status not in valid_statuses:
-        return jsonify({"success": False, "message": "Invalid status value"}), 400
+    from models.statuses import get_all_statuses
+    valid_statuses, error = get_all_statuses()
+    
+    if error or not valid_statuses:
+        return jsonify({"success": False, "message": "Failed to validate status"}), 500
+    
+    valid_status_names = [s['status_name'] for s in valid_statuses]
+    
+    if status not in valid_status_names:
+        return jsonify({"success": False, "message": f"Invalid status value. Must be one of: {', '.join(valid_status_names)}"}), 400
 
-    # Get old status first for logging
     from models.applicants import get_applicant_application_info_by_code
 
     old_info, _ = get_applicant_application_info_by_code(user_code)
