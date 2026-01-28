@@ -39,9 +39,16 @@ const SessionStore = {
      *     }
      */
     getCurrentSessionId: function() {
-        // TODO: Retrieve session ID from localStorage
-        // TODO: Parse and validate as integer
-        // TODO: Return null if invalid or not set
+        try {
+            const sessionId = localStorage.getItem(this.STORAGE_KEY);
+            if (!sessionId) return null;
+            
+            const parsed = parseInt(sessionId, 10);
+            return isNaN(parsed) ? null : parsed;
+        } catch (error) {
+            console.error('Error getting session ID:', error);
+            return null;
+        }
     },
 
     /**
@@ -64,9 +71,17 @@ const SessionStore = {
      *     });
      */
     setCurrentSessionId: function(sessionId, metadata = null) {
-        // TODO: Store session ID in localStorage
-        // TODO: Store metadata if provided
-        // TODO: Dispatch custom event for listeners
+        try {
+            localStorage.setItem(this.STORAGE_KEY, sessionId.toString());
+            
+            if (metadata) {
+                localStorage.setItem(this.METADATA_KEY, JSON.stringify(metadata));
+            }
+            
+            this._dispatchChange(sessionId, metadata);
+        } catch (error) {
+            console.error('Error setting session ID:', error);
+        }
     },
 
     /**
@@ -79,9 +94,14 @@ const SessionStore = {
      *     SessionStore.clearCurrentSession();
      */
     clearCurrentSession: function() {
-        // TODO: Remove session ID from localStorage
-        // TODO: Remove metadata from localStorage
-        // TODO: Dispatch custom event for listeners
+        try {
+            localStorage.removeItem(this.STORAGE_KEY);
+            localStorage.removeItem(this.METADATA_KEY);
+            
+            this._dispatchChange(null, null);
+        } catch (error) {
+            console.error('Error clearing session:', error);
+        }
     },
 
     /**
@@ -102,9 +122,15 @@ const SessionStore = {
      *     }
      */
     getSessionMetadata: function() {
-        // TODO: Retrieve metadata from localStorage
-        // TODO: Parse JSON and return object
-        // TODO: Return null if not set or invalid
+        try {
+            const metadata = localStorage.getItem(this.METADATA_KEY);
+            if (!metadata) return null;
+            
+            return JSON.parse(metadata);
+        } catch (error) {
+            console.error('Error getting session metadata:', error);
+            return null;
+        }
     },
 
     /**
@@ -120,7 +146,7 @@ const SessionStore = {
      *     }
      */
     hasSession: function() {
-        // TODO: Return true if getCurrentSessionId() returns a valid ID
+        return this.getCurrentSessionId() !== null;
     },
 
     /**
@@ -136,10 +162,32 @@ const SessionStore = {
      *     // Session is now set (either from storage or API)
      */
     initializeSession: async function() {
-        // TODO: Check if session already stored
-        // TODO: If not, fetch /api/sessions/current
-        // TODO: Store the returned session
-        // TODO: Return session ID
+        // Check if session already stored
+        const existingId = this.getCurrentSessionId();
+        if (existingId) {
+            return existingId;
+        }
+        
+        // Fetch most recent session from API
+        try {
+            const response = await fetch('/api/sessions/current');
+            const result = await response.json();
+            
+            if (result.success && result.session) {
+                const session = result.session;
+                this.setCurrentSessionId(session.id, {
+                    name: session.name,
+                    campus: session.campus,
+                    year: session.year
+                });
+                return session.id;
+            }
+            
+            return null;
+        } catch (error) {
+            console.error('Error initializing session:', error);
+            return null;
+        }
     },
 
     /**
@@ -159,8 +207,16 @@ const SessionStore = {
      *     });
      */
     onSessionChange: function(callback) {
-        // TODO: Add event listener for custom 'sessionChange' event
-        // TODO: Invoke callback with session ID and metadata
+        const handler = (event) => {
+            callback(event.detail.sessionId, event.detail.metadata);
+        };
+        window.addEventListener('sessionChange', handler);
+        
+        // Store reference for removal
+        if (!this._listeners) {
+            this._listeners = new WeakMap();
+        }
+        this._listeners.set(callback, handler);
     },
 
     /**
@@ -174,7 +230,11 @@ const SessionStore = {
      *     SessionStore.offSessionChange(myCallback);
      */
     offSessionChange: function(callback) {
-        // TODO: Remove event listener for 'sessionChange' event
+        if (this._listeners && this._listeners.has(callback)) {
+            const handler = this._listeners.get(callback);
+            window.removeEventListener('sessionChange', handler);
+            this._listeners.delete(callback);
+        }
     },
 
     /**
@@ -188,8 +248,10 @@ const SessionStore = {
      * @param {Object|null} metadata - The new session metadata
      */
     _dispatchChange: function(sessionId, metadata) {
-        // TODO: Create and dispatch CustomEvent 'sessionChange'
-        // TODO: Include sessionId and metadata in event detail
+        const event = new CustomEvent('sessionChange', {
+            detail: { sessionId, metadata }
+        });
+        window.dispatchEvent(event);
     }
 };
 

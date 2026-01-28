@@ -77,10 +77,23 @@ def get_sessions_route():
             .then(res => res.json())
             .then(data => console.log(data.sessions));
     """
-    # TODO: Parse query parameters (include_archived, campus)
-    # TODO: Call appropriate model function based on parameters
-    # TODO: Group results by campus for response
-    # TODO: Handle errors appropriately
+    #Include_archived
+    if not current_user.is_authenticated:
+        return jsonify({"success": False, "message": "Authentication required"}), 401
+
+    include_archived = request.args.get('include_archived', 'false').lower() == 'true'
+    campus_filter = request.args.get('campus', None)
+    
+    sessions, error = get_all_sessions(include_archived)
+    #sessions grouped by campus
+    
+    if error:
+        return jsonify({"success": False, "message": error}), 400
+    #if the campus filter is specified, 
+    if campus_filter and campus_filter in sessions:
+        session = {campus_filter: sessions[campus_filter]}
+
+    return jsonify({"success": True, "rating": sessions}), 200
     pass
 
 

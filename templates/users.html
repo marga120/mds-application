@@ -193,6 +193,11 @@
         </div>
     </div>
 
+    <!-- Session Management Scripts - Load before auth -->
+    <script defer src="{{ url_for('static', filename='js/sessionStore.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/sessionModal.js') }}"></script>
+    
+    <!-- Application Scripts -->
     <script defer src="{{ url_for('static', filename='js/auth.js') }}"></script>
     <script defer src="{{ url_for('static', filename='js/users.js') }}"></script>
 </body>
