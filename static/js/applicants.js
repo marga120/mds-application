@@ -284,7 +284,10 @@ class ApplicantsManager {
       </div>`;
 
     try {
-      const response = await fetch("/api/applicants");
+      // Get current session ID from SessionStore
+      const sessionId = window.SessionStore ? SessionStore.getCurrentSessionId() : null;
+      const url = sessionId ? `/api/applicants?session_id=${sessionId}` : "/api/applicants";
+      const response = await fetch(url);
       const result = await response.json();
 
       if (result.success) {
@@ -5514,8 +5517,10 @@ async loadApplicantsForGlobalExport(tempSelectedApplicants) {
       this.currentExportApplicants = this.allApplicants;
       this.filterAndSortExportApplicants(tempSelectedApplicants);
     } else {
-      // Fetch applicants from API
-      const response = await fetch('/api/applicants');
+      // Fetch applicants from API with session filter
+      const sessionId = window.SessionStore ? SessionStore.getCurrentSessionId() : null;
+      const url = sessionId ? `/api/applicants?session_id=${sessionId}` : '/api/applicants';
+      const response = await fetch(url);
       const result = await response.json();
 
       if (result.success && result.applicants) {

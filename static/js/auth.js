@@ -35,9 +35,15 @@ class AuthManager {
   }
 
   updateUserInfo(user) {
-    // Add Session Badge to the left
+    // Add Session Badge with dropdown to the left
     const sessionsDropdownArea = document.getElementById("sessionsDropdownArea");
     if (sessionsDropdownArea) {
+      const createSessionOption = user.role === "Admin" ? `
+        <a href="/create-new-session" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-md">
+          Create Session
+        </a>
+      ` : '';
+
       sessionsDropdownArea.innerHTML = `
         <div class="relative">
           <button id="sessionBadge" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20">
@@ -49,6 +55,12 @@ class AuthManager {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
             </svg>
           </button>
+          <div id="sessionsDropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+            <button id="switchSessionBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ${user.role === "Admin" ? "rounded-t-md" : "rounded-md"}">
+              Switch Session
+            </button>
+            ${createSessionOption}
+          </div>
         </div>
       `;
     }
@@ -93,7 +105,7 @@ class AuthManager {
               </svg>
             </button>
             <div id="dataDropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-              <button id="uploadCsvMenuItem" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+              <button id="uploadCsvMenuItem" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-md">
                 Upload CSV
               </button>
               <button id="exportApplicantDataMenuItem" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
@@ -190,7 +202,7 @@ class AuthManager {
     if (userDropdownBtn && userDropdownMenu) {
       userDropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.toggleDropdown("userDropdownMenu", ["usersDropdownMenu", "dataDropdownMenu"]);
+        this.toggleDropdown("userDropdownMenu", ["usersDropdownMenu", "dataDropdownMenu", "sessionsDropdownMenu"]);
       });
     }
 
@@ -216,9 +228,36 @@ class AuthManager {
       });
     }
 
+    // Sessions dropdown
+    const sessionBadge = document.getElementById("sessionBadge");
+    const sessionsDropdownMenu = document.getElementById("sessionsDropdownMenu");
+
+    if (sessionBadge && sessionsDropdownMenu) {
+      sessionBadge.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.toggleDropdown("sessionsDropdownMenu", ["userDropdownMenu", "usersDropdownMenu", "dataDropdownMenu"]);
+      });
+    }
+
+    // Switch session button in dropdown
+    const switchSessionBtn = document.getElementById("switchSessionBtn");
+    if (switchSessionBtn) {
+      switchSessionBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        // Close the dropdown
+        const menu = document.getElementById("sessionsDropdownMenu");
+        if (menu) {
+          menu.classList.add("hidden");
+          menu.classList.remove("show");
+        }
+        // Open the session modal
+        this.openSessionModal();
+      });
+    }
+
     // Close dropdowns when clicking outside
     document.addEventListener("click", () => {
-      ["userDropdownMenu", "usersDropdownMenu", "dataDropdownMenu"].forEach(id => {
+      ["userDropdownMenu", "usersDropdownMenu", "dataDropdownMenu", "sessionsDropdownMenu"].forEach(id => {
         const menu = document.getElementById(id);
         if (menu) {
           menu.classList.add("hidden");
@@ -231,29 +270,22 @@ class AuthManager {
   async initializeSessionBadge() {
     const badge = document.getElementById('sessionBadge');
     const badgeText = document.getElementById('sessionBadgeText');
-    
+
     if (!badge || !badgeText) return;
-    
+
     try {
       // Initialize session from store or API
       await SessionStore.initializeSession();
-      
+
       // Update badge display
       this.updateSessionBadgeDisplay();
-      
+
       // Listen for session changes
       SessionStore.onSessionChange(() => {
         this.updateSessionBadgeDisplay();
       });
-      
-      // Open modal when badge is clicked
-      badge.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.openSessionModal();
-      });
     } catch (error) {
       console.error('Error initializing session badge:', error);
-      badge.className = 'session-badge session-badge-warning';
       badgeText.textContent = 'Select Session';
     }
   }

@@ -1,148 +1,262 @@
 /**
  * SESSIONS MANAGER
- * 
- * This file manages academic session information and display.
- * It handles loading and displaying the current academic session name
- * throughout the application interface for proper context.
+ *
+ * This file manages academic session creation and display.
+ * It handles the form-based session creation with validation,
+ * real-time name preview, and API integration.
  */
 
-class SessionsManager {
+class SessionManager {
   constructor() {
-    this.selectedSessionFile = null;
+    this.initializeYearDropdown();
     this.initializeEventListeners();
+    this.updateSessionNamePreview();
+  }
+
+  /**
+   * Populate the year dropdown with years from 2024 to 2035
+   */
+  initializeYearDropdown() {
+    const yearSelect = document.getElementById("sessionYear");
+    if (!yearSelect) return;
+
+    const currentYear = new Date().getFullYear();
+    const startYear = 2024;
+    const endYear = 2035;
+
+    for (let year = startYear; year <= endYear; year++) {
+      const option = document.createElement("option");
+      option.value = year;
+      option.textContent = year;
+      // Default to current year
+      if (year === currentYear) {
+        option.selected = true;
+      }
+      yearSelect.appendChild(option);
+    }
   }
 
   initializeEventListeners() {
-    const sessionFileInput = document.getElementById("sessionFileInput");
     const createSessionBtn = document.getElementById("createSessionBtn");
-    const sessionName = document.getElementById("sessionName");
-    const sessionDescription = document.getElementById("sessionDescription");
+    const programCode = document.getElementById("programCode");
+    const programName = document.getElementById("programName");
+    const sessionYear = document.getElementById("sessionYear");
+    const sessionTerm = document.getElementById("sessionTerm");
+    const campusRadios = document.querySelectorAll('input[name="campus"]');
 
-    if (sessionFileInput) {
-      sessionFileInput.addEventListener("change", (e) => {
-        this.handleSessionFileSelect(e.target.files[0]);
-      });
-    }
-
+    // Create session button
     if (createSessionBtn) {
       createSessionBtn.addEventListener("click", () => {
         this.createSession();
       });
     }
 
-    if (sessionDescription) {
-      sessionDescription.addEventListener("input", () => {
-        this.validateSessionForm();
+    // Update preview on any field change
+    const updatePreview = () => this.updateSessionNamePreview();
+
+    if (programCode) {
+      programCode.addEventListener("input", (e) => {
+        // Force uppercase
+        e.target.value = e.target.value.toUpperCase();
+        updatePreview();
       });
     }
+
+    if (programName) {
+      programName.addEventListener("input", updatePreview);
+    }
+
+    if (sessionYear) {
+      sessionYear.addEventListener("change", updatePreview);
+    }
+
+    if (sessionTerm) {
+      sessionTerm.addEventListener("change", updatePreview);
+    }
+
+    campusRadios.forEach((radio) => {
+      radio.addEventListener("change", updatePreview);
+    });
   }
 
-  handleSessionFileSelect(file) {
-    if (file && file.name.endsWith(".csv")) {
-      this.selectedSessionFile = file;
-      this.validateSessionForm();
-      const fileStatusElement = document.getElementById("sessionFileStatus");
-      if (fileStatusElement) {
-        fileStatusElement.textContent = file.name;
-      }
+  /**
+   * Get the currently selected campus value
+   */
+  getSelectedCampus() {
+    const selected = document.querySelector('input[name="campus"]:checked');
+    return selected ? selected.value : "UBC-V";
+  }
 
-      const timestamp = new Date().toLocaleString();
-      this.showSessionMessage(
-        `Selected: ${file.name} at ${timestamp}`,
-        "success"
-      );
+  /**
+   * Get campus short code (V or O) from full campus value
+   */
+  getCampusShort(campus) {
+    return campus === "UBC-O" ? "O" : "V";
+  }
 
-      // Show preview section if we're on the create session page
-      const previewSection = document.getElementById("previewSection");
-      if (previewSection) {
-        previewSection.classList.remove("hidden");
-        this.showSchemaPreview(file);
-      }
+  /**
+   * Update the session name preview based on current form values
+   */
+  updateSessionNamePreview() {
+    const previewElement = document.getElementById("sessionNamePreview");
+    if (!previewElement) return;
+
+    const programCode =
+      document.getElementById("programCode")?.value.trim().toUpperCase() ||
+      "OGMMDS";
+    const year = document.getElementById("sessionYear")?.value || "2025";
+    const term = document.getElementById("sessionTerm")?.value || "W1";
+    const campus = this.getSelectedCampus();
+    const campusShort = this.getCampusShort(campus);
+
+    // Generate preview name: {program_code}-{campus_short} {year}{term}
+    const sessionName = `${programCode}-${campusShort} ${year}${term}`;
+    previewElement.textContent = sessionName;
+  }
+
+  /**
+   * Validate all form fields
+   * @returns {Object} { isValid: boolean, errors: string[] }
+   */
+  validateForm() {
+    const errors = [];
+
+    const programCode =
+      document.getElementById("programCode")?.value.trim() || "";
+    const programName =
+      document.getElementById("programName")?.value.trim() || "";
+    const year = document.getElementById("sessionYear")?.value || "";
+    const term = document.getElementById("sessionTerm")?.value || "";
+    const campus = this.getSelectedCampus();
+
+    // Program code validation
+    if (!programCode) {
+      errors.push("Program code is required");
+    } else if (programCode.length < 2 || programCode.length > 10) {
+      errors.push("Program code must be 2-10 characters");
+    } else if (!/^[A-Z]+$/.test(programCode)) {
+      errors.push("Program code must contain only uppercase letters");
+    }
+
+    // Program name validation
+    if (!programName) {
+      errors.push("Program name is required");
+    } else if (programName.length > 100) {
+      errors.push("Program name must be 100 characters or less");
+    }
+
+    // Year validation
+    if (!year) {
+      errors.push("Year is required");
     } else {
-      this.showSessionMessage("Please select a CSV file", "error");
-      this.selectedSessionFile = null;
-      this.validateSessionForm();
-      const fileStatusElement = document.getElementById("sessionFileStatus");
-      if (fileStatusElement) {
-        fileStatusElement.textContent = "No file chosen";
-      }
-
-      // Hide preview section
-      const previewSection = document.getElementById("previewSection");
-      if (previewSection) {
-        previewSection.classList.add("hidden");
+      const yearNum = parseInt(year, 10);
+      if (yearNum < 2024 || yearNum > 2035) {
+        errors.push("Year must be between 2024 and 2035");
       }
     }
-  }
 
-  showSchemaPreview(file) {
-    const schemaPreview = document.getElementById("schemaPreview");
-    if (schemaPreview) {
-      schemaPreview.innerHTML = `
-        <div class="space-y-2">
-          <p class="text-sm font-medium text-gray-700">File: ${file.name}</p>
-          <p class="text-sm text-gray-600">Size: ${(file.size / 1024).toFixed(
-            2
-          )} KB</p>
-          <p class="text-sm text-gray-500 italic">Schema detection will be implemented when CSV processing is added</p>
-        </div>
-      `;
+    // Term validation
+    if (!term) {
+      errors.push("Term is required");
+    } else if (!["W1", "W2", "S"].includes(term)) {
+      errors.push("Invalid term selection");
     }
+
+    // Campus validation
+    if (!campus || !["UBC-V", "UBC-O"].includes(campus)) {
+      errors.push("Please select a campus");
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
   }
 
-  validateSessionForm() {
-    const createSessionBtn = document.getElementById("createSessionBtn");
-
-    if (!createSessionBtn) return;
-
-    const isValid = this.selectedSessionFile;
-    createSessionBtn.disabled = !isValid;
-  }
-
+  /**
+   * Create a new session via API
+   */
   async createSession() {
-    const sessionDescriptionElement =
-      document.getElementById("sessionDescription");
+    const validation = this.validateForm();
 
-    const sessionDescription = sessionDescriptionElement
-      ? sessionDescriptionElement.value.trim()
-      : "";
-
-    if (!this.selectedSessionFile) {
-      this.showSessionMessage("Please provide a CSV file", "error");
+    if (!validation.isValid) {
+      this.showSessionMessage(validation.errors.join(". "), "error");
       return;
     }
 
     const createSessionBtn = document.getElementById("createSessionBtn");
+    const originalText = createSessionBtn.textContent;
     createSessionBtn.disabled = true;
     createSessionBtn.textContent = "Creating Session...";
 
     try {
-      // For now, just simulate the API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      this.showSessionMessage(
-        `Session will be created with auto-generated name! (Backend not implemented yet)`,
-        "success"
+      const programCode =
+        document.getElementById("programCode")?.value.trim().toUpperCase() ||
+        "";
+      const programName =
+        document.getElementById("programName")?.value.trim() || "";
+      const year = parseInt(
+        document.getElementById("sessionYear")?.value || "0",
+        10
       );
+      const term = document.getElementById("sessionTerm")?.value || "";
+      const campus = this.getSelectedCampus();
+      const description =
+        document.getElementById("sessionDescription")?.value.trim() || "";
 
-      if (sessionDescriptionElement) sessionDescriptionElement.value = "";
+      // Generate session abbreviation: {year}{term}
+      const sessionAbbrev = `${year}${term}`;
 
-      const sessionFileInput = document.getElementById("sessionFileInput");
-      if (sessionFileInput) sessionFileInput.value = "";
+      const response = await fetch("/api/sessions/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          program_code: programCode,
+          program: programName,
+          session_abbrev: sessionAbbrev,
+          year: year,
+          campus: campus,
+          description: description || '',
+        }),
+      });
 
-      this.selectedSessionFile = null;
-      this.validateSessionForm();
+      const result = await response.json();
 
-      // Hide preview section
-      const previewSection = document.getElementById("previewSection");
-      if (previewSection) {
-        previewSection.classList.add("hidden");
+      if (response.ok && result.success) {
+        // Show success message
+        this.showSessionMessage(
+          `Session "${result.session.name}" created successfully!`,
+          "success"
+        );
+
+        // Auto-switch to the newly created session using SessionStore
+        if (window.SessionStore && result.session) {
+          SessionStore.setCurrentSessionId(result.session.id, {
+            name: result.session.name,
+            campus: result.session.campus,
+            year: result.session.year,
+          });
+        }
+
+        // Redirect to applicants page after delay
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 2000);
+      } else {
+        this.showSessionMessage(
+          result.message || "Failed to create session",
+          "error"
+        );
+        createSessionBtn.disabled = false;
+        createSessionBtn.textContent = originalText;
       }
     } catch (error) {
+      console.error("Error creating session:", error);
       this.showSessionMessage(`Error: ${error.message}`, "error");
-    } finally {
       createSessionBtn.disabled = false;
-      createSessionBtn.textContent = "Create Session";
+      createSessionBtn.textContent = originalText;
     }
   }
 
@@ -158,8 +272,11 @@ class SessionsManager {
     }`;
     messageDiv.classList.remove("hidden");
 
-    setTimeout(() => {
-      messageDiv.classList.add("hidden");
-    }, 5000);
+    // Only auto-hide error messages
+    if (type === "error") {
+      setTimeout(() => {
+        messageDiv.classList.add("hidden");
+      }, 5000);
+    }
   }
 }

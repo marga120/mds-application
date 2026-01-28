@@ -263,11 +263,41 @@ def create_session(program_code, program, session_abbrev, year, campus, name=Non
         if not error:
             print(f"Created session with ID: {session_id}")
     """
-    # TODO: Validate campus value
-    # TODO: Generate name if not provided (e.g., 'MDS-V 2027W')
-    # TODO: Insert session record
-    # TODO: Handle unique constraint violations
-    pass
+    # Validate campus
+    if campus not in ['UBC-V', 'UBC-O']:
+        return None, "Campus must be 'UBC-V' or 'UBC-O'"
+    
+    # Generate name if not provided
+    if not name:
+        campus_short = campus.split('-')[1]  # 'V' or 'O'
+        name = f"{program_code}-{campus_short} {session_abbrev}"
+    
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO sessions (program_code, program, session_abbrev, year, campus, name, description, is_archived)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE)
+            RETURNING id
+        """, (program_code, program, session_abbrev, year, campus, name, description))
+        
+        session_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return session_id, None
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        if 'unique constraint' in str(e).lower():
+            return None, "Session already exists for this campus, program, and year"
+        return None, f"Database error: {str(e)}"
 
 
 def update_session(session_id, **kwargs):
@@ -298,10 +328,55 @@ def update_session(session_id, **kwargs):
         if success:
             print("Session updated")
     """
-    # TODO: Build dynamic UPDATE query from kwargs
-    # TODO: Validate campus value if provided
-    # TODO: Update updated_at timestamp
-    pass
+    if not kwargs:
+        return False, "No fields provided to update"
+    
+    # Validate campus if provided
+    if 'campus' in kwargs and kwargs['campus'] not in ['UBC-V', 'UBC-O']:
+        return False, "Campus must be 'UBC-V' or 'UBC-O'"
+    
+    # Build dynamic UPDATE query
+    allowed_fields = ['program_code', 'program', 'session_abbrev', 'year', 'campus', 'name', 'description']
+    updates = []
+    values = []
+    
+    for key, value in kwargs.items():
+        if key in allowed_fields:
+            updates.append(f"{key} = %s")
+            values.append(value)
+    
+    if not updates:
+        return False, "No valid fields to update"
+    
+    # Add updated_at timestamp
+    updates.append("updated_at = CURRENT_TIMESTAMP")
+    values.append(session_id)
+    
+    conn = get_db_connection()
+    if not conn:
+        return False, "Database connection failed"
+
+    try:
+        cursor = conn.cursor()
+        query = f"UPDATE sessions SET {', '.join(updates)} WHERE id = %s"
+        cursor.execute(query, tuple(values))
+        
+        if cursor.rowcount == 0:
+            cursor.close()
+            conn.close()
+            return False, "Session not found"
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return True, "Session updated successfully"
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return False, f"Database error: {str(e)}"
 
 
 def archive_session(session_id):
@@ -330,10 +405,43 @@ def archive_session(session_id):
         if success:
             print("Session archived successfully")
     """
-    # TODO: Verify session exists
-    # TODO: Set is_archived = TRUE
-    # TODO: Update updated_at timestamp
-    pass
+    conn = get_db_connection()
+    if not conn:
+        return False, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Check if session exists and is not already archived
+        cursor.execute("SELECT is_archived FROM sessions WHERE id = %s", (session_id,))
+        result = cursor.fetchone()
+        
+        if not result:
+            cursor.close()
+            conn.close()
+            return False, "Session not found"
+        
+        if result['is_archived']:
+            cursor.close()
+            conn.close()
+            return False, "Session is already archived"
+        
+        # Archive the session
+        cursor.execute(
+            "UPDATE sessions SET is_archived = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+            (session_id,)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return True, "Session archived successfully"
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return False, f"Database error: {str(e)}"
 
 
 def restore_session(session_id):
@@ -362,10 +470,43 @@ def restore_session(session_id):
         if success:
             print("Session restored successfully")
     """
-    # TODO: Verify session exists and is archived
-    # TODO: Set is_archived = FALSE
-    # TODO: Update updated_at timestamp
-    pass
+    conn = get_db_connection()
+    if not conn:
+        return False, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Check if session exists and is archived
+        cursor.execute("SELECT is_archived FROM sessions WHERE id = %s", (session_id,))
+        result = cursor.fetchone()
+        
+        if not result:
+            cursor.close()
+            conn.close()
+            return False, "Session not found"
+        
+        if not result['is_archived']:
+            cursor.close()
+            conn.close()
+            return False, "Session is not archived"
+        
+        # Restore the session
+        cursor.execute(
+            "UPDATE sessions SET is_archived = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+            (session_id,)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return True, "Session restored successfully"
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return False, f"Database error: {str(e)}"
 
 
 def get_sessions_by_campus(campus, include_archived=False):
@@ -394,10 +535,59 @@ def get_sessions_by_campus(campus, include_archived=False):
         if not error:
             print(f"Found {len(sessions)} Vancouver sessions")
     """
-    # TODO: Validate campus value
-    # TODO: Query sessions filtered by campus
-    # TODO: Include applicant counts
-    pass
+    # Validate campus
+    if campus not in ['UBC-V', 'UBC-O']:
+        return None, "Campus must be 'UBC-V' or 'UBC-O'"
+    
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        query = """
+            SELECT 
+                s.id,
+                s.program_code,
+                s.program,
+                s.session_abbrev,
+                s.year,
+                s.name,
+                s.description,
+                s.campus,
+                s.is_archived,
+                s.created_at,
+                s.updated_at,
+                COUNT(a.user_code) as applicant_count
+            FROM sessions s
+            LEFT JOIN applicant_info a ON s.id = a.session_id
+            WHERE s.campus = %s
+        """
+        
+        params = [campus]
+        
+        if not include_archived:
+            query += " AND s.is_archived = FALSE"
+        
+        query += """
+            GROUP BY s.id, s.program_code, s.program, s.session_abbrev, 
+                     s.year, s.name, s.description, s.campus, s.is_archived,
+                     s.created_at, s.updated_at
+            ORDER BY s.year DESC, s.session_abbrev DESC
+        """
+        
+        cursor.execute(query, tuple(params))
+        sessions = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        return [dict(session) for session in sessions], None
+        
+    except Exception as e:
+        if conn:
+            conn.close()
+        return None, f"Database error: {str(e)}"
 
 
 def get_most_recent_session(campus=None):
@@ -502,5 +692,23 @@ def get_session_applicant_count(session_id):
         if not error:
             print(f"Session has {count} applicants")
     """
-    # TODO: Count applicants where session_id matches
-    pass
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM applicant_info WHERE session_id = %s",
+            (session_id,)
+        )
+        count = cursor.fetchone()[0]
+        cursor.close()
+        conn.close()
+        
+        return count, None
+        
+    except Exception as e:
+        if conn:
+            conn.close()
+        return None, f"Database error: {str(e)}"

@@ -1,11 +1,11 @@
 /**
  * Session Modal - Session Switcher UI Component
- * 
+ *
  * Provides a modal dialog for switching between academic sessions.
  * Displays sessions organized by campus (UBC Vancouver / UBC Okanagan)
  * with tabs for navigation. Shows applicant counts and highlights
  * the currently selected session.
- * 
+ *
  * Modal Structure:
  * +---------------------------------------------+
  * | Switch Session                            X |
@@ -18,23 +18,23 @@
  * +---------------------------------------------+
  * |                    [Cancel]  [Switch]       |
  * +---------------------------------------------+
- * 
+ *
  * @module sessionModal
  */
 
 class SessionModal {
     /**
      * Create a new SessionModal instance.
-     * 
+     *
      * Initializes the modal component, creates the DOM elements,
      * and sets up event listeners. Does not show the modal until
      * open() is called.
-     * 
+     *
      * @param {Object} options - Configuration options
      * @param {string} [options.containerId='sessionModalContainer'] - ID for modal container
      * @param {Function} [options.onSwitch] - Callback when session is switched
      * @param {Function} [options.onCancel] - Callback when modal is cancelled
-     * 
+     *
      * @example
      *     const modal = new SessionModal({
      *         onSwitch: (session) => {
@@ -50,17 +50,17 @@ class SessionModal {
         this.currentTab = 'UBC-V';
         this.isLoading = false;
         this.modalElement = null;
-        
+
         this._createModalDOM();
         this._setupEventListeners();
     }
 
     /**
      * Create the modal DOM structure.
-     * 
+     *
      * Builds the complete modal HTML including header, tabs,
      * session list container, and action buttons. Appends to body.
-     * 
+     *
      * @private
      */
     _createModalDOM() {
@@ -104,40 +104,40 @@ class SessionModal {
                 </div>
             </div>
         `;
-        
+
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         this.modalElement = document.getElementById('sessionModal');
     }
 
     /**
      * Set up event listeners for modal interactions.
-     * 
+     *
      * Attaches click handlers for close button, backdrop click,
      * tab switching, session selection, and action buttons.
-     * 
+     *
      * @private
      */
     _setupEventListeners() {
         // Close button
         document.getElementById('sessionModalClose').addEventListener('click', () => this.close());
-        
+
         // Cancel button
         document.getElementById('sessionModalCancel').addEventListener('click', () => this.close());
-        
+
         // Switch button
         document.getElementById('sessionModalSwitch').addEventListener('click', () => this.confirmSwitch());
-        
+
         // Tab buttons
         document.getElementById('tabUBC-V').addEventListener('click', () => this.switchTab('UBC-V'));
         document.getElementById('tabUBC-O').addEventListener('click', () => this.switchTab('UBC-O'));
-        
+
         // Backdrop click
         this.modalElement.addEventListener('click', (e) => {
             if (e.target === this.modalElement) {
                 this.close();
             }
         });
-        
+
         // Escape key
         this.escapeHandler = (e) => {
             if (e.key === 'Escape' && !this.modalElement.classList.contains('hidden')) {
@@ -149,28 +149,28 @@ class SessionModal {
 
     /**
      * Open the modal and load sessions.
-     * 
+     *
      * Shows the modal dialog, fetches sessions from the API,
      * and populates the session list. Highlights the currently
      * selected session.
-     * 
+     *
      * @returns {Promise<void>}
-     * 
+     *
      * @example
      *     await sessionModal.open();
      */
     async open() {
         this.modalElement.classList.remove('hidden');
         this._showLoading();
-        
+
         try {
             // Fetch sessions from API
             const sessions = await this._fetchSessions();
             this.sessions = sessions;
-            
+
             // Get current session
             this.selectedSessionId = SessionStore.getCurrentSessionId();
-            
+
             // Render list for current tab
             this._renderSessionList();
             this._hideLoading();
@@ -182,10 +182,10 @@ class SessionModal {
 
     /**
      * Close the modal.
-     * 
+     *
      * Hides the modal dialog and resets selection state.
      * Calls onCancel callback if provided and no switch was made.
-     * 
+     *
      * @example
      *     sessionModal.close();
      */
@@ -198,42 +198,42 @@ class SessionModal {
 
     /**
      * Switch to a different campus tab.
-     * 
+     *
      * Updates the active tab and re-renders the session list
      * for the selected campus.
-     * 
+     *
      * @param {string} campus - Campus code ('UBC-V' or 'UBC-O')
-     * 
+     *
      * @example
      *     sessionModal.switchTab('UBC-O');
      */
     switchTab(campus) {
         this.currentTab = campus;
-        
+
         // Update tab styles
         document.querySelectorAll('.campus-tab').forEach(tab => {
             tab.classList.remove('campus-tab-active');
         });
         document.getElementById(`tab${campus}`).classList.add('campus-tab-active');
-        
+
         // Re-render session list
         this._renderSessionList();
     }
 
     /**
      * Select a session from the list.
-     * 
+     *
      * Updates the selection state and highlights the selected
      * session in the UI. Does not persist until confirmSwitch().
-     * 
+     *
      * @param {number} sessionId - ID of the session to select
-     * 
+     *
      * @example
      *     sessionModal.selectSession(5);
      */
     selectSession(sessionId) {
         this.selectedSessionId = sessionId;
-        
+
         // Update UI
         document.querySelectorAll('.session-item').forEach(item => {
             item.classList.remove('session-item-selected');
@@ -243,7 +243,7 @@ class SessionModal {
                 radio.classList.remove('session-radio-selected');
             }
         });
-        
+
         const selectedItem = document.getElementById(`session-${sessionId}`);
         if (selectedItem) {
             selectedItem.classList.add('session-item-selected');
@@ -253,60 +253,60 @@ class SessionModal {
                 radio.classList.add('session-radio-selected');
             }
         }
-        
+
         // Enable switch button
         document.getElementById('sessionModalSwitch').disabled = false;
     }
 
     /**
      * Confirm and apply the session switch.
-     * 
+     *
      * Persists the selected session to SessionStore, closes the
      * modal, and triggers the onSwitch callback to reload data.
-     * 
+     *
      * @example
      *     sessionModal.confirmSwitch();
      */
     confirmSwitch() {
         if (!this.selectedSessionId) return;
-        
+
         // Find selected session data
         const allSessions = [...this.sessions['UBC-V'], ...this.sessions['UBC-O']];
         const session = allSessions.find(s => s.id === this.selectedSessionId);
-        
+
         if (!session) return;
-        
+
         // Save to SessionStore
         SessionStore.setCurrentSessionId(session.id, {
             name: session.name,
             campus: session.campus,
             year: session.year
         });
-        
+
         // Close modal
         this.close();
-        
+
         // Call callback
         if (this.options.onSwitch) {
             this.options.onSwitch(session);
         }
-        
+
         // Reload page to update data
         window.location.reload();
     }
 
     /**
      * Render the session list for the current tab.
-     * 
+     *
      * Generates and injects HTML for all sessions in the current
      * campus tab. Shows applicant counts and selection state.
-     * 
+     *
      * @private
      */
     _renderSessionList() {
         const container = document.getElementById('sessionListContainer');
         const sessions = this.sessions[this.currentTab] || [];
-        
+
         if (sessions.length === 0) {
             container.innerHTML = `
                 <div class="text-center py-8 text-gray-500">
@@ -318,16 +318,16 @@ class SessionModal {
             `;
             return;
         }
-        
+
         // Sort by year descending
         const sortedSessions = [...sessions].sort((a, b) => b.year - a.year);
-        
-        const html = sortedSessions.map(session => 
+
+        const html = sortedSessions.map(session =>
             this._renderSessionItem(session, session.id === this.selectedSessionId)
         ).join('');
-        
+
         container.innerHTML = html;
-        
+
         // Attach click handlers
         container.querySelectorAll('.session-item').forEach(item => {
             item.addEventListener('click', () => {
@@ -339,10 +339,10 @@ class SessionModal {
 
     /**
      * Render a single session item.
-     * 
+     *
      * Generates HTML for one session in the list including
      * selection indicator, name, and applicant count.
-     * 
+     *
      * @private
      * @param {Object} session - Session data object
      * @param {number} session.id - Session ID
@@ -353,8 +353,8 @@ class SessionModal {
      */
     _renderSessionItem(session, isSelected) {
         return `
-            <div id="session-${session.id}" 
-                 class="session-item ${isSelected ? 'session-item-selected' : ''}" 
+            <div id="session-${session.id}"
+                 class="session-item ${isSelected ? 'session-item-selected' : ''}"
                  data-session-id="${session.id}">
                 <div class="flex items-center justify-between p-4 border border-gray-200 rounded-md mb-2 cursor-pointer hover:bg-gray-50 transition-colors">
                     <div class="flex items-center gap-3">
@@ -378,10 +378,10 @@ class SessionModal {
 
     /**
      * Show loading state in the modal.
-     * 
+     *
      * Displays a loading spinner in the session list area
      * while fetching data from the API.
-     * 
+     *
      * @private
      */
     _showLoading() {
@@ -400,9 +400,9 @@ class SessionModal {
 
     /**
      * Hide loading state.
-     * 
+     *
      * Removes the loading spinner after data is loaded.
-     * 
+     *
      * @private
      */
     _hideLoading() {
@@ -411,9 +411,9 @@ class SessionModal {
 
     /**
      * Show error state in the modal.
-     * 
+     *
      * Displays an error message if session loading fails.
-     * 
+     *
      * @private
      * @param {string} message - Error message to display
      */
@@ -430,7 +430,7 @@ class SessionModal {
                 </button>
             </div>
         `;
-        
+
         document.getElementById('retryLoadSessions').addEventListener('click', () => {
             this.open();
         });
@@ -438,29 +438,29 @@ class SessionModal {
 
     /**
      * Fetch sessions from the API.
-     * 
+     *
      * Retrieves all non-archived sessions grouped by campus.
-     * 
+     *
      * @private
      * @returns {Promise<Object>} Sessions grouped by campus
      */
     async _fetchSessions() {
         const response = await fetch('/api/sessions');
         const result = await response.json();
-        
+
         if (!result.success) {
             throw new Error(result.message || 'Failed to fetch sessions');
         }
-        
+
         return result.sessions || { 'UBC-V': [], 'UBC-O': [] };
     }
 
     /**
      * Destroy the modal instance.
-     * 
+     *
      * Removes the modal from the DOM and cleans up event listeners.
      * Call this when the modal is no longer needed.
-     * 
+     *
      * @example
      *     sessionModal.destroy();
      */

@@ -14,31 +14,135 @@
       {% include 'header.html' %}
 
       <main class="max-w-4xl mx-auto px-4 py-8">
-        <!-- Page Title -->
         <div class="mb-8">
           <h2 class="text-2xl font-bold text-ubc-blue mb-2">
             Create New Assessment Session
           </h2>
           <p class="text-gray-600">
-            Upload a CSV file to create a new session with dynamic schema for
-            applicant assessment
+            Create a new session for applicant assessment
           </p>
         </div>
 
         <!-- Create Session Form -->
         <section class="card-ubc mb-8">
           <h3 class="text-xl font-semibold text-ubc-blue mb-6">
-            📋 Session Configuration
+            Session Configuration
           </h3>
 
           <div class="space-y-6">
-            <!-- Session Name Info -->
+            <!-- Campus Selection -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">
+                Campus <span class="text-red-500">*</span>
+              </label>
+              <div class="flex space-x-6">
+                <label class="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="campus"
+                    value="UBC-V"
+                    class="w-4 h-4 text-ubc-blue border-gray-300 focus:ring-ubc-blue"
+                    checked
+                  />
+                  <span class="ml-2 text-gray-700">UBC Vancouver</span>
+                </label>
+                <label class="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="campus"
+                    value="UBC-O"
+                    class="w-4 h-4 text-ubc-blue border-gray-300 focus:ring-ubc-blue"
+                  />
+                  <span class="ml-2 text-gray-700">UBC Okanagan</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Program Code -->
+            <div>
+              <label
+                for="programCode"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Program Code <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="programCode"
+                placeholder="e.g., OGMMDS"
+                value="OGMMDS"
+                class="input-ubc w-full uppercase"
+                maxlength="10"
+                aria-label="Program code"
+              />
+              <p class="mt-1 text-sm text-gray-500">2-10 uppercase letters (e.g., OGMMDS)</p>
+            </div>
+
+            <!-- Program Name -->
+            <div>
+              <label
+                for="programName"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Program Name <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="programName"
+                placeholder="e.g., Master of Data Science"
+                value="Master of Data Science"
+                class="input-ubc w-full"
+                maxlength="100"
+                aria-label="Program name"
+              />
+            </div>
+
+            <!-- Year and Term Row -->
+            <div class="grid grid-cols-2 gap-6">
+              <!-- Year -->
+              <div>
+                <label
+                  for="sessionYear"
+                  class="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Year <span class="text-red-500">*</span>
+                </label>
+                <select
+                  id="sessionYear"
+                  class="input-ubc w-full"
+                  aria-label="Session year"
+                >
+                  <!-- Options populated by JavaScript -->
+                </select>
+              </div>
+
+              <!-- Term -->
+              <div>
+                <label
+                  for="sessionTerm"
+                  class="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Term <span class="text-red-500">*</span>
+                </label>
+                <select
+                  id="sessionTerm"
+                  class="input-ubc w-full"
+                  aria-label="Session term"
+                >
+                  <option value="W1">W1 - Winter Term 1 (Fall)</option>
+                  <option value="W2">W2 - Winter Term 2 (Spring)</option>
+                  <option value="S">S - Summer</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Session Name Preview -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">
-                Session Name
+                Session Name Preview
               </label>
               <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div class="flex items-start space-x-3">
+                <div class="flex items-center space-x-3">
                   <div class="flex-shrink-0">
                     <svg
                       class="h-5 w-5 text-blue-400"
@@ -53,21 +157,18 @@
                     </svg>
                   </div>
                   <div>
-                    <h4 class="text-sm font-medium text-blue-800">
-                      Automatic Session Naming
-                    </h4>
-                    <p class="text-sm text-blue-700 mt-1">
-                      Session name will be determined automatically from the CSV
-                      and will be in the format:
-                      <span class="font-semibold">Session YYYY/YYYY+1</span>
-                      (e.g., Session 2025/2026)
+                    <p class="text-lg font-semibold text-blue-800" id="sessionNamePreview">
+                      OGMMDS-V 2025W1
+                    </p>
+                    <p class="text-sm text-blue-600 mt-1">
+                      This name will be auto-generated based on your selections
                     </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Session Description -->
+            <!-- Description (Optional) -->
             <div>
               <label
                 for="sessionDescription"
@@ -84,68 +185,6 @@
               ></textarea>
             </div>
 
-            <!-- CSV Upload Section -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                Assessment CSV File <span class="text-red-500">*</span>
-              </label>
-              <div
-                class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-ubc-light-blue transition-colors"
-              >
-                <!-- COPY PASTE: Replace with modern file input design -->
-                <div class="space-y-4">
-                  <div class="mx-auto w-12 h-12 text-gray-400">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 48 48">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <label for="sessionFileInput" class="cursor-pointer">
-                      <span
-                        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ubc-blue transition-colors"
-                      >
-                        <svg
-                          class="w-4 h-4 mr-2"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                          />
-                        </svg>
-                        Choose CSV File
-                      </span>
-                      <input
-                        type="file"
-                        id="sessionFileInput"
-                        accept=".csv"
-                        class="sr-only"
-                      />
-                    </label>
-                    <p
-                      class="mt-2 text-sm text-gray-500"
-                      id="sessionFileStatus"
-                    >
-                      No file chosen
-                    </p>
-                    <p class="text-sm text-gray-600 mt-1">
-                      Upload your assessment CSV file to automatically detect
-                      the schema
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <!-- Action Buttons -->
             <div
               class="flex justify-between items-center pt-6 border-t border-gray-200"
@@ -157,7 +196,7 @@
               >
                 Cancel
               </button>
-              <button id="createSessionBtn" class="btn-ubc" disabled>
+              <button id="createSessionBtn" class="btn-ubc">
                 Create Session
               </button>
             </div>
@@ -165,29 +204,13 @@
 
           <div id="sessionMessage" class="hidden mt-6 p-4 rounded-md"></div>
         </section>
-
-        <!-- Preview Section (Initially Hidden) -->
-        <section id="previewSection" class="card-ubc hidden">
-          <h3 class="text-xl font-semibold text-ubc-blue mb-4">
-            📊 Schema Preview
-          </h3>
-          <p class="text-gray-600 mb-4">
-            This will show the detected schema from your CSV file
-          </p>
-          <div id="schemaPreview" class="bg-gray-50 p-4 rounded-md">
-            <!-- Schema preview will be populated here -->
-            <p class="text-sm text-gray-500 italic">
-              Upload a CSV file to see the schema preview
-            </p>
-          </div>
-        </section>
       </main>
     </div>
 
     <!-- Session Management Scripts - Load before auth -->
     <script defer src="{{ url_for('static', filename='js/sessionStore.js') }}"></script>
     <script defer src="{{ url_for('static', filename='js/sessionModal.js') }}"></script>
-    
+
     <!-- Application Scripts -->
     <script defer src="{{ url_for('static', filename='js/auth.js') }}"></script>
     <script defer src="{{ url_for('static', filename='js/sessions.js') }}"></script>
