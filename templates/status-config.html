@@ -102,6 +102,11 @@
         <span id="notificationMessage"></span>
     </div>
 
+    <!-- Session Management Scripts - Load before auth -->
+    <script src="{{ url_for('static', filename='js/sessionStore.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sessionModal.js') }}"></script>
+    
+    <!-- Application Scripts -->
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
     <script src="{{ url_for('static', filename='js/statuses.js') }}"></script>
     <script>

@@ -56,22 +56,24 @@ def calculate_age(birth_date):
     return age
 
 
-def create_or_get_sessions(cursor, program_code, program, session_abbrev):
+def create_or_get_sessions(cursor, program_code, program, session_abbrev, campus='UBC-V'):
     """
     Create or retrieve session information based on CSV data.
 
     Creates a new academic session record or retrieves an existing one
-    based on program code, program name, and session abbreviation.
+    based on program code, program name, session abbreviation, and campus.
     Extracts year information from session abbreviation.
 
     @param cursor: Database cursor for executing queries
     @param_type cursor: psycopg2.cursor
     @param program_code: Program code identifier (max 10 chars)
     @param_type program_code: str
-    @param program: Program name (max 20 chars)
+    @param program: Program name (max 50 chars)
     @param_type program: str
-    @param session_abbrev: Session abbreviation with year prefix (max 6 chars)
+    @param session_abbrev: Session abbreviation with year prefix (max 10 chars)
     @param_type session_abbrev: str
+    @param campus: Campus code ('UBC-V' or 'UBC-O'), defaults to 'UBC-V'
+    @param_type campus: str
 
     @return: Tuple of (session_id, message)
     @return_type: tuple[int, str] or tuple[None, str]
@@ -79,12 +81,13 @@ def create_or_get_sessions(cursor, program_code, program, session_abbrev):
     @validation:
         - Session abbreviation must be at least 4 characters
         - First 4 characters must be numeric (year)
+        - Campus must be 'UBC-V' or 'UBC-O'
         - Input strings truncated to database column limits
 
     @db_tables: sessions
 
     @example:
-        session_id, message = create_or_get_sessions(cursor, "MDS", "Master of Data Science", "2025W")
+        session_id, message = create_or_get_sessions(cursor, "MDS", "Master of Data Science", "2025W", "UBC-V")
         # Returns (1, "Session created successfully") or existing session ID
     """
 
@@ -92,8 +95,12 @@ def create_or_get_sessions(cursor, program_code, program, session_abbrev):
     try:
         # Truncate values to fit database column limits
         program_code = program_code[:10]  # program_code VARCHAR(10)
-        program = program[:20]  # program VARCHAR(20)
-        session_abbrev = session_abbrev[:6]  # session_abbrev VARCHAR(6)
+        program = program[:50]  # program VARCHAR(50)
+        session_abbrev = session_abbrev[:10]  # session_abbrev VARCHAR(10)
+
+        # Validate and normalize campus
+        if campus not in ['UBC-V', 'UBC-O']:
+            campus = 'UBC-V'  # Default to Vancouver if invalid
 
         # Extract year from session_abbrev (first 4 characters)
         if len(session_abbrev) < 4:
@@ -112,29 +119,30 @@ def create_or_get_sessions(cursor, program_code, program, session_abbrev):
 
         year = int(year_str)
 
-        # Create name in format "Session year - year+1" (truncate to 20 chars if needed)
-        name = f"Session {year} - {year + 1}"
-        if len(name) > 20:
-            name = name[:20]
+        # Create name in format "PROGRAM-CAMPUS YEAR" (e.g., "MDS-V 2025W")
+        campus_short = campus.split('-')[1] if '-' in campus else 'V'
+        name = f"{program_code}-{campus_short} {session_abbrev}"
+        if len(name) > 30:
+            name = name[:30]
 
-        # Check if session already exists
+        # Check if session already exists (including campus in the check)
         cursor.execute(
             """
-            SELECT id FROM sessions 
-            WHERE program_code = %s AND year = %s AND session_abbrev = %s
+            SELECT id FROM sessions
+            WHERE program_code = %s AND year = %s AND session_abbrev = %s AND campus = %s
             """,
-            (program_code, year, session_abbrev),
+            (program_code, year, session_abbrev, campus),
         )
 
         existing_session = cursor.fetchone()
         if existing_session:
             return existing_session[0], f"Found existing session: {name}"
 
-        # Create new session
+        # Create new session (including campus)
         cursor.execute(
             """
-            INSERT INTO sessions (program_code, program, session_abbrev, year, name, description, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO sessions (program_code, program, session_abbrev, year, name, description, campus, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
             (
@@ -144,6 +152,7 @@ def create_or_get_sessions(cursor, program_code, program, session_abbrev):
                 year,
                 name,
                 "",  # Empty description
+                campus,
                 datetime.now(),
                 datetime.now(),
             ),
@@ -594,6 +603,25 @@ def process_csv_data(df):
             program = str(first_row.get("Program", "")).strip()
             session_abbrev = str(first_row.get("Session", "")).strip()
 
+            # Get campus from CSV - check multiple possible column names
+            campus = str(first_row.get("Campus", first_row.get("campus", ""))).strip()
+
+            # Normalize campus value if provided in CSV
+            if campus and campus.upper() in ['UBC-O', 'UBCO', 'O', 'OKANAGAN']:
+                campus = 'UBC-O'
+            elif campus and campus.upper() in ['UBC-V', 'UBCV', 'V', 'VANCOUVER']:
+                campus = 'UBC-V'
+            else:
+                # Infer campus from program code if no Campus column
+                # "OG" prefix typically indicates Okanagan Graduate programs
+                # "VG" or no prefix typically indicates Vancouver programs
+                if program_code.upper().startswith('OG'):
+                    campus = 'UBC-O'
+                elif program_code.upper().startswith('VG'):
+                    campus = 'UBC-V'
+                else:
+                    campus = 'UBC-V'  # Default to Vancouver
+
             # Check for empty or nan values
             if not program_code or program_code == "nan" or program_code == "":
                 return (
@@ -615,7 +643,7 @@ def process_csv_data(df):
                 )
 
             sessions_result, message = create_or_get_sessions(
-                cursor, program_code, program, session_abbrev
+                cursor, program_code, program, session_abbrev, campus
             )
             if sessions_result is None:
                 return False, f"Session creation failed: {message}", 0
@@ -975,13 +1003,16 @@ def process_csv_data(df):
         return False, f"Database error: {str(e)}", 0
 
 
-def get_all_applicant_status():
+def get_all_applicant_status(session_id=None):
     """
     Get all applicants with their status and basic information.
 
     Retrieves a comprehensive list of all applicants including their current
     status, contact information, submission dates, and overall ratings.
     Used for the main applicants dashboard display.
+
+    @param session_id: Optional session ID to filter applicants by session
+    @param_type session_id: int or None
 
     @return: Tuple of (applicants_list, error_message)
     @return_type: tuple[list, None] or tuple[None, str]
@@ -991,7 +1022,7 @@ def get_all_applicant_status():
     @aggregation: Calculates average rating across all reviewers
 
     @example:
-        applicants, error = get_all_applicant_status()
+        applicants, error = get_all_applicant_status(session_id=5)
         if not error:
             for applicant in applicants:
                 print(f"{applicant['given_name']} {applicant['family_name']}: {applicant['status']}")
@@ -1004,8 +1035,8 @@ def get_all_applicant_status():
 
     try:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute(
-            """
+
+        query = """
             SELECT
                 ss.user_code,
                 si.family_name,
@@ -1025,7 +1056,8 @@ def get_all_applicant_status():
                 CASE WHEN ai.canadian = true THEN 'Yes' ELSE 'No' END as canadian,
                 si.gender,
                 si.country_citizenship as citizenship_country,
-                si.visa_type_code as visa
+                si.visa_type_code as visa,
+                si.session_id
             FROM applicant_status ss
             LEFT JOIN applicant_info si ON ss.user_code = si.user_code
             LEFT JOIN ratings r ON ss.user_code = r.user_code
@@ -1038,13 +1070,27 @@ def get_all_applicant_status():
                 ORDER BY created_at DESC
                 LIMIT 1
             ) latest_log ON true
+        """
+
+        params = []
+        if session_id is not None:
+            query += " WHERE si.session_id = %s"
+            params.append(session_id)
+
+        query += """
             GROUP BY ss.user_code, si.family_name, si.given_name, si.email,
                      ss.student_number, ss.app_start, ss.submit_date,
                      ss.status_code, ss.status, ss.detail_status, ss.updated_at,
-                     ai.sent, ai.canadian, si.gender, si.country_citizenship, si.visa_type_code, latest_log.created_at
+                     ai.sent, ai.canadian, si.gender, si.country_citizenship, si.visa_type_code,
+                     latest_log.created_at, si.session_id
             ORDER BY ss.submit_date DESC, si.family_name
         """
-        )
+
+        if params:
+            cursor.execute(query, tuple(params))
+        else:
+            cursor.execute(query)
+
         applicants = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -2591,6 +2637,7 @@ def clear_all_applicant_data():
         cursor = conn.cursor()
         
         # List of tables to clear (in order to respect foreign key constraints)
+        # Note: sessions table is NOT cleared - only applicant data is removed
         tables_to_clear = [
             'ratings',              # References applicant_info and user
             'toefl',                # References applicant_info
@@ -2608,7 +2655,6 @@ def clear_all_applicant_data():
             'applicant_status',     # References applicant_info
             'program_info',         # References applicant_info
             'applicant_info',       # References sessions
-            'sessions',             # No dependencies
         ]
         
         # ADD THIS: Count applicants BEFORE deleting

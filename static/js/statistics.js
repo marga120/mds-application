@@ -329,7 +329,10 @@ class StatisticsManager {
         // // ... other fields 
 
         try {
-            const response = await fetch("/api/applicants")
+            // Get current session ID from SessionStore
+            const sessionId = window.SessionStore ? SessionStore.getCurrentSessionId() : null;
+            const url = sessionId ? `/api/applicants?session_id=${sessionId}` : "/api/applicants";
+            const response = await fetch(url)
             const result = await response.json()
 
             if(result.success){
