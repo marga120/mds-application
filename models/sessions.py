@@ -90,10 +90,6 @@ def get_all_sessions(include_archived=False):
             for session in sessions:
                 print(f"{session['name']}: {session['applicant_count']} applicants")
     """
-    # TODO: Implement query to fetch all sessions with applicant counts
-    # TODO: Filter by is_archived based on include_archived parameter
-    # TODO: Group results by campus for frontend consumption
-
     conn = get_db_connection()
     if not conn:
         return None, "Database connection failed"
@@ -133,30 +129,23 @@ def get_all_sessions(include_archived=False):
         result = cursor.fetchall()
         cursor.close()
         conn.close()
-        sessions_by_campus = {"UBC-V": [], "UBC-O": []}
         
-        #Just Grouping by the campus
+        # Group by campus
+        sessions_by_campus = {"UBC-V": [], "UBC-O": []}
         for sessions in result:
             session_dict = dict(sessions)
             campus = session_dict.get('campus', 'UBC-V')
 
             if campus not in sessions_by_campus:
-                #key not in dict, add it
-                sessions_by_capus[campus] = []
+                sessions_by_campus[campus] = []
             sessions_by_campus[campus].append(session_dict)
         
         return sessions_by_campus, None
-
-        if result:
-            return result, None
-        else:
-            return None, "No session found"
             
     except Exception as e:
         if conn:
             conn.close()
         return None, f"Database error: {str(e)}"
-    pass
 
 
 def get_session_by_id(session_id):
@@ -194,9 +183,47 @@ def get_session_by_id(session_id):
         if not error:
             print(f"Session: {session['name']}")
     """
-    # TODO: Implement query to fetch single session by ID
-    # TODO: Include applicant count in response
-    pass
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+            SELECT 
+                s.id,
+                s.program_code,
+                s.program,
+                s.session_abbrev,
+                s.year,
+                s.name,
+                s.description,
+                s.campus,
+                s.is_archived,
+                s.created_at,
+                s.updated_at,
+                COUNT(a.user_code) as applicant_count
+            FROM sessions s 
+            LEFT JOIN applicant_info a ON s.id = a.session_id
+            WHERE s.id = %s
+            GROUP BY s.id, s.program_code, s.program, s.session_abbrev, 
+                     s.year, s.name, s.description, s.campus, s.is_archived,
+                     s.created_at, s.updated_at
+        """, (session_id,))
+        
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if result:
+            return dict(result), None
+        else:
+            return None, "Session not found"
+            
+    except Exception as e:
+        if conn:
+            conn.close()
+        return None, f"Database error: {str(e)}"
 
 
 def create_session(program_code, program, session_abbrev, year, campus, name=None, description=None):
@@ -395,9 +422,64 @@ def get_most_recent_session(campus=None):
         if not error:
             print(f"Most recent: {session['name']}")
     """
-    # TODO: Query for most recent non-archived session
-    # TODO: Optionally filter by campus
-    pass
+    conn = get_db_connection()
+    if not conn:
+        return None, "Database connection failed"
+
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        query = """
+            SELECT 
+                s.id,
+                s.program_code,
+                s.program,
+                s.session_abbrev,
+                s.year,
+                s.name,
+                s.description,
+                s.campus,
+                s.is_archived,
+                s.created_at,
+                s.updated_at,
+                COUNT(a.user_code) as applicant_count
+            FROM sessions s
+            LEFT JOIN applicant_info a ON s.id = a.session_id
+            WHERE s.is_archived = FALSE
+        """
+        
+        # Add campus filter if specified
+        params = []
+        if campus:
+            query += " AND s.campus = %s"
+            params.append(campus)
+        
+        query += """
+            GROUP BY s.id, s.program_code, s.program, s.session_abbrev, 
+                     s.year, s.name, s.description, s.campus, s.is_archived,
+                     s.created_at, s.updated_at
+            ORDER BY s.year DESC, s.created_at DESC
+            LIMIT 1
+        """
+        
+        if params:
+            cursor.execute(query, tuple(params))
+        else:
+            cursor.execute(query)
+        
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if result:
+            return dict(result), None
+        else:
+            return None, "No sessions found"
+            
+    except Exception as e:
+        if conn:
+            conn.close()
+        return None, f"Database error: {str(e)}"
 
 
 def get_session_applicant_count(session_id):

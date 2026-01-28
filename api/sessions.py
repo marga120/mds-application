@@ -77,24 +77,31 @@ def get_sessions_route():
             .then(res => res.json())
             .then(data => console.log(data.sessions));
     """
-    #Include_archived
-    if not current_user.is_authenticated:
-        return jsonify({"success": False, "message": "Authentication required"}), 401
-
-    include_archived = request.args.get('include_archived', 'false').lower() == 'true'
-    campus_filter = request.args.get('campus', None)
-    
-    sessions, error = get_all_sessions(include_archived)
-    #sessions grouped by campus
-    
-    if error:
-        return jsonify({"success": False, "message": error}), 400
-    #if the campus filter is specified, 
-    if campus_filter and campus_filter in sessions:
-        session = {campus_filter: sessions[campus_filter]}
-
-    return jsonify({"success": True, "rating": sessions}), 200
-    pass
+    try:
+        # Parse query parameters
+        include_archived = request.args.get('include_archived', 'false').lower() == 'true'
+        campus_filter = request.args.get('campus', None)
+        
+        # Get all sessions
+        sessions, error = get_all_sessions(include_archived)
+        
+        if error:
+            return jsonify({"success": False, "message": error}), 500
+        
+        # Filter by campus if specified
+        if campus_filter and campus_filter in sessions:
+            sessions = {campus_filter: sessions[campus_filter]}
+        
+        return jsonify({
+            "success": True,
+            "sessions": sessions
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
 
 
 @sessions_api.route("/sessions/current", methods=["GET"])
@@ -136,9 +143,26 @@ def get_current_session_route():
             .then(res => res.json())
             .then(data => console.log(data.session));
     """
-    # TODO: Call get_most_recent_session()
-    # TODO: Return session data or 404 if none exist
-    pass
+    try:
+        # Get most recent non-archived session
+        session, error = get_most_recent_session()
+        
+        if error or not session:
+            return jsonify({
+                "success": False,
+                "message": "No sessions found"
+            }), 404
+        
+        return jsonify({
+            "success": True,
+            "session": session
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
 
 
 @sessions_api.route("/sessions/<int:session_id>", methods=["GET"])
@@ -189,9 +213,26 @@ def get_session_route(session_id):
             .then(res => res.json())
             .then(data => console.log(data.session));
     """
-    # TODO: Call get_session_by_id(session_id)
-    # TODO: Return session data or 404 if not found
-    pass
+    try:
+        # Get session by ID
+        session, error = get_session_by_id(session_id)
+        
+        if error or not session:
+            return jsonify({
+                "success": False,
+                "message": error or "Session not found"
+            }), 404
+        
+        return jsonify({
+            "success": True,
+            "session": session
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
 
 
 @sessions_api.route("/sessions/<int:session_id>/archive", methods=["PUT"])
