@@ -25,8 +25,11 @@ CREATE TABLE IF NOT EXISTS sessions(
     year INTEGER,
     name VARCHAR(30),
     description VARCHAR(100),
+    campus VARCHAR(10) NOT NULL CHECK (campus IN ('UBC-V', 'UBC-O')),
+    is_archived BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT sessions_unique_session UNIQUE (campus, program_code, year, session_abbrev)
 );
 
 -- Create applicant_info table
@@ -566,6 +569,13 @@ CREATE TRIGGER update_ratings_updated_at
     FOR EACH ROW 
     EXECUTE PROCEDURE update_updated_at_column();
 
+-- Create trigger for sessions table to auto-update updated_at
+DROP TRIGGER IF EXISTS update_sessions_updated_at ON sessions;
+CREATE TRIGGER update_sessions_updated_at 
+    BEFORE UPDATE ON sessions 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_email ON "user"(email);
 CREATE INDEX IF NOT EXISTS idx_user_role ON "user"(role_user_id);
@@ -575,6 +585,9 @@ CREATE INDEX IF NOT EXISTS idx_institution_info_user_code ON institution_info(us
 CREATE INDEX IF NOT EXISTS idx_toefl_user_code ON toefl(user_code);
 CREATE INDEX IF NOT EXISTS idx_ielts_user_code ON ielts(user_code);
 CREATE INDEX IF NOT EXISTS idx_duolingo_user_code ON duolingo(user_code);
+CREATE INDEX IF NOT EXISTS idx_sessions_campus ON sessions(campus);
+CREATE INDEX IF NOT EXISTS idx_sessions_is_archived ON sessions(is_archived);
+CREATE INDEX IF NOT EXISTS idx_sessions_campus_year ON sessions(campus, year DESC);
 
 -- Insert default roles
 INSERT INTO role_user (name) VALUES ('Admin'), ('Faculty'), ('Viewer') 

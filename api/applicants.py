@@ -116,6 +116,8 @@ def get_applicants():
 
     @requires: Any authenticated user (Admin, Faculty, Viewer)
     @method: GET
+    @query_params:
+        - session_id: Optional session ID to filter applicants by session
 
     @return: JSON response containing list of all applicants
     @return_type: flask.Response
@@ -126,7 +128,7 @@ def get_applicants():
     @db_tables: applicant_status, applicant_info, ratings
 
     @example:
-        GET /api/applicants
+        GET /api/applicants?session_id=5
 
         Response:
         {
@@ -144,8 +146,9 @@ def get_applicants():
         }
     """
 
-    """Get all applicants from database"""
-    applicants, error = get_all_applicant_status()
+    """Get all applicants from database, optionally filtered by session"""
+    session_id = request.args.get('session_id', type=int)
+    applicants, error = get_all_applicant_status(session_id=session_id)
 
     if error:
         return jsonify({"success": False, "message": error})

@@ -298,4 +298,64 @@
   .single-line-scrollable:focus::-webkit-scrollbar-thumb {
     @apply bg-gray-400;
   }
+
+  /* Session Badge Styles - Match header dropdown style exactly */
+  .session-badge {
+    @apply bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20 cursor-pointer;
+  }
+
+  .session-badge-normal {
+    /* Same style as base */
+  }
+
+  .session-badge-warning {
+    /* Same style as base */
+  }
+
+  .session-badge-loading {
+    @apply cursor-wait opacity-70;
+  }
+
+  .session-badge-spinner {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Campus Tab Styles */
+  .campus-tab {
+    @apply bg-gray-50 text-gray-600 border-b-2 border-transparent transition-all duration-200;
+  }
+
+  .campus-tab:hover {
+    @apply bg-gray-100 text-gray-700;
+  }
+
+  .campus-tab-active {
+    @apply bg-white text-blue-600 border-blue-600;
+  }
+
+  /* Session Item Styles */
+  .session-item {
+    @apply transition-all duration-200;
+  }
+
+  .session-item-selected > div {
+    @apply border-blue-600 bg-blue-50;
+  }
+
+  .session-radio {
+    @apply w-5 h-5 flex items-center justify-center text-xs text-gray-400;
+  }
+
+  .session-radio-selected {
+    @apply text-blue-600 font-bold;
+  }
 }
