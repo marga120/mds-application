@@ -678,6 +678,11 @@ class ApplicantsManager {
 
     this.loadMyRating(userCode);
 
+    // Load documents
+    if (typeof documentsManager !== 'undefined') {
+      documentsManager.loadDocuments(userCode);
+    }
+
     // Update rating form for viewers
     this.updateRatingFormForViewer();
 
@@ -736,6 +741,9 @@ class ApplicantsManager {
           </button>
           <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="comments-ratings">
             Comments & Ratings
+          </button>
+          <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="documents-tab">
+            Documents <span id="documentsTabBadge" class="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-ubc-blue rounded-full" style="display: none;">0</span>
           </button>
           <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap" data-tab="status-tab">
             Status: <span id="statusTabLabel">Not Reviewed</span>
@@ -1034,6 +1042,16 @@ class ApplicantsManager {
                   Loading ratings...
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Documents Tab -->
+        <div id="documents-tab" class="tab-content hidden h-full overflow-y-auto">
+          <div id="documentsContainer" class="pr-2">
+            <div class="text-center py-8 text-gray-500">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+              Loading documents...
             </div>
           </div>
         </div>

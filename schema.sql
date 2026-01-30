@@ -328,6 +328,25 @@ CREATE TABLE IF NOT EXISTS activity_log (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Applicant documents table for PDF storage
+CREATE TABLE IF NOT EXISTS applicant_documents (
+    id SERIAL PRIMARY KEY,
+    user_code VARCHAR(10) REFERENCES applicant_info(user_code) ON DELETE CASCADE,
+    document_type VARCHAR(50) NOT NULL,
+    filename VARCHAR(255) NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NOT NULL,
+    file_size INTEGER,
+    mime_type VARCHAR(100),
+    uploaded_by INTEGER REFERENCES "user"(id),
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_applicant_documents_user_code ON applicant_documents(user_code);
+CREATE INDEX IF NOT EXISTS idx_applicant_documents_type ON applicant_documents(document_type);
+
 -- Add foreign key constraint with CASCADE DELETE (check if exists first)
 DO $$ 
 BEGIN
