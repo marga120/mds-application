@@ -17,6 +17,7 @@ from models.documents import (
     get_document_count_by_user_code,
 )
 from utils.activity_logger import log_activity
+from utils.permissions import require_admin, require_faculty_or_admin
 
 documents_bp = Blueprint('documents', __name__)
 
@@ -87,7 +88,7 @@ def list_documents(user_code):
 
 
 @documents_bp.route('/api/documents/<user_code>', methods=['POST'])
-@login_required
+@require_faculty_or_admin
 def upload_document(user_code):
     """
     Upload a new document for an applicant.
@@ -95,13 +96,6 @@ def upload_document(user_code):
     @param user_code: Applicant's user code
     @return: JSON response with upload status
     """
-    # Only admin and faculty can upload documents
-    if current_user.is_viewer:
-        return jsonify({
-            'success': False,
-            'message': 'Access denied. Faculty or Admin role required.'
-        }), 403
-
     # Check if file is present
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'No file provided'}), 400
@@ -215,7 +209,7 @@ def view_document(document_id):
 
 
 @documents_bp.route('/api/documents/<int:document_id>', methods=['DELETE'])
-@login_required
+@require_admin
 def delete_document_endpoint(document_id):
     """
     Delete a document.
@@ -223,13 +217,6 @@ def delete_document_endpoint(document_id):
     @param document_id: Document ID
     @return: JSON response with deletion status
     """
-    # Only admin can delete documents
-    if not current_user.is_admin:
-        return jsonify({
-            'success': False,
-            'message': 'Admin access required to delete documents.'
-        }), 403
-
     # Get document info first
     document, error = get_document_by_id(document_id)
 

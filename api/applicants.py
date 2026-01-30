@@ -4,6 +4,7 @@ import io
 from datetime import datetime, timezone
 from flask_login import current_user, login_required
 from utils.activity_logger import log_activity
+from utils.permissions import require_admin, require_faculty_or_admin
 import csv
 
 # Import our model functions
@@ -1024,7 +1025,8 @@ def clear_all_data():
         }), 500
 
 @applicants_api.route("/applicant-application-info/<user_code>/scholarship", methods=["PUT"])
-def update_applicant_scholarship(user_code):
+@require_admin
+def update_applicant_scholarship_endpoint(user_code):
     """
     Update applicant scholarship decision.
 
@@ -1067,13 +1069,6 @@ def update_applicant_scholarship(user_code):
             "message": "Scholarship decision updated successfully"
         }
     """
-    if not current_user.is_authenticated:
-        return jsonify({"success": False, "message": "Authentication required"}), 401
-
-    # Only Admin can update scholarship
-    if not current_user.is_admin:
-        return jsonify({"success": False, "message": "Only Admin users can update scholarship decisions"}), 403
-
     from models.applicants import update_applicant_scholarship
 
     data = request.get_json()

@@ -4,9 +4,8 @@ Documents Model
 This module handles database operations for applicant documents (PDFs).
 """
 
-from utils.database import get_db_connection
-from psycopg2.extras import RealDictCursor
 from datetime import datetime
+from utils.db_helpers import db_connection, db_transaction
 
 
 def get_documents_by_user_code(user_code):
@@ -16,44 +15,31 @@ def get_documents_by_user_code(user_code):
     @param user_code: Unique identifier for the applicant
     @return: Tuple of (documents_list, error_message)
     """
-    conn = get_db_connection()
-    if not conn:
-        return None, "Database connection failed"
-
     try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute(
-            """
-            SELECT
-                d.id,
-                d.user_code,
-                d.document_type,
-                d.filename,
-                d.original_filename,
-                d.file_path,
-                d.file_size,
-                d.mime_type,
-                d.uploaded_by,
-                d.description,
-                d.created_at,
-                d.updated_at,
-                u.first_name || ' ' || u.last_name as uploaded_by_name
-            FROM applicant_documents d
-            LEFT JOIN "user" u ON d.uploaded_by = u.id
-            WHERE d.user_code = %s
-            ORDER BY d.created_at DESC
-            """,
-            (user_code,),
-        )
-        documents = cursor.fetchall()
-        cursor.close()
-        conn.close()
-
-        return documents, None
+        with db_connection() as (conn, cursor):
+            cursor.execute("""
+                SELECT
+                    d.id,
+                    d.user_code,
+                    d.document_type,
+                    d.filename,
+                    d.original_filename,
+                    d.file_path,
+                    d.file_size,
+                    d.mime_type,
+                    d.uploaded_by,
+                    d.description,
+                    d.created_at,
+                    d.updated_at,
+                    u.first_name || ' ' || u.last_name as uploaded_by_name
+                FROM applicant_documents d
+                LEFT JOIN "user" u ON d.uploaded_by = u.id
+                WHERE d.user_code = %s
+                ORDER BY d.created_at DESC
+            """, (user_code,))
+            return cursor.fetchall(), None
 
     except Exception as e:
-        if conn:
-            conn.close()
         return None, f"Database error: {str(e)}"
 
 
@@ -64,32 +50,19 @@ def get_document_by_id(document_id):
     @param document_id: Document ID
     @return: Tuple of (document_dict, error_message)
     """
-    conn = get_db_connection()
-    if not conn:
-        return None, "Database connection failed"
-
     try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute(
-            """
-            SELECT
-                id, user_code, document_type, filename, original_filename,
-                file_path, file_size, mime_type, uploaded_by, description,
-                created_at, updated_at
-            FROM applicant_documents
-            WHERE id = %s
-            """,
-            (document_id,),
-        )
-        document = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        return document, None
+        with db_connection() as (conn, cursor):
+            cursor.execute("""
+                SELECT
+                    id, user_code, document_type, filename, original_filename,
+                    file_path, file_size, mime_type, uploaded_by, description,
+                    created_at, updated_at
+                FROM applicant_documents
+                WHERE id = %s
+            """, (document_id,))
+            return cursor.fetchone(), None
 
     except Exception as e:
-        if conn:
-            conn.close()
         return None, f"Database error: {str(e)}"
 
 
@@ -109,39 +82,25 @@ def save_document(user_code, document_type, filename, original_filename,
     @param description: Optional description
     @return: Tuple of (document_id, error_message)
     """
-    conn = get_db_connection()
-    if not conn:
-        return None, "Database connection failed"
-
     try:
-        cursor = conn.cursor()
-        current_time = datetime.now()
+        with db_transaction() as (conn, cursor):
+            current_time = datetime.now()
 
-        cursor.execute(
-            """
-            INSERT INTO applicant_documents (
-                user_code, document_type, filename, original_filename,
-                file_path, file_size, mime_type, uploaded_by, description,
-                created_at, updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id
-            """,
-            (user_code, document_type, filename, original_filename,
-             file_path, file_size, mime_type, uploaded_by, description,
-             current_time, current_time),
-        )
+            cursor.execute("""
+                INSERT INTO applicant_documents (
+                    user_code, document_type, filename, original_filename,
+                    file_path, file_size, mime_type, uploaded_by, description,
+                    created_at, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (user_code, document_type, filename, original_filename,
+                  file_path, file_size, mime_type, uploaded_by, description,
+                  current_time, current_time))
 
-        document_id = cursor.fetchone()[0]
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        return document_id, None
+            document_id = cursor.fetchone()[0]
+            return document_id, None
 
     except Exception as e:
-        if conn:
-            conn.rollback()
-            conn.close()
         return None, f"Database error: {str(e)}"
 
 
@@ -155,41 +114,27 @@ def delete_document(document_id):
     @param document_id: Document ID to delete
     @return: Tuple of (document_info, error_message)
     """
-    conn = get_db_connection()
-    if not conn:
-        return None, "Database connection failed"
-
     try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        with db_transaction() as (conn, cursor):
+            # First get the document info for file deletion
+            cursor.execute(
+                "SELECT id, file_path, filename FROM applicant_documents WHERE id = %s",
+                (document_id,),
+            )
+            document = cursor.fetchone()
 
-        # First get the document info for file deletion
-        cursor.execute(
-            "SELECT id, file_path, filename FROM applicant_documents WHERE id = %s",
-            (document_id,),
-        )
-        document = cursor.fetchone()
+            if not document:
+                return None, "Document not found"
 
-        if not document:
-            cursor.close()
-            conn.close()
-            return None, "Document not found"
+            # Delete the record
+            cursor.execute(
+                "DELETE FROM applicant_documents WHERE id = %s",
+                (document_id,),
+            )
 
-        # Delete the record
-        cursor.execute(
-            "DELETE FROM applicant_documents WHERE id = %s",
-            (document_id,),
-        )
-
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        return document, None
+            return document, None
 
     except Exception as e:
-        if conn:
-            conn.rollback()
-            conn.close()
         return None, f"Database error: {str(e)}"
 
 
@@ -202,51 +147,35 @@ def update_document(document_id, description=None, document_type=None):
     @param document_type: New document type (optional)
     @return: Tuple of (success, error_message)
     """
-    conn = get_db_connection()
-    if not conn:
-        return False, "Database connection failed"
-
     try:
-        cursor = conn.cursor()
+        with db_transaction() as (conn, cursor):
+            updates = []
+            params = []
 
-        updates = []
-        params = []
+            if description is not None:
+                updates.append("description = %s")
+                params.append(description)
 
-        if description is not None:
-            updates.append("description = %s")
-            params.append(description)
+            if document_type is not None:
+                updates.append("document_type = %s")
+                params.append(document_type)
 
-        if document_type is not None:
-            updates.append("document_type = %s")
-            params.append(document_type)
+            if not updates:
+                return False, "No updates provided"
 
-        if not updates:
-            cursor.close()
-            conn.close()
-            return False, "No updates provided"
+            updates.append("updated_at = %s")
+            params.append(datetime.now())
+            params.append(document_id)
 
-        updates.append("updated_at = %s")
-        params.append(datetime.now())
-        params.append(document_id)
+            query = f"UPDATE applicant_documents SET {', '.join(updates)} WHERE id = %s"
+            cursor.execute(query, tuple(params))
 
-        query = f"UPDATE applicant_documents SET {', '.join(updates)} WHERE id = %s"
-        cursor.execute(query, tuple(params))
+            if cursor.rowcount == 0:
+                return False, "Document not found"
 
-        if cursor.rowcount == 0:
-            cursor.close()
-            conn.close()
-            return False, "Document not found"
-
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        return True, None
+            return True, None
 
     except Exception as e:
-        if conn:
-            conn.rollback()
-            conn.close()
         return False, f"Database error: {str(e)}"
 
 
@@ -257,23 +186,13 @@ def get_document_count_by_user_code(user_code):
     @param user_code: Applicant user code
     @return: Tuple of (count, error_message)
     """
-    conn = get_db_connection()
-    if not conn:
-        return None, "Database connection failed"
-
     try:
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT COUNT(*) FROM applicant_documents WHERE user_code = %s",
-            (user_code,),
-        )
-        count = cursor.fetchone()[0]
-        cursor.close()
-        conn.close()
-
-        return count, None
+        with db_connection() as (conn, cursor):
+            cursor.execute(
+                "SELECT COUNT(*) FROM applicant_documents WHERE user_code = %s",
+                (user_code,),
+            )
+            return cursor.fetchone()[0], None
 
     except Exception as e:
-        if conn:
-            conn.close()
         return None, f"Database error: {str(e)}"
