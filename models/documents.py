@@ -97,7 +97,8 @@ def save_document(user_code, document_type, filename, original_filename,
                   file_path, file_size, mime_type, uploaded_by, description,
                   current_time, current_time))
 
-            document_id = cursor.fetchone()[0]
+            document_id = cursor.fetchone()['id']
+            #print(document_id)
             return document_id, None
 
     except Exception as e:

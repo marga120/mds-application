@@ -21,9 +21,10 @@ def log_activity(
     old_value=None,
     new_value=None,
     additional_metadata=None,
+    user=None,
 ):
     """
-    Log user activity to the database
+    Log user activity to the database.
 
     Args:
         action_type (str): Type of action (e.g., 'login', 'status_change', 'gpa_update')
@@ -32,6 +33,8 @@ def log_activity(
         old_value (str): Previous value (for changes)
         new_value (str): New value (for changes)
         additional_metadata (dict): Extra info as JSON
+        user (object): Optional user object to log. If not provided, uses current_user.
+                       Pass the user explicitly for login events before session is established.
     """
     conn = get_db_connection()
     if not conn:
@@ -40,16 +43,20 @@ def log_activity(
     try:
         cursor = conn.cursor()
 
-        # Get user info
-        user_id = current_user.id if current_user.is_authenticated else None
-
+        # Get user info - use provided user or fall back to current_user
+        if user is not None:
+            user_id = user.id if hasattr(user, 'id') else None
+        elif current_user and current_user.is_authenticated:
+            user_id = current_user.id
+        else:
+            user_id = None      
         # Convert metadata to JSON if provided
         metadata_json = json.dumps(additional_metadata) if additional_metadata else None
 
         cursor.execute(
             """
-            INSERT INTO activity_log 
-            (user_id, action_type, target_entity, target_id, old_value, new_value, 
+            INSERT INTO activity_log
+            (user_id, action_type, target_entity, target_id, old_value, new_value,
              additional_metadata, created_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """,

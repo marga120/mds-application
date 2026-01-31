@@ -1047,11 +1047,27 @@ class ApplicantsManager {
         </div>
 
         <!-- Documents Tab -->
-        <div id="documents-tab" class="tab-content hidden h-full overflow-y-auto">
-          <div id="documentsContainer" class="pr-2">
-            <div class="text-center py-8 text-gray-500">
-              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
-              Loading documents...
+        <div id="documents-tab" class="tab-content hidden h-full flex flex-col">
+          <div class="flex flex-1 gap-4 min-h-0">
+            <!-- Documents List (Left Panel) -->
+            <div id="documentsListPanel" class="w-1/3 flex flex-col overflow-hidden border-r border-gray-200 pr-4">
+              <div id="documentsContainer" class="flex-1 overflow-y-auto">
+                <div class="text-center py-8 text-gray-500">
+                  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ubc-blue mx-auto mb-2"></div>
+                  Loading documents...
+                </div>
+              </div>
+            </div>
+            <!-- PDF Viewer (Right Panel) -->
+            <div id="pdfViewerPanel" class="w-2/3 flex flex-col min-h-0">
+              <div id="pdfViewerContainer" class="flex-1 bg-gray-100 rounded-lg flex items-center justify-center min-h-[400px]">
+                <div class="text-center text-gray-400">
+                  <svg class="w-16 h-16 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                  <p class="text-sm">Select a document to preview</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

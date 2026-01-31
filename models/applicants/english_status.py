@@ -7,6 +7,7 @@ status for applicants based on their test scores (TOEFL, IELTS, MELAB, PTE, CAEL
 
 from psycopg2.extras import RealDictCursor
 from utils.db_helpers import db_connection, db_transaction
+from utils.database import get_db_connection
 
 # Test score thresholds
 TOEFL_LR_MIN = 22  # listening & reading

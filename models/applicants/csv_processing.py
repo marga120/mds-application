@@ -13,6 +13,7 @@ from models.test_scores import (
     process_ielts_scores,
     process_other_test_scores,
 )
+from utils.db_helpers import db_connection
 from models.institutions import process_institution_info
 from .english_status import compute_english_status
 

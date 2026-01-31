@@ -355,13 +355,13 @@ def clear_all_applicant_data():
     try:
         with db_transaction() as (conn, cursor):
             tables_to_clear = [
-                'ratings', 'toefl', 'ielts', 'melab', 'pte', 'cael', 'celpip',
+                'ratings', 'applicant_documents', 'toefl', 'ielts', 'melab', 'pte', 'cael', 'celpip',
                 'duolingo', 'alt_elpp', 'gre', 'gmat', 'institution_info',
                 'application_info', 'applicant_status', 'program_info', 'applicant_info',
             ]
 
-            cursor.execute("SELECT COUNT(*) FROM applicant_info")
-            records_cleared = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) as count FROM applicant_info")
+            records_cleared = cursor.fetchone()['count']
 
             tables_cleared = 0
             for table in tables_to_clear:

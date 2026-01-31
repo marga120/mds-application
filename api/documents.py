@@ -151,7 +151,6 @@ def upload_document(user_code):
 
         # Log the activity
         log_activity(
-            user_id=current_user.id,
             action_type='document_upload',
             target_entity='applicant_documents',
             target_id=user_code,
@@ -243,7 +242,6 @@ def delete_document_endpoint(document_id):
 
     # Log the activity
     log_activity(
-        user_id=current_user.id,
         action_type='document_delete',
         target_entity='applicant_documents',
         target_id=document['user_code'],
