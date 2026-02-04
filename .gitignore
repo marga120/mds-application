@@ -34,6 +34,9 @@ wheels/
 backups/
 temp/
 
+# Uploads
+uploads/
+
 # IDE
 .vscode/settings.json
 .idea/

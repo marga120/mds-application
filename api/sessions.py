@@ -224,12 +224,14 @@ def create_session_route():
 
         # Log the activity
         log_activity(
-            current_user.id,
-            'create_session',
-            'session',
-            str(session_id),
-            None,
-            session_name
+            action_type='create_session',
+            target_entity='session',
+            target_id=str(session_id),
+            new_value=session_name,
+            additional_metadata={
+                'campus': campus,
+                'program_code': program_code
+            }
         )
 
         return jsonify({
@@ -305,108 +307,6 @@ def get_current_session_route():
         session = {campus_filter: sessions[campus_filter]}
 
     return jsonify({"success": True, "sessions": sessions}), 200
-    pass
-    pass
-
-
-@sessions_api.route("/sessions/<int:session_id>", methods=["GET"])
-@login_required
-def get_session_route(session_id):
-    """
-    Get a specific session by ID.
-
-    Retrieves detailed information about a single session including
-    all metadata and applicant count.
-
-    @http_method: GET
-    @route: /api/sessions/<session_id>
-    @auth: Required (all roles)
-
-    @path_param session_id: ID of the session to retrieve
-    @path_param_type session_id: int
-
-    @return: JSON response with session details
-    @return_type: application/json
-
-    @response_structure:
-        {
-            "success": true,
-            "session": {
-                "id": 1,
-                "name": "MDS-V 2027W",
-                "program_code": "MDS",
-                "program": "Master of Data Science",
-                "year": 2027,
-                "session_abbrev": "2027W",
-                "campus": "UBC-V",
-                "description": "...",
-                "applicant_count": 145,
-                "is_archived": false,
-                "created_at": "2024-01-15T10:00:00Z",
-                "updated_at": "2024-01-15T10:00:00Z"
-            }
-        }
-
-    @http_codes:
-        200: Session retrieved successfully
-        404: Session not found
-        500: Database error
-
-    @example:
-        fetch('/api/sessions/1')
-            .then(res => res.json())
-            .then(data => console.log(data.session));
-    """
-    # TODO: Call get_session_by_id(session_id)
-    # TODO: Return session data or 404 if not found
-    pass
-
-
-@sessions_api.route("/sessions/<int:session_id>/archive", methods=["PUT"])
-@login_required
-def archive_session_route(session_id):
-    """
-    Archive a session (Admin only).
-
-    Soft-deletes a session by marking it as archived. Archived sessions
-    are hidden from the session switcher but all data is preserved.
-    This action can be reversed with the restore endpoint.
-
-    @http_method: PUT
-    @route: /api/sessions/<session_id>/archive
-    @auth: Required (Admin only)
-
-    @path_param session_id: ID of the session to archive
-    @path_param_type session_id: int
-
-    @return: JSON response with operation result
-    @return_type: application/json
-
-    @response_structure:
-        {
-            "success": true,
-            "message": "Session archived successfully"
-        }
-
-    @http_codes:
-        200: Session archived successfully
-        400: Session already archived or invalid
-        403: Access denied (non-Admin)
-        404: Session not found
-        500: Database error
-
-    @activity_log: Logs archive action with session details
-
-    @example:
-        fetch('/api/sessions/1/archive', { method: 'PUT' })
-            .then(res => res.json())
-            .then(data => console.log(data.message));
-    """
-    # TODO: Check admin privileges
-    # TODO: Call archive_session(session_id)
-    # TODO: Log activity
-    # TODO: Return result
-    pass
 
 
 @sessions_api.route("/sessions/<int:session_id>/restore", methods=["PUT"])
@@ -456,7 +356,12 @@ def restore_session_route(session_id):
         success, message = restore_session(session_id)
         
         if success:
-            log_activity(current_user.id, 'restore_session', 'session', str(session_id), None, 'restored')
+            log_activity(
+                action_type='restore_session',
+                target_entity='session',
+                target_id=str(session_id),
+                new_value='restored'
+            )
             return jsonify({"success": True, "message": message}), 200
         else:
             return jsonify({"success": False, "message": message}), 400

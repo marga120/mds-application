@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_login import current_user
+from utils.permissions import require_faculty_or_admin
 
 # Create a Blueprint for ratings API routes
 ratings_api = Blueprint("ratings_api", __name__)
@@ -107,6 +108,7 @@ def get_my_ratings(user_code):
 
 
 @ratings_api.route("/ratings/<user_code>", methods=["POST"])
+@require_faculty_or_admin
 def add_or_update_ratings(user_code):
     """
     Add or update a rating for an applicant.
@@ -157,14 +159,6 @@ def add_or_update_ratings(user_code):
             "message": "Rating updated successfully"
         }
     """
-
-    """Add or update a rating for a user (Admin/Faculty only)"""
-    if not current_user.is_authenticated:
-        return jsonify({"success": False, "message": "Authentication required"}), 401
-
-    if current_user.is_viewer:
-        return jsonify({"success": False, "message": "Viewers cannot add ratings"}), 403
-
     from models.ratings import add_or_update_user_ratings
 
     data = request.get_json()

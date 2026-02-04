@@ -14,23 +14,14 @@ import subprocess
 from datetime import datetime
 from utils.database import DB_CONFIG
 from utils.activity_logger import log_activity
+from utils.permissions import require_admin
 
 database_api = Blueprint("database_api", __name__)
 
 
-def admin_required(f):
-    """Decorator to require admin role"""
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
-            return jsonify({"success": False, "message": "Admin access required"}), 403
-        return f(*args, **kwargs)
-    decorated_function.__name__ = f.__name__
-    return decorated_function
-
-
 @database_api.route("/backup-database", methods=["POST"])
 @login_required
-@admin_required
+@require_admin
 def backup_database():
     """
     Backup the entire database to a SQL file
@@ -76,9 +67,9 @@ def backup_database():
         if result.returncode != 0:
             error_msg = result.stderr or "Unknown error during backup"
             log_activity(
-                current_user.user_id,
-                "database_backup_failed",
-                f"Database backup failed: {error_msg}"
+                action_type="database_backup_failed",
+                target_entity="database",
+                additional_metadata={"error": error_msg}
             )
             return jsonify({
                 "success": False,
@@ -87,9 +78,9 @@ def backup_database():
 
         # Log successful backup
         log_activity(
-            current_user.id,
-            "database_backup",
-            f"Database backed up to {backup_filename}"
+            action_type="database_backup",
+            target_entity="database",
+            additional_metadata={"filename": backup_filename}
         )
 
         # Return the file for download
@@ -107,9 +98,9 @@ def backup_database():
         }), 500
     except Exception as e:
         log_activity(
-            current_user.id,
-            "database_backup_error",
-            f"Database backup error: {str(e)}"
+            action_type="database_backup_error",
+            target_entity="database",
+            additional_metadata={"error": str(e)}
         )
         return jsonify({
             "success": False,
@@ -119,7 +110,7 @@ def backup_database():
 
 @database_api.route("/import-database", methods=["POST"])
 @login_required
-@admin_required
+@require_admin
 def import_database():
     """
     Import a database from a SQL file
@@ -195,9 +186,9 @@ def import_database():
             # Filter out duplicate constraint warnings
             if "already exists" not in error_msg.lower() and "duplicate" not in error_msg.lower():
                 log_activity(
-                    current_user.id,
-                    "database_import_failed",
-                    f"Database import failed: {error_msg}"
+                    action_type="database_import_failed",
+                    target_entity="database",
+                    additional_metadata={"error": error_msg}
                 )
                 return jsonify({
                     "success": False,
@@ -224,9 +215,9 @@ def import_database():
                 raise Exception("No applicant data found after import")
         except Exception as verify_error:
             log_activity(
-                current_user.id,
-                "database_import_verification_failed",
-                f"Import verification failed: {str(verify_error)}"
+                action_type="database_import_verification_failed",
+                target_entity="database",
+                additional_metadata={"error": str(verify_error)}
             )
             return jsonify({
                 "success": False,
@@ -235,9 +226,9 @@ def import_database():
 
         # Log successful import
         log_activity(
-            current_user.id,
-            "database_import",
-            f"Database imported from {file.filename}"
+            action_type="database_import",
+            target_entity="database",
+            additional_metadata={"filename": file.filename}
         )
 
         return jsonify({
@@ -252,9 +243,9 @@ def import_database():
         }), 500
     except Exception as e:
         log_activity(
-            current_user.id,
-            "database_import_error",
-            f"Database import error: {str(e)}"
+            action_type="database_import_error",
+            target_entity="database",
+            additional_metadata={"error": str(e)}
         )
         return jsonify({
             "success": False,
