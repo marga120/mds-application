@@ -3,6 +3,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from models.users import authenticate_user, get_user_by_email
 from datetime import datetime
 from utils.activity_logger import log_activity
+from utils.permissions import require_admin
 import bcrypt
 from utils.database import get_db_connection
 
@@ -90,14 +91,12 @@ def get_current_user():
 
 @auth_api.route("/users", methods=["GET"])
 @login_required
+@require_admin
 def get_users():
     """
     Get users with optional search.
     @requires: Admin (role_user_id == 1)
     """
-    if current_user.role_user_id != 1: 
-        return jsonify({"success": False, "message": "Unauthorized"}), 403
-
     search_query = request.args.get('q', '').strip()
     
     conn = get_db_connection()
@@ -145,14 +144,12 @@ def get_users():
 
 @auth_api.route("/create-user", methods=["POST"])
 @login_required
+@require_admin
 def create_user():
     """
     Create a new user.
     @requires: Admin (role_user_id == 1)
     """
-    if current_user.role_user_id != 1:
-        return jsonify({"success": False, "message": "Unauthorized access"}), 403
-
     data = request.get_json()
     first_name = data.get('first_name', '').strip()
     last_name = data.get('last_name', '').strip()
@@ -200,14 +197,12 @@ def create_user():
 
 @auth_api.route("/delete-user/<int:user_id>", methods=["DELETE"],strict_slashes=False)
 @login_required
+@require_admin
 def delete_user(user_id):
     """
     Delete a specific user by ID.
     @requires: Admin (role_user_id == 1)
     """
-    if current_user.role_user_id != 1:
-        return jsonify({"success": False, "message": "Unauthorized access"}), 403
-
     if user_id == current_user.id:
         return jsonify({"success": False, "message": "You cannot delete your own account"}), 400
 
@@ -253,15 +248,13 @@ def delete_user(user_id):
 
 @auth_api.route("/delete-users", methods=["DELETE"], strict_slashes=False)
 @login_required
+@require_admin
 def delete_users():
     """
     Delete multiple users by their IDs.
     @requires: Admin (role_user_id == 1)
     @param: user_ids - List of user IDs to delete
     """
-    if current_user.role_user_id != 1:
-        return jsonify({"success": False, "message": "Unauthorized access"}), 403
-
     data = request.get_json()
     user_ids = data.get("user_ids", [])
 
@@ -363,14 +356,12 @@ def update_email():
 
 @auth_api.route("/edit-user", methods=["POST"])
 @login_required
+@require_admin
 def edit_user():
     """
     Edit a user's email and/or password.
     @requires: Admin (role_user_id == 1)
     """
-    if current_user.role_user_id != 1:
-        return jsonify({"success": False, "message": "Unauthorized access"}), 403
-
     data = request.get_json()
     user_id = data.get("user_id")
     new_email = data.get("email")
@@ -518,11 +509,9 @@ def check_session():
 
 @auth_api.route("/user/<int:user_id>", methods=["GET"])
 @login_required
+@require_admin
 def get_user_by_id(user_id):
     """Get a single user by ID for editing - Admin only"""
-    if current_user.role_user_id != 1:
-        return jsonify({"success": False, "message": "Unauthorized"}), 403
-
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
@@ -560,11 +549,9 @@ def get_user_by_id(user_id):
 
 @auth_api.route("/register", methods=["POST"])
 @login_required
+@require_admin
 def register_user():
     """Create a new user - Admin only (uses /register endpoint for users.js)"""
-    if current_user.role_user_id != 1:
-        return jsonify({"success": False, "message": "Unauthorized"}), 403
-
     data = request.get_json()
     first_name = data.get('first_name', '').strip()
     last_name = data.get('last_name', '').strip()
@@ -616,11 +603,10 @@ def register_user():
 
 
 @auth_api.route("/user/<int:user_id>", methods=["PUT"])
-@login_required  
+@login_required
+@require_admin
 def update_user(user_id):
     """Update user information - Admin only"""
-    if current_user.role_user_id != 1:
-        return jsonify({"success": False, "message": "Unauthorized"}), 403
     if current_user.id == user_id:
         return jsonify({"success": False, "message": "You cannot edit your own account here, use Account Settings"}), 400
     data = request.get_json()

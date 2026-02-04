@@ -25,6 +25,7 @@ from api.logs import logs_api
 from api.test_scores import test_scores_api
 from api.database import database_api
 from api.statuses import statuses_bp
+from api.documents import documents_bp
 
 # Import user model for Flask-Login
 from models.users import get_user_by_id
@@ -40,6 +41,10 @@ app.config["PERMANENT_SESSION_LIFETIME"] = 86400 * 30  # 30 days
 app.config["SESSION_COOKIE_SECURE"] = False  # Set to True in production with HTTPS
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
+# File upload configuration
+app.config["UPLOAD_FOLDER"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "documents")
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -63,6 +68,7 @@ app.register_blueprint(logs_api, url_prefix="/api")
 app.register_blueprint(test_scores_api, url_prefix="/api")
 app.register_blueprint(database_api, url_prefix="/api")
 app.register_blueprint(statuses_bp)
+app.register_blueprint(documents_bp)
 
 
 # Web routes (that render templates)
