@@ -150,10 +150,6 @@ class DocumentsManager {
    * Render the upload form
    */
   renderUploadForm() {
-    const typeOptions = this.documentTypes.map(t =>
-      `<option value="${t.value}">${t.label}</option>`
-    ).join('');
-
     return `
       <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-200 mb-3">
         <h4 class="text-sm font-semibold text-ubc-blue mb-2 flex items-center">
@@ -163,21 +159,7 @@ class DocumentsManager {
           Upload PDF
         </h4>
 
-        <form id="documentUploadForm" class="space-y-2">
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1">Type</label>
-            <select id="documentType" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue">
-              ${typeOptions}
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1">Description (Optional)</label>
-            <input type="text" id="documentDescription"
-                   class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue"
-                   placeholder="Brief description...">
-          </div>
-
+        <form id="documentUploadForm" class="space-y-3">
           <div>
             <label class="block text-xs font-medium text-gray-700 mb-1">PDF File (Max 16MB)</label>
             <input type="file" id="documentFile" accept=".pdf"
@@ -298,8 +280,6 @@ class DocumentsManager {
     e.preventDefault();
 
     const fileInput = document.getElementById('documentFile');
-    const typeInput = document.getElementById('documentType');
-    const descInput = document.getElementById('documentDescription');
     const uploadBtn = document.getElementById('uploadDocumentBtn');
 
     if (!fileInput.files || fileInput.files.length === 0) {
@@ -323,8 +303,8 @@ class DocumentsManager {
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('document_type', typeInput.value);
-    formData.append('description', descInput.value);
+    formData.append('document_type', 'application_document');
+    formData.append('description', '');
 
     uploadBtn.disabled = true;
     uploadBtn.innerHTML = `
@@ -347,11 +327,13 @@ class DocumentsManager {
         this.showFeedback('Document uploaded successfully', 'success');
         // Clear form
         fileInput.value = '';
-        descInput.value = '';
         // Reload documents
         await this.loadDocuments(this.currentUserCode);
-        // Update tab badge
+        // Update tab badge and Open PDF section
         this.updateTabBadge();
+        if (typeof applicantsManager !== 'undefined') {
+          applicantsManager.updateOpenPdfSection();
+        }
       } else {
         this.showFeedback(result.message || 'Upload failed', 'error');
       }
@@ -500,6 +482,9 @@ class DocumentsManager {
         this.showFeedback('Document deleted successfully', 'success');
         await this.loadDocuments(this.currentUserCode);
         this.updateTabBadge();
+        if (typeof applicantsManager !== 'undefined') {
+          applicantsManager.updateOpenPdfSection();
+        }
       } else {
         this.showFeedback(result.message || 'Delete failed', 'error');
       }

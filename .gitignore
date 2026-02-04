@@ -52,6 +52,3 @@ Thumbs.db
 node_modules
 static/css/output.css
 *.pyc
-
-#Helpers
-.claude

@@ -678,9 +678,11 @@ class ApplicantsManager {
 
     this.loadMyRating(userCode);
 
-    // Load documents
+    // Load documents and update Open PDF section
     if (typeof documentsManager !== 'undefined') {
-      documentsManager.loadDocuments(userCode);
+      documentsManager.loadDocuments(userCode).then(() => {
+        this.updateOpenPdfSection();
+      });
     }
 
     // Update rating form for viewers
@@ -943,6 +945,22 @@ class ApplicantsManager {
         <!-- Comments & Ratings Tab -->
         <div id="comments-ratings" class="tab-content h-full overflow-y-auto">
           <div class="pr-2">
+
+            <!-- Open PDF Section -->
+            <div id="openPdfSection" class="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200 mb-6">
+              <div class="flex items-center justify-between">
+                <h4 class="text-base font-semibold text-green-700 flex items-center">
+                  <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h6v6h6v10H6z"/>
+                  </svg>
+                  Applicant Documents
+                  <span id="openPdfBadge" class="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-green-600 rounded-full">0</span>
+                </h4>
+                <div id="openPdfButtonContainer">
+                  <span class="text-sm text-gray-500">No documents</span>
+                </div>
+              </div>
+            </div>
 
             <!-- Summary of Prerequisites Section -->
             <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200 mb-6">
@@ -1270,10 +1288,72 @@ class ApplicantsManager {
     }
   }
 
+  /**
+   * Update the Open PDF section in Comments & Ratings tab
+   * Shows button(s) to open applicant's PDF documents
+   */
+  updateOpenPdfSection() {
+    const container = document.getElementById('openPdfButtonContainer');
+    const badge = document.getElementById('openPdfBadge');
+
+    if (!container || !badge) return;
+
+    // Get documents from documentsManager
+    const documents = (typeof documentsManager !== 'undefined' && documentsManager.documents)
+      ? documentsManager.documents
+      : [];
+
+    // Update badge count
+    badge.textContent = documents.length;
+
+    if (documents.length === 0) {
+      container.innerHTML = '<span class="text-sm text-gray-500">No documents</span>';
+    } else if (documents.length === 1) {
+      // Single document - show direct open button
+      const doc = documents[0];
+      container.innerHTML = `
+        <button onclick="documentsManager.openInNewTab(${doc.id})"
+                class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors">
+          <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+          </svg>
+          Open PDF
+        </button>
+      `;
+    } else {
+      // Multiple documents - show dropdown
+      const dropdownItems = documents.map(doc => `
+        <button onclick="documentsManager.openInNewTab(${doc.id}); document.getElementById('pdfDropdownMenu').classList.add('hidden');"
+                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 truncate"
+                title="${doc.original_filename}">
+          ${doc.original_filename}
+        </button>
+      `).join('');
+
+      container.innerHTML = `
+        <div class="relative">
+          <button onclick="document.getElementById('pdfDropdownMenu').classList.toggle('hidden')"
+                  class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors">
+            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+            </svg>
+            Open PDF
+            <svg class="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+          <div id="pdfDropdownMenu" class="hidden absolute right-0 mt-1 w-64 bg-white rounded-md shadow-lg border border-gray-200 z-50 max-h-48 overflow-y-auto">
+            ${dropdownItems}
+          </div>
+        </div>
+      `;
+    }
+  }
+
   async loadRatings(userCode) {
     try {
       let result;
-      
+
       // Check if data is in cache and ready
       const cached = this.applicantCache.get(userCode);
       if (cached && cached.status === 'ready' && cached.ratings) {

@@ -1,8 +1,8 @@
 /**
  * MAIN APPLICATION ENTRY POINT
- * 
+ *
  * This file initializes the core application components when the page loads.
- * It coordinates the startup of ApplicantsManager, AuthManager, and SessionsManager
+ * It coordinates the startup of ApplicantsManager, AuthManager, and SessionManager
  * to ensure proper initialization order and component communication.
  */
 
@@ -10,5 +10,5 @@
 document.addEventListener("DOMContentLoaded", function () {
   window.applicantsManager = new ApplicantsManager();
   new AuthManager();
-  new SessionsManager();
+  new SessionManager();
 });

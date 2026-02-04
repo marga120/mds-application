@@ -82,6 +82,6 @@ __all__ = [
     'process_toefl_scores',
     'process_ielts_scores',
     'process_other_test_scores',
-    'process_a l_test_scores',
+    'process_all_test_scores',
     'convert_id_to_string',
 ]

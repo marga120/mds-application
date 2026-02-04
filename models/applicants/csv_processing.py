@@ -16,15 +16,7 @@ from models.test_scores import (
 from utils.db_helpers import db_connection
 from models.institutions import process_institution_info
 from .english_status import compute_english_status
-
-
-def convert_id_to_string(value):
-    """Convert ID numbers to clean strings, removing .0 from floats."""
-    if pd.isna(value):
-        return None
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
-    return str(value)
+from .core import convert_id_to_string
 
 
 def calculate_age(birth_date):
