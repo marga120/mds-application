@@ -38,8 +38,8 @@ def get_selected_applicants_for_export(user_codes, sections=None):
                 select_parts.extend([
                     "s.program_code as \"Program Code\"",
                     "s.session_abbrev as \"Session\"",
-                    "TO_CHAR(ast.app_start, 'DD-MM-YYYY') as \"Application Start Date\"",
-                    "TO_CHAR(ast.submit_date, 'DD-MM-YYYY') as \"Submitted Date\"",
+                    "TO_CHAR(ast.app_start, 'MM/DD/YYYY') as \"Application Start Date\"",
+                    "TO_CHAR(ast.submit_date, 'MM/DD/YYYY') as \"Submitted Date\"",
                     "ast.status_code as \"Status Code\"",
                     "ast.status as \"Status\""
                 ])
@@ -80,10 +80,10 @@ def get_selected_applicants_for_export(user_codes, sections=None):
                     "COALESCE(CAST((SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code) AS TEXT), '') as \"Year of Last Degree\"",
                     "COALESCE(CAST((EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) AS TEXT), '') as \"Years Since Degree\"",
                     """CASE
-                        WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 0 THEN '="0"'
-                        WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 2 THEN '="1-2"'
-                        WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 5 THEN '="3-5"'
-                        WHEN (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code) IS NOT NULL THEN '="6+"'
+                        WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 0 THEN '0'
+                        WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 2 THEN '1-2'
+                        WHEN (EXTRACT(YEAR FROM CURRENT_DATE) - (SELECT EXTRACT(YEAR FROM MAX(date_confer)) FROM institution_info WHERE user_code = ai.user_code)) <= 5 THEN '3-5'
+                        WHEN (SELECT MAX(date_confer) FROM institution_info WHERE user_code = ai.user_code) IS NOT NULL THEN '6+'
                         ELSE ''
                     END as "Years Since Degree Grouped"
                     """,
@@ -182,7 +182,7 @@ def get_all_applicants_complete_export():
                     ai.gender AS "Gender",
                     ai.country_birth_code AS "Country of Birth Code",
                     ai.country_birth AS "Country of Birth",
-                    TO_CHAR(ai.date_birth, 'YYYY-MM-DD') AS "Date of Birth",
+                    TO_CHAR(ai.date_birth, 'MM/DD/YYYY') AS "Date of Birth",
                     ai.age AS "Age",
                     CASE
                         WHEN ai.age < 18 THEN 'Under 18'
@@ -233,8 +233,8 @@ def get_all_applicants_complete_export():
                     ai.ubc_academic_history AS "UBC Academic History",
 
                     -- Application Status
-                    TO_CHAR(ast.app_start, 'DD-MM-YYYY') AS "Application Start Date",
-                    TO_CHAR(ast.submit_date, 'DD-MM-YYYY') AS "Application Submit Date",
+                    TO_CHAR(ast.app_start, 'MM/DD/YYYY') AS "Application Start Date",
+                    TO_CHAR(ast.submit_date, 'MM/DD/YYYY') AS "Application Submit Date",
                     ast.status_code AS "Application Status Code",
                     ast.status AS "Application Status",
                     ast.detail_status AS "Application Detail Status",
@@ -275,7 +275,7 @@ def get_all_applicants_complete_export():
                         (SELECT JSON_AGG(
                             JSON_BUILD_OBJECT(
                                 'registration_number', t.registration_num,
-                                'date_written', TO_CHAR(t.date_written, 'YYYY-MM-DD'),
+                                'date_written', TO_CHAR(t.date_written, 'MM/DD/YYYY'),
                                 'total_score', t.total_score,
                                 'listening', t.listening,
                                 'structure_written', t.structure_written,
@@ -291,7 +291,7 @@ def get_all_applicants_complete_export():
                         (SELECT JSON_AGG(
                             JSON_BUILD_OBJECT(
                                 'candidate_number', i.candidate_num,
-                                'date_written', TO_CHAR(i.date_written, 'YYYY-MM-DD'),
+                                'date_written', TO_CHAR(i.date_written, 'MM/DD/YYYY'),
                                 'total_band_score', i.total_band_score,
                                 'listening', i.listening,
                                 'reading', i.reading,
@@ -318,7 +318,7 @@ def get_all_applicants_complete_export():
                                 'country', inst.country,
                                 'program_of_study', inst.program_study,
                                 'degree_conferred', inst.degree_confer,
-                                'date_conferred', TO_CHAR(inst.date_confer, 'YYYY-MM-DD'),
+                                'date_conferred', TO_CHAR(inst.date_confer, 'MM/DD/YYYY'),
                                 'credential_received', inst.credential_receive,
                                 'gpa', inst.gpa
                             ) ORDER BY inst.institution_number
@@ -346,8 +346,8 @@ def get_all_applicants_complete_export():
                      WHERE r.user_code = ai.user_code AND r.rating IS NOT NULL) AS "Average Rating",
 
                     -- Timestamps
-                    TO_CHAR(ai.created_at, 'YYYY-MM-DD HH24:MI:SS') AS "Created At",
-                    TO_CHAR(ai.updated_at, 'YYYY-MM-DD HH24:MI:SS') AS "Updated At"
+                    TO_CHAR(ai.created_at, 'MM/DD/YYYY HH24:MI:SS') AS "Created At",
+                    TO_CHAR(ai.updated_at, 'MM/DD/YYYY HH24:MI:SS') AS "Updated At"
 
                 FROM applicant_info ai
                 LEFT JOIN applicant_status ast ON ai.user_code = ast.user_code

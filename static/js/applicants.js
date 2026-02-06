@@ -4947,7 +4947,7 @@ async initializeExportButton() {
       const a = document.createElement('a');
       a.href = url;
       const dateStr = new Date().toISOString().slice(0, 10);
-      a.download = `selected_applicants_${this.selectedApplicants.size}_${dateStr}.csv`;
+      a.download = `selected_applicants_${this.selectedApplicants.size}_${dateStr}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -5387,7 +5387,7 @@ showGlobalExportModal() {
       const a = document.createElement('a');
       a.href = url;
       const dateStr = new Date().toISOString().slice(0, 10);
-      a.download = `applicants_export_${selectedCodes.length}_${dateStr}.csv`;
+      a.download = `applicants_export_${selectedCodes.length}_${dateStr}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -5732,7 +5732,7 @@ async exportAllApplicantsAllData() {
 
     // Extract filename from Content-Disposition header if available
     const contentDisposition = response.headers.get('Content-Disposition');
-    let filename = `complete_database_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    let filename = `complete_database_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
