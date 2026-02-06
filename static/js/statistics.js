@@ -202,11 +202,11 @@ class StatisticsManager {
         const unsubmittedPercentage = totalApplicants > 0 
             ? ((unsubmittedCount / totalApplicants) * 100).toFixed(1) 
             : '0.0';
-        const submittedAvgRating = submittedRatedCount > 0 
-            ? (submittedTotalRating / submittedRatedCount).toFixed(1)
+        const submittedAvgRating = submittedRatedCount > 0
+            ? (submittedTotalRating / submittedRatedCount).toFixed(2)
             : '-';
-        const unsubmittedAvgRating = unsubmittedRatedCount > 0 
-            ? (unsubmittedTotalRating / unsubmittedRatedCount).toFixed(1)
+        const unsubmittedAvgRating = unsubmittedRatedCount > 0
+            ? (unsubmittedTotalRating / unsubmittedRatedCount).toFixed(2)
             : '-';
 
         // Generate HTML for Submitted/Unsubmitted at the top
@@ -236,8 +236,8 @@ class StatisticsManager {
             const percentage = totalWithStatus > 0 
                 ? ((data.count / totalWithStatus) * 100).toFixed(1) 
                 : '0.0';
-            const avgRating = data.ratedCount > 0 
-                ? (data.totalRating / data.ratedCount).toFixed(1)
+            const avgRating = data.ratedCount > 0
+                ? (data.totalRating / data.ratedCount).toFixed(2)
                 : '-';
             const barColor = this.getBarColor(status);
             

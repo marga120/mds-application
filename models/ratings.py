@@ -116,8 +116,8 @@ def add_or_update_user_ratings(user_code, user_id, rating, comment):
                 ratings_decimal = float(rating)
                 if ratings_decimal < 0.0 or ratings_decimal > 10.0:
                     return False, "Rating must be between 0.0 and 10.0"
-                # Round to 1 decimal place
-                ratings_decimal = round(ratings_decimal, 1)
+                # Round to 2 decimal places
+                ratings_decimal = round(ratings_decimal, 2)
             except (ValueError, TypeError):
                 return False, "Invalid rating format"
 

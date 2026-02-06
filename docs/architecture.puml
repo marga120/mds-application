@@ -1,0 +1,1072 @@
+@startuml MDS Application Architecture
+title MDS Application Management System — Class Diagram\nwith Design-Flaw Annotations
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam nodesep 60
+skinparam ranksep 50
+skinparam classFontSize 11
+skinparam packageFontSize 13
+
+' ============================================================================
+' LEGEND
+' ============================================================================
+legend bottom left
+  |= Symbol |= Meaning |
+  |<#FFCCCC> Red class | Design flaw / SOLID violation |
+  | **<<flaw>>** | Annotated architectural smell |
+  | --|> | Inheritance |
+  | *-- | Composition |
+  | ..> | Dependency (uses / calls) |
+  | FK CASCADE | Foreign key with ON DELETE CASCADE |
+endlegend
+
+' ============================================================================
+' PACKAGE 1 — FRONTEND (Vanilla JS)
+' ============================================================================
+package "Frontend (Vanilla JS)" as FE <<Rectangle>> #EEEEFF {
+
+    class ApplicantsManager <<flaw>> #FFCCCC {
+        .. 5,769 lines — God Object / SRP violation ..
+        -applicants: Array
+        -currentUserCode: String
+        -modal: HTMLElement
+        -documentsManager: DocumentsManager
+        --
+        +init()
+        +loadApplicants(sessionId)
+        +renderApplicantsTable()
+        +openApplicantModal(userCode)
+        +updateStatus(userCode, status)
+        +updatePrerequisites(userCode)
+        +updateEnglishComment(userCode)
+        +updateEnglishStatus(userCode)
+        +updateScholarship(userCode)
+        +submitRating(userCode, rating, comment)
+        +exportAll()
+        +exportSelected(userCodes, sections)
+        +clearAllData()
+        -- fetch calls --
+        GET /api/applicants
+        GET /api/applicant-info/{code}
+        GET /api/applicant-test-scores/{code}
+        GET /api/applicant-institutions/{code}
+        GET /api/applicant-application-info/{code}
+        PUT .../status
+        PUT .../prerequisites
+        PUT .../english-comment
+        PUT .../english-status
+        PUT .../scholarship
+        POST /api/ratings/{code}
+        GET /api/export/all
+        POST /api/export/selected
+        DELETE /api/clear-all-data
+    }
+
+    class DocumentsManager {
+        -userCode: String
+        -documentsContainer: HTMLElement
+        --
+        +loadDocuments(userCode)
+        +uploadDocument(userCode, file, type)
+        +deleteDocument(documentId)
+        +viewDocument(documentId)
+        +getDocumentCount(userCode)
+        -- fetch calls --
+        GET /api/documents/{code}
+        POST /api/documents/{code}
+        DELETE /api/documents/{id}
+        GET /api/documents/view/{id}
+        GET /api/documents/count/{code}
+        GET /api/documents/types
+    }
+
+    class AuthManager {
+        -user: Object
+        -role: String
+        --
+        +init()
+        +loadUser()
+        +logout()
+        +checkSession()
+        -- fetch calls --
+        GET /api/auth/user
+        POST /api/auth/logout
+        GET /api/auth/check-session
+    }
+
+    class LoginManager {
+        -form: HTMLElement
+        --
+        +init()
+        +handleLogin(email, password)
+        -- fetch calls --
+        POST /api/auth/login
+    }
+
+    class AccountManager {
+        --
+        +init()
+        +updateEmail(newEmail, password)
+        +resetPassword(current, newPwd)
+        -- fetch calls --
+        POST /api/auth/update-email
+        POST /api/auth/reset-password
+    }
+
+    class UsersManager {
+        -users: Array
+        --
+        +init()
+        +loadUsers(query)
+        +createUser(data)
+        +editUser(userId, data)
+        +deleteUser(userId)
+        +deleteUsers(userIds)
+        -- fetch calls --
+        GET /api/auth/users
+        POST /api/auth/register
+        PUT /api/auth/user/{id}
+        GET /api/auth/user/{id}
+        POST /api/auth/edit-user
+        DELETE /api/auth/delete-user/{id}
+        DELETE /api/auth/delete-users
+    }
+
+    class SessionManager {
+        -sessions: Object
+        --
+        +init()
+        +loadSessions()
+        +switchSession(sessionId)
+        +restoreSession(sessionId)
+        -- fetch calls --
+        GET /api/sessions
+        PUT /api/sessions/{id}/restore
+    }
+
+    class SessionModal {
+        -modal: HTMLElement
+        --
+        +open()
+        +close()
+        +handleCreate(data)
+        -- fetch calls --
+        POST /api/sessions/create
+    }
+
+    class "SessionStore" as SessionStore <<Object Literal>> {
+        +getActiveSession(): Object
+        +setActiveSession(session)
+        +clearSession()
+    }
+
+    class LogsManager {
+        -logs: Array
+        --
+        +init()
+        +loadLogs(limit, offset, filters)
+        -- fetch calls --
+        GET /api/logs
+    }
+
+    class StatisticsManager {
+        --
+        +init()
+        +loadStatistics()
+        -- fetch calls --
+        GET /api/applicants
+        GET /api/sessions
+        GET /api/statuses
+    }
+
+    class StatusManager {
+        -statuses: Array
+        --
+        +init()
+        +loadStatuses()
+        +createStatus(name, color)
+        +updateStatus(id, data)
+        +deleteStatus(id)
+        +reorderStatuses(statuses)
+        -- fetch calls --
+        GET /api/admin/statuses
+        POST /api/admin/statuses
+        PUT /api/admin/statuses/{id}
+        DELETE /api/admin/statuses/{id}
+        POST /api/admin/statuses/reorder
+    }
+
+    ' Composition: ApplicantsManager contains DocumentsManager
+    ApplicantsManager *-- DocumentsManager
+}
+
+
+' ============================================================================
+' PACKAGE 2 — API LAYER (Flask Blueprints)
+' ============================================================================
+package "API Layer (Flask Blueprints)" as API <<Rectangle>> #EEFFEE {
+
+    class applicants_api <<Blueprint>> {
+        prefix: /api
+        --
+        POST /upload
+        GET /applicants
+        GET /applicant-info/{code}
+        GET /applicant-test-scores/{code}
+        GET /applicant-institutions/{code}
+        GET /applicant-application-info/{code}
+        PUT .../status
+        PUT .../prerequisites
+        PUT .../english-comment
+        PUT .../english-status
+        PUT .../scholarship
+        GET /export/all
+        POST /export/selected
+        DELETE /clear-all-data
+        -- delegates to --
+        models.applicants.*
+        models.statuses.get_all_statuses()
+    }
+
+    class auth_api <<Blueprint>> <<flaw>> #FFCCCC {
+        prefix: /api/auth
+        .. 11/14 routes bypass model layer ..
+        .. direct SQL via get_db_connection() ..
+        --
+        POST /login
+        POST /logout
+        GET /user
+        GET /users  ← direct SQL
+        POST /create-user  ← direct SQL
+        POST /register  ← **duplicate of create-user**
+        POST /edit-user  ← direct SQL
+        PUT /user/{id}  ← **overlaps edit-user**
+        GET /user/{id}  ← direct SQL
+        DELETE /delete-user/{id}  ← direct SQL
+        DELETE /delete-users  ← direct SQL
+        POST /update-email  ← direct SQL
+        POST /reset-password  ← direct SQL
+        GET /check-session
+        -- delegates to (only 3 routes) --
+        models.users.authenticate_user()
+        models.users.get_user_by_email()
+    }
+
+    class sessions_api <<Blueprint>> {
+        prefix: /api
+        --
+        GET /sessions
+        POST /sessions/create
+        GET /sessions/current
+        PUT /sessions/{id}/restore
+        GET /session-name
+        -- delegates to --
+        models.sessions.*
+    }
+
+    class ratings_api <<Blueprint>> {
+        prefix: /api
+        --
+        GET /ratings/{code}
+        GET /ratings/{code}/my-rating
+        POST /ratings/{code}
+        -- delegates to --
+        models.ratings.*
+    }
+
+    class logs_api <<Blueprint>> {
+        prefix: /api
+        --
+        GET /logs
+        -- delegates to --
+        utils.activity_logger.get_activity_logs()
+    }
+
+    class test_scores_api <<Blueprint>> <<flaw>> #FFCCCC {
+        prefix: /api
+        .. Duolingo endpoint bypasses model ..
+        .. uses db_transaction() directly ..
+        --
+        POST /duolingo-score/{code}
+        -- direct SQL --
+        INSERT INTO duolingo ... ON CONFLICT
+    }
+
+    class database_api <<Blueprint>> {
+        prefix: /api
+        --
+        POST /backup-database
+        POST /import-database
+        -- uses --
+        subprocess (pg_dump, psql)
+        utils.database.DB_CONFIG
+    }
+
+    class statuses_bp <<Blueprint>> <<flaw>> #FFCCCC {
+        prefix: (none — full paths)
+        .. reorder route bypasses model ..
+        .. direct SQL UPDATE in reorder ..
+        --
+        GET /api/statuses
+        GET /api/admin/statuses
+        POST /api/admin/statuses
+        PUT /api/admin/statuses/{id}
+        DELETE /api/admin/statuses/{id}
+        POST /api/admin/statuses/reorder ← **direct SQL**
+        -- delegates to --
+        models.statuses.*  (except reorder)
+    }
+
+    class documents_bp <<Blueprint>> {
+        prefix: (none — full paths)
+        --
+        GET /api/documents/{code}
+        POST /api/documents/{code}
+        GET /api/documents/view/{id}
+        DELETE /api/documents/{id}
+        GET /api/documents/count/{code}
+        GET /api/documents/types
+        -- delegates to --
+        models.documents.*
+    }
+}
+
+
+' ============================================================================
+' PACKAGE 3 — MODEL LAYER
+' ============================================================================
+package "Model Layer" as MDL <<Rectangle>> #FFFFEE {
+
+    class User {
+        +id: int
+        +first_name: str
+        +last_name: str
+        +email: str
+        +password_hash: str
+        +role_user_id: int
+        +role_name: str
+        --
+        +full_name: property
+        +is_admin: property
+        +is_faculty: property
+        +is_viewer: property
+    }
+
+    class "flask_login.UserMixin" as UserMixin <<External>> {
+        +is_authenticated
+        +is_active
+        +is_anonymous
+        +get_id()
+    }
+
+    User --|> UserMixin : extends
+
+    class "models.users" as users_mod <<module>> {
+        +hash_password(password): str
+        +verify_password(password, hash): bool
+        +get_user_by_email(email): User
+        +get_user_by_id(user_id): User
+        +authenticate_user(email, password): User
+        +create_user(first, last, email, pwd, role): tuple
+        -- tables --
+        "user", role_user
+    }
+
+    class "models.applicants.core" as applicants_core <<module>> {
+        +convert_id_to_string(value): str
+        +get_all_applicant_status(session_id): tuple
+        +get_applicant_info_by_code(code): tuple
+        +get_applicant_test_scores_by_code(code): tuple
+        +get_applicant_institutions_by_code(code): tuple
+        +get_applicant_application_info_by_code(code): tuple
+        +update_applicant_application_status(code, status): tuple
+        +update_applicant_prerequisites(code, ...): tuple
+        +update_applicant_scholarship(code, value): tuple
+        +update_english_comment(code, comment): tuple
+        +update_english_status(code, status): tuple
+        +clear_all_applicant_data(): tuple
+        -- tables --
+        applicant_info, applicant_status,
+        application_info, program_info,
+        institution_info, ratings,
+        toefl, ielts, gre, gmat, duolingo,
+        melab, pte, cael, celpip, alt_elpp
+    }
+
+    class "models.applicants.csv_processing" as csv_proc <<module>> {
+        +process_csv_data(df): tuple
+        +calculate_age(date_birth): int
+        +create_or_get_sessions(row, cursor): int
+        +calculate_application_info_fields(row): dict
+        +process_application_info(user_code, row, ...): bool
+        -- tables --
+        applicant_info, applicant_status,
+        application_info, program_info, sessions
+    }
+
+    class "models.applicants.english_status" as english_mod <<module>> {
+        +compute_english_status(user_code): tuple
+        +compute_english_status_for_all(): tuple
+        -- tables --
+        application_info, applicant_info,
+        toefl, ielts, duolingo, melab, pte,
+        cael, celpip, alt_elpp
+    }
+
+    class "models.applicants.export" as export_mod <<module>> {
+        +get_selected_applicants_for_export(codes, sections): tuple
+        +get_all_applicants_complete_export(): tuple
+        -- tables --
+        All applicant-related tables (18+)
+    }
+
+    class "models.institutions" as inst_mod <<module>> {
+        +process_institution_info(user_code, row, cursor, time): bool
+        -- tables --
+        institution_info
+    }
+
+    class "models.sessions" as sessions_mod <<module>> {
+        +get_session_name(): tuple
+        +get_all_sessions(include_archived): tuple
+        +get_session_by_id(session_id): tuple
+        +create_session(...): tuple
+        +update_session(session_id, **kwargs): tuple
+        +archive_session(session_id): tuple
+        +restore_session(session_id): tuple
+        +get_sessions_by_campus(campus): tuple
+        +get_most_recent_session(campus): tuple
+        +get_session_applicant_count(session_id): tuple
+        -- tables --
+        sessions, applicant_info
+    }
+
+    class "models.ratings" as ratings_mod <<module>> {
+        +get_user_ratings(user_code): tuple
+        +add_or_update_user_ratings(code, uid, rating, comment): tuple
+        +get_user_own_rating(user_code, user_id): tuple
+        -- tables --
+        ratings, "user"
+    }
+
+    class "models.statuses" as statuses_mod <<module>> {
+        +get_all_statuses(): tuple
+        +get_all_statuses_admin(): tuple
+        +create_status(name, color, order): tuple
+        +update_status(id, ...): tuple
+        +delete_status(id): tuple
+        +get_default_status(): dict
+        -- tables --
+        status_configuration, application_info
+    }
+
+    class "models.documents" as documents_mod <<module>> {
+        +get_documents_by_user_code(code): tuple
+        +get_document_by_id(id): tuple
+        +save_document(...): tuple
+        +delete_document(id): tuple
+        +update_document(id, ...): tuple
+        +get_document_count_by_user_code(code): tuple
+        -- tables --
+        applicant_documents, "user"
+    }
+
+    class "models.test_scores" as test_scores_mod <<module>> {
+        +process_toefl_scores(code, row, cursor, time): bool
+        +process_ielts_scores(code, row, cursor, time): bool
+        +process_other_test_scores(code, row, cursor, time): bool
+        -- delegates to --
+        utils.test_score_helpers.process_test_score()
+    }
+}
+
+
+' ============================================================================
+' PACKAGE 4 — UTILS LAYER
+' ============================================================================
+package "Utils Layer" as UTL <<Rectangle>> #FFEEEE {
+
+    class "utils.database" as db_util <<module>> {
+        +DB_CONFIG: dict
+        +get_db_connection(): Connection
+        +read_schema_file(): str
+        +execute_schema_statements(cursor, sql)
+        +init_database(): bool
+        +check_uploaded_at_column(): bool
+    }
+
+    class "utils.db_helpers" as db_help <<module>> {
+        +db_connection(cursor_factory): ContextMgr
+        +db_transaction(cursor_factory): ContextMgr
+        +fetch_one(query, params): dict
+        +fetch_all(query, params): list
+        +execute_query(query, params, returning): dict
+        +execute_many(query, params_list)
+    }
+
+    class "utils.activity_logger" as logger <<module>> {
+        +log_activity(action_type, target_entity,
+        ····target_id, old_value, new_value,
+        ····additional_metadata, user): tuple
+        +get_activity_logs(limit, offset,
+        ····filter_action_type, filter_user_search): tuple
+        -- tables --
+        activity_log, "user", role_user
+    }
+
+    class "utils.csv_helpers" as csv_help <<module>> {
+        +clean_value(value): Any
+        +clean_row(row): dict
+        +clean_rows(rows): list
+        +rows_to_csv_string(rows, fieldnames): str
+        +create_csv_response(rows, filename): Response
+        +generate_export_filename(prefix, count): str
+    }
+
+    class CSVWriter {
+        -output: StringIO
+        -writer: csv.writer
+        --
+        +__enter__()
+        +__exit__()
+        +writerow(row)
+        +writerows(rows)
+        +write_dict_row(row, fieldnames)
+        +write_header(headers)
+        +write_spacer()
+        +write_section_header(title)
+        +getvalue(): str
+        +make_response(filename): Response
+    }
+
+    class "utils.permissions" as perms <<module>> {
+        +require_authenticated(f): decorator
+        +require_admin(f): decorator
+        +require_faculty_or_admin(f): decorator
+        +require_not_viewer(f): decorator
+        +check_permission(required_role): decorator
+    }
+
+    class ScoreField <<dataclass>> {
+        +db_column: str
+        +csv_suffix: str
+        +field_type: str = 'score'
+        +csv_column_override: Optional[str]
+        --
+        +get_csv_column(prefix): str
+        +extract_value(row, prefix): Any
+    }
+
+    class TestScoreConfig <<dataclass>> {
+        +table_name: str
+        +fields: List[ScoreField]
+        +number_field: Optional[str]
+        +max_entries: int = 1
+        +prefix_pattern: str
+        +check_fields: List[str]
+        +has_single_entry: bool = True
+        --
+        +get_prefix(entry_num): str
+    }
+
+    class "utils.test_score_helpers" as tsh <<module>> {
+        +convert_id_to_string(value): str
+        +convert_score(value): str
+        +parse_date(value): date
+        +build_insert_query(config): str
+        +has_score_data(row, config, prefix): bool
+        +get_old_records(cursor, config, code): dict
+        +process_test_score(code, row, cursor, time, config): bool
+        +process_all_test_scores(code, row, cursor, time): bool
+        -- pre-configured constants --
+        TOEFL_CONFIG, IELTS_CONFIG,
+        MELAB_CONFIG, PTE_CONFIG,
+        CAEL_CONFIG, CELPIP_CONFIG,
+        ALT_ELPP_CONFIG, GRE_CONFIG,
+        GMAT_CONFIG
+    }
+
+    ' Composition: csv_helpers contains CSVWriter
+    csv_help *-- CSVWriter
+    ' Composition: TestScoreConfig contains ScoreField
+    TestScoreConfig *-- ScoreField
+    ' db_helpers depends on database
+    db_help ..> db_util : uses get_db_connection()
+}
+
+
+' ============================================================================
+' PACKAGE 5 — FLASK APP (main.py)
+' ============================================================================
+package "Flask App (main.py)" as APP <<Rectangle>> #EEFFFF {
+
+    class FlaskApp {
+        +SECRET_KEY: str
+        +PERMANENT_SESSION_LIFETIME: int (30 days)
+        +SESSION_COOKIE_SECURE: bool
+        +SESSION_COOKIE_HTTPONLY: bool
+        +UPLOAD_FOLDER: str
+        +MAX_CONTENT_LENGTH: 16MB
+        ==Blueprint Registration==
+        applicants_api → /api
+        auth_api → /api/auth
+        sessions_api → /api
+        ratings_api → /api
+        logs_api → /api
+        test_scores_api → /api
+        database_api → /api
+        statuses_bp → (no prefix)
+        documents_bp → (no prefix)
+        ==Web Routes==
+        GET / → index.html
+        GET /login → login.html
+        GET /statistics → statistics.html
+        GET /dashboard → redirect /
+        GET /create-new-session → create-session.html
+        GET /logs → logs.html
+        GET /status-config → status-config.html
+        GET /account → account.html
+        GET /users → users.html
+        ==Hooks==
+        @user_loader → get_user_by_id()
+        @errorhandler(401) → redirect login
+        @after_request → cache headers
+    }
+}
+
+
+' ============================================================================
+' PACKAGE 6 — DATABASE SCHEMA
+' ============================================================================
+package "Database Schema (PostgreSQL)" as DB <<Rectangle>> #F5F5F5 {
+
+    entity role_user {
+        * **id** : SERIAL PK
+        --
+        name : VARCHAR(50) UNIQUE
+    }
+
+    entity "\"user\"" as user_tbl {
+        * **id** : SERIAL PK
+        --
+        first_name : VARCHAR(50)
+        last_name : VARCHAR(50)
+        email : VARCHAR(100) UNIQUE
+        password : VARCHAR(100)
+        role_user_id : INT FK → role_user
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+        --
+        <<trigger>> update_user_updated_at
+        <<trigger>> user_deletion_trigger
+    }
+
+    entity sessions {
+        * **id** : SERIAL PK
+        --
+        program_code : VARCHAR(10)
+        program : VARCHAR(50)
+        session_abbrev : VARCHAR(10)
+        year : INT
+        name : VARCHAR(30)
+        description : VARCHAR(100)
+        campus : VARCHAR(10) CHECK (UBC-V|UBC-O)
+        is_archived : BOOLEAN
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+        --
+        UNIQUE(campus, program_code, year, session_abbrev)
+        <<trigger>> update_sessions_updated_at
+    }
+
+    entity applicant_info {
+        * **user_code** : VARCHAR(10) PK
+        --
+        session_id : INT FK → sessions CASCADE
+        interest_code, interest : VARCHAR
+        title, family_name, given_name : VARCHAR
+        middle_name, preferred_name : VARCHAR
+        former_family_name : VARCHAR
+        gender_code, gender : VARCHAR
+        country_birth_code, country_birth : VARCHAR
+        date_birth : DATE
+        age : INT
+        country_citizenship_code/citizenship : VARCHAR
+        dual_citizenship_code/citizenship : VARCHAR
+        primary_spoken_lang_code/lang : VARCHAR
+        other_spoken_lang_code/lang : VARCHAR
+        visa_type_code, visa_type : VARCHAR
+        country_code, country : VARCHAR
+        address_line1/2, city, province : VARCHAR
+        postal_code, telephone(s), email : VARCHAR
+        aboriginal, first_nation, inuit : VARCHAR(3)
+        metis, aboriginal_not_specified : VARCHAR(3)
+        aboriginal_info, racialized : VARCHAR
+        academic_history_code/history : VARCHAR
+        ubc_academic_history : TEXT
+        created_at, updated_at : TIMESTAMP
+    }
+
+    entity applicant_status {
+        * **user_code** : VARCHAR(10) PK FK → applicant_info CASCADE
+        --
+        student_number : VARCHAR(100)
+        app_start, submit_date : DATE
+        status_code, status : VARCHAR
+        detail_status : VARCHAR(250)
+        created_at, updated_at : TIMESTAMP
+    }
+
+    entity program_info {
+        * **user_code** : VARCHAR(10) PK FK → applicant_info CASCADE
+        --
+        program_code : VARCHAR(10)
+        program : VARCHAR(100)
+        session : VARCHAR(50)
+    }
+
+    entity status_configuration {
+        * **id** : SERIAL PK
+        --
+        status_name : VARCHAR(100) UNIQUE
+        display_order : INT
+        badge_color : VARCHAR(50)
+        is_active : BOOLEAN
+        is_default : BOOLEAN
+        created_at, updated_at : TIMESTAMP
+    }
+
+    entity application_info <<flaw>> #FFCCCC {
+        * **user_code** : VARCHAR(10) PK FK → applicant_info CASCADE
+        --
+        sent : VARCHAR(100) DEFAULT 'Not Reviewed'
+        ····**← soft ref to status_configuration.status_name**
+        ····**← no FK constraint — string match only**
+        full_name : VARCHAR(100)
+        canadian : BOOLEAN
+        english : BOOLEAN
+        english_status : VARCHAR(50)
+        english_description : VARCHAR(3000)
+        english_comment : VARCHAR(255)
+        cs, stat, math : TEXT
+        additional_comments : TEXT
+        gpa : VARCHAR(50)
+        highest_degree, degree_area : VARCHAR(50)
+        mds_v, mds_cl, mds_o : VARCHAR(10)
+        scholarship : VARCHAR(20) CHECK (Yes|No|Undecided)
+    }
+
+    entity ratings {
+        * **(user_id, user_code)** : Composite PK
+        --
+        user_id : INT FK → "user" CASCADE
+        user_code : VARCHAR(10) FK → applicant_info CASCADE
+        rating : DECIMAL(3,1) CHECK 0..10
+        user_comment : VARCHAR(2000)
+        created_at, updated_at : TIMESTAMP
+        --
+        <<trigger>> update_ratings_updated_at
+    }
+
+    entity institution_info {
+        * **(user_code, institution_number)** : Composite PK
+        --
+        user_code : VARCHAR(10) FK → applicant_info CASCADE
+        institution_number : INT
+        institution_code : VARCHAR(50)
+        full_name : VARCHAR(1000)
+        country : VARCHAR(100)
+        start_date, end_date : DATE
+        program_study : VARCHAR(250)
+        degree_confer_code/confer : VARCHAR(100)
+        date_confer : DATE
+        credential_receive_code/receive : VARCHAR
+        expected_confer_date : DATE
+        expected_credential_code/credential : VARCHAR
+        honours : VARCHAR(5000)
+        fail_withdraw : VARCHAR(3)
+        reason : VARCHAR(3000)
+        gpa : VARCHAR(50)
+        created_at, updated_at : TIMESTAMP
+        --
+        <<trigger>> institution_info_deletion_trigger
+    }
+
+    entity toefl {
+        * **(user_code, toefl_number)** : Composite PK
+        --
+        FK → applicant_info CASCADE
+        registration_num, date_written : VARCHAR/DATE
+        total_score, listening : VARCHAR
+        structure_written, reading, speaking : VARCHAR
+        mybest_total, mybest_date : VARCHAR/DATE
+        mybest_listening/date : VARCHAR/DATE
+        mybest_writing/date : VARCHAR/DATE
+        mybest_reading/date : VARCHAR/DATE
+        mybest_speaking/date : VARCHAR/DATE
+        created_at, updated_at : TIMESTAMP
+    }
+
+    entity ielts {
+        * **(user_code, ielts_number)** : Composite PK
+        --
+        FK → applicant_info CASCADE
+        candidate_num, date_written : VARCHAR/DATE
+        total_band_score : VARCHAR
+        listening, reading, writing, speaking : VARCHAR
+        created_at, updated_at : TIMESTAMP
+    }
+
+    entity duolingo {
+        * **user_code** : VARCHAR(10) PK FK → applicant_info
+        --
+        score : INTEGER
+        description : TEXT
+        date_written : DATE
+        created_at, updated_at : TIMESTAMP
+    }
+
+    entity gre {
+        * **user_code** : PK FK → applicant_info CASCADE
+        --
+        reg_num, date_written : VARCHAR/DATE
+        verbal, verbal_below : VARCHAR
+        quantitative, quantitative_below : VARCHAR
+        writing, writing_below : VARCHAR
+        subject_tests, subject_reg_num : VARCHAR
+        subject_date : DATE
+        subject_scaled_score, subject_below : VARCHAR
+        created_at, updated_at : TIMESTAMP
+    }
+
+    entity gmat {
+        * **user_code** : PK FK → applicant_info CASCADE
+        --
+        ref_num, date_written, total : VARCHAR
+        integrated_reasoning : VARCHAR
+        quantitative, verbal, writing : VARCHAR
+        created_at, updated_at : TIMESTAMP
+    }
+
+    entity melab {
+        * **user_code** : PK FK → applicant_info CASCADE
+        --
+        ref_num, date_written, total : VARCHAR
+        created_at, updated_at : TIMESTAMP
+    }
+
+    entity pte {
+        * **user_code** : PK FK → applicant_info CASCADE
+        --
+        ref_num, date_written, total : VARCHAR
+        created_at, updated_at : TIMESTAMP
+    }
+
+    entity cael {
+        * **user_code** : PK FK → applicant_info CASCADE
+        --
+        ref_num, date_written : VARCHAR
+        reading, listening, writing, speaking : VARCHAR
+        created_at, updated_at : TIMESTAMP
+    }
+
+    entity celpip {
+        * **user_code** : PK FK → applicant_info CASCADE
+        --
+        ref_num, date_written : VARCHAR
+        listening, speaking, reading_writing : VARCHAR
+        created_at, updated_at : TIMESTAMP
+    }
+
+    entity alt_elpp {
+        * **user_code** : PK FK → applicant_info CASCADE
+        --
+        ref_num, date_written : VARCHAR
+        total, test_type : VARCHAR
+        created_at, updated_at : TIMESTAMP
+    }
+
+    entity activity_log {
+        * **id** : SERIAL PK
+        --
+        user_id : INT FK → "user"
+        action_type : VARCHAR(50)
+        target_entity : VARCHAR(50)
+        target_id : VARCHAR(50)
+        old_value, new_value : TEXT
+        additional_metadata : JSONB
+        created_at : TIMESTAMP
+    }
+
+    entity applicant_documents {
+        * **id** : SERIAL PK
+        --
+        user_code : VARCHAR(10) FK → applicant_info CASCADE
+        document_type : VARCHAR(50)
+        filename, original_filename : VARCHAR(255)
+        file_path : VARCHAR(500)
+        file_size : INTEGER
+        mime_type : VARCHAR(100)
+        uploaded_by : INT FK → "user"
+        description : TEXT
+        created_at, updated_at : TIMESTAMP
+        --
+        INDEX idx_..._user_code
+        INDEX idx_..._type
+    }
+
+    ' ── Database FK relationships ──
+    user_tbl }|--|| role_user : "FK CASCADE"
+    applicant_info }|--o| sessions : "FK CASCADE"
+    applicant_status ||--|| applicant_info : "FK CASCADE"
+    program_info ||--|| applicant_info : "FK CASCADE"
+    application_info ||--|| applicant_info : "FK CASCADE"
+    ratings }|--|| applicant_info : "FK CASCADE"
+    ratings }|--|| user_tbl : "FK CASCADE"
+    institution_info }|--|| applicant_info : "FK CASCADE"
+    toefl }|--|| applicant_info : "FK CASCADE"
+    ielts }|--|| applicant_info : "FK CASCADE"
+    duolingo ||--|| applicant_info : "FK (no explicit CASCADE)"
+    gre ||--|| applicant_info : "FK CASCADE"
+    gmat ||--|| applicant_info : "FK CASCADE"
+    melab ||--|| applicant_info : "FK CASCADE"
+    pte ||--|| applicant_info : "FK CASCADE"
+    cael ||--|| applicant_info : "FK CASCADE"
+    celpip ||--|| applicant_info : "FK CASCADE"
+    alt_elpp ||--|| applicant_info : "FK CASCADE"
+    activity_log }|--o| user_tbl : "FK (nullable)"
+    applicant_documents }|--|| applicant_info : "FK CASCADE"
+    applicant_documents }|--o| user_tbl : "FK (uploaded_by)"
+
+    ' ── Soft reference (no FK) ──
+    application_info ..> status_configuration : "sent ← status_name\n(string match, NO FK)"
+}
+
+
+' ============================================================================
+' CROSS-PACKAGE DEPENDENCY ARROWS
+' ============================================================================
+
+' Frontend → API (fetch calls)
+FE ..> API : "HTTP fetch()\nJSON"
+
+' API → Model (delegation)
+applicants_api ..> applicants_core
+applicants_api ..> csv_proc
+applicants_api ..> export_mod
+applicants_api ..> statuses_mod
+sessions_api ..> sessions_mod
+ratings_api ..> ratings_mod
+logs_api ..> logger
+documents_bp ..> documents_mod
+
+' API → Utils (direct DB access — flaws)
+auth_api ..> db_util : "direct\nget_db_connection()"
+test_scores_api ..> db_help : "direct\ndb_transaction()"
+statuses_bp ..> db_util : "reorder\nget_db_connection()"
+
+' API → Utils (permissions, logging)
+applicants_api ..> perms
+applicants_api ..> logger
+auth_api ..> perms
+auth_api ..> logger
+sessions_api ..> logger
+database_api ..> logger
+database_api ..> perms
+documents_bp ..> logger
+documents_bp ..> perms
+statuses_bp ..> logger
+test_scores_api ..> perms
+
+' Model → Utils (DB access)
+users_mod ..> db_util
+applicants_core ..> db_util
+csv_proc ..> db_util
+english_mod ..> db_util
+export_mod ..> db_util
+sessions_mod ..> db_util
+ratings_mod ..> db_util
+statuses_mod ..> db_util
+inst_mod ..> db_util
+documents_mod ..> db_help
+test_scores_mod ..> tsh
+
+' Flask App → Blueprints
+FlaskApp ..> applicants_api
+FlaskApp ..> auth_api
+FlaskApp ..> sessions_api
+FlaskApp ..> ratings_api
+FlaskApp ..> logs_api
+FlaskApp ..> test_scores_api
+FlaskApp ..> database_api
+FlaskApp ..> statuses_bp
+FlaskApp ..> documents_bp
+FlaskApp ..> users_mod : "user_loader"
+FlaskApp ..> db_util : "init_database()"
+
+
+' ============================================================================
+' DESIGN FLAW ANNOTATIONS
+' ============================================================================
+
+note top of ApplicantsManager
+  **FLAW 1: God Object (SRP Violation)**
+  5,769 lines handling: table rendering,
+  modal management, status updates,
+  prerequisites, ratings, exports,
+  English proficiency, scholarships,
+  search/filter, and document management.
+  Should be split into 5+ focused classes.
+end note
+
+note right of auth_api
+  **FLAW 2: Bypasses Model Layer**
+  11 of 14 routes execute raw SQL
+  via get_db_connection() instead
+  of delegating to models/users.py.
+  models/users.py has create_user()
+  but auth_api duplicates it twice:
+  /create-user AND /register do the
+  same thing.
+
+  **FLAW 3: Duplicate Endpoints**
+  POST /create-user ≈ POST /register
+  POST /edit-user overlaps PUT /user/{id}
+end note
+
+note bottom of test_scores_api
+  **FLAW 4: Bypasses Model Layer**
+  Duolingo endpoint uses db_transaction()
+  directly instead of a model function.
+  Other test scores use models/test_scores.
+end note
+
+note left of statuses_bp
+  **FLAW 5: Inconsistent Model Usage**
+  reorder_statuses_route() does direct SQL
+  UPDATE via get_db_connection() while all
+  other routes delegate to models/statuses.
+end note
+
+note bottom of application_info
+  **FLAW 7: Soft String Reference**
+  application_info.sent stores a status
+  name string that references
+  status_configuration.status_name
+  by value, with no FK constraint.
+  Renaming a status requires UPDATE
+  of application_info in the same txn.
+end note
+
+note bottom of db_util
+  **FLAW 6: Inconsistent DB Access**
+  Two competing patterns:
+  ① get_db_connection() — manual try/except
+  ② db_helpers.db_connection/db_transaction
+  ····— context manager (newer, cleaner)
+  Only models/documents uses db_helpers.
+  Everything else uses raw get_db_connection().
+end note
+
+@enduml

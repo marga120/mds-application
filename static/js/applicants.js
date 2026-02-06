@@ -444,7 +444,7 @@ class ApplicantsManager {
     return `
       <div class="text-center">
         <div class="text-lg font-semibold ${colorClass}">${ratingValue.toFixed(
-      1
+      2
     )}</div>
         <div class="text-xs text-gray-500">/10.0</div>
       </div>
@@ -997,7 +997,7 @@ class ApplicantsManager {
               <div class="space-y-4">
                 <div class="flex items-center gap-4">
                   <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Rating (0.0 - 10.0):</label>
-                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.1" class="input-ubc flex-1" placeholder="Enter a rating between 0.0 and 10.0">
+                  <input type="number" id="ratingInput" min="0.0" max="10.0" step="0.01" class="input-ubc flex-1" placeholder="Enter a rating between 0.0 and 10.0">
                 </div>
                 <div class="flex items-center gap-4">
                   <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Comment:</label>
@@ -1386,7 +1386,7 @@ class ApplicantsManager {
               <div class="rating-score">
                 <span class="text-lg font-bold text-ubc-blue">${parseFloat(
                   rating.rating
-                ).toFixed(1)}</span>
+                ).toFixed(2)}</span>
                 <span class="text-sm text-gray-500">/10.0</span>
               </div>
             </div>
@@ -1506,8 +1506,8 @@ class ApplicantsManager {
       }
 
       // Check decimal places
-      if (Math.round(ratingFloat * 10) / 10 !== ratingFloat) {
-        this.showMessage("Rating can only have one decimal place", "error");
+      if (Math.round(ratingFloat * 100) / 100 !== ratingFloat) {
+        this.showMessage("Rating can only have up to two decimal places", "error");
         return;
       }
     }
