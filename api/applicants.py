@@ -8,6 +8,10 @@ from utils.permissions import require_admin, require_faculty_or_admin
 from utils.csv_helpers import clean_row
 import csv
 import json
+import re
+
+# Regex to strip control characters illegal in XLSX/XML (keeps tab, newline, carriage return)
+_ILLEGAL_XML_CHARS = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
 
 # Import our model functions
 from models.applicants import process_csv_data, get_all_applicant_status, clear_all_applicant_data
@@ -841,6 +845,8 @@ def export_all_applicants():
                 val = cleaned.get(h, '')
                 if isinstance(val, (list, dict)):
                     val = json.dumps(val)
+                if isinstance(val, str):
+                    val = _ILLEGAL_XML_CHARS.sub(', ', val)
                 row.append(val)
             ws.append(row)
 
@@ -925,6 +931,8 @@ def export_selected_applicants():
                 val = cleaned.get(h, '')
                 if isinstance(val, (list, dict)):
                     val = json.dumps(val)
+                if isinstance(val, str):
+                    val = _ILLEGAL_XML_CHARS.sub(', ', val)
                 row.append(val)
             ws.append(row)
 
