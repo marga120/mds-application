@@ -42,7 +42,7 @@ def get_all_applicant_status(session_id=None):
                     ss.detail_status,
                     ss.updated_at,
                     EXTRACT(EPOCH FROM (NOW() - ss.updated_at)) as seconds_since_update,
-                    ROUND(AVG(r.rating), 1) as overall_rating,
+                    ROUND(AVG(r.rating), 2) as overall_rating,
                     ai.sent as review_status,
                     latest_log.created_at as review_status_updated_at,
                     CASE WHEN ai.canadian = true THEN 'Yes' ELSE 'No' END as canadian,

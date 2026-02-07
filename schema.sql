@@ -149,7 +149,7 @@ CREATE TABLE IF NOT EXISTS application_info (
 CREATE TABLE IF NOT EXISTS ratings(
 	user_id INTEGER REFERENCES "user"(id),
 	user_code VARCHAR(10) REFERENCES applicant_info(user_code),
-	rating DECIMAL(3,1) CHECK (rating >= 0.0 AND rating <= 10.0),
+	rating DECIMAL(4,2) CHECK (rating >= 0.0 AND rating <= 10.0),
 	user_comment VARCHAR(2000),
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -181,12 +181,12 @@ def add_or_update_ratings(user_code):
                     400,
                 )
             # Check decimal places
-            if round(ratings_float, 1) != ratings_float:
+            if round(ratings_float, 2) != ratings_float:
                 return (
                     jsonify(
                         {
                             "success": False,
-                            "message": "Rating can only have one decimal place",
+                            "message": "Rating can only have up to two decimal places",
                         }
                     ),
                     400,

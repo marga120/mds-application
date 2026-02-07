@@ -7,6 +7,7 @@ from utils.activity_logger import log_activity
 from utils.permissions import require_admin, require_faculty_or_admin
 from utils.csv_helpers import clean_row
 import csv
+import json
 
 # Import our model functions
 from models.applicants import process_csv_data, get_all_applicant_status, clear_all_applicant_data
@@ -823,17 +824,35 @@ def export_all_applicants():
         if not applicants or len(applicants) == 0:
             return jsonify({"success": False, "message": "No applicants found in database"}), 404
 
-        # Create CSV output
-        output = io.StringIO()
+        # Create XLSX output
+        from openpyxl import Workbook
 
-        # Get headers from the first applicant's keys
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Applicants"
+
         headers = list(applicants[0].keys())
-        writer = csv.DictWriter(output, fieldnames=headers)
-        writer.writeheader()
+        ws.append(headers)
 
-        # Write all applicants to CSV
         for applicant in applicants:
-            writer.writerow(clean_row(applicant))
+            cleaned = clean_row(applicant)
+            row = []
+            for h in headers:
+                val = cleaned.get(h, '')
+                if isinstance(val, (list, dict)):
+                    val = json.dumps(val)
+                row.append(val)
+            ws.append(row)
+
+        # Force all cells to text format to prevent Excel date casting
+        for col_idx in range(1, len(headers) + 1):
+            for row_idx in range(1, ws.max_row + 1):
+                cell = ws.cell(row=row_idx, column=col_idx)
+                cell.number_format = '@'
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
 
         # Log the activity
         log_activity(
@@ -848,12 +867,11 @@ def export_all_applicants():
         )
 
         # Prepare response
-        output.seek(0)
         response = make_response(output.getvalue())
-        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
         # Generate filename with timestamp and count
-        filename = f'complete_export_{len(applicants)}_applicants_{datetime.now().strftime("%Y-%m-%d")}.csv'
+        filename = f'complete_export_{len(applicants)}_applicants_{datetime.now().strftime("%Y-%m-%d")}.xlsx'
         response.headers['Content-Disposition'] = f'attachment; filename={filename}'
 
         return response
@@ -889,17 +907,37 @@ def export_selected_applicants():
         if not applicants:
             return jsonify({"success": False, "message": "No applicant data found for selected users"}), 404
 
-        # Create CSV with dynamic headers based on sections
-        output = io.StringIO()
-        
-        # Use DictWriter. The keys of the dictionary (from SQL aliases) become the headers.
+        # Create XLSX with dynamic headers based on sections
+        from openpyxl import Workbook
+        from openpyxl.utils import get_column_letter
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Applicants"
+
         headers = list(applicants[0].keys())
-        writer = csv.DictWriter(output, fieldnames=headers)
-        writer.writeheader()
+        ws.append(headers)
 
         for applicant in applicants:
-            writer.writerow(clean_row(applicant))
-        
+            cleaned = clean_row(applicant)
+            row = []
+            for h in headers:
+                val = cleaned.get(h, '')
+                if isinstance(val, (list, dict)):
+                    val = json.dumps(val)
+                row.append(val)
+            ws.append(row)
+
+        # Force all cells to text format to prevent Excel date casting
+        for col_idx in range(1, len(headers) + 1):
+            for row_idx in range(1, ws.max_row + 1):
+                cell = ws.cell(row=row_idx, column=col_idx)
+                cell.number_format = '@'
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+
         log_activity(
             action_type="export",
             target_entity="selected_applicants",
@@ -911,15 +949,14 @@ def export_selected_applicants():
                 "export_style": "horizontal_dynamic_pivoted"
             }
         )
-        
-        output.seek(0)
+
         response = make_response(output.getvalue())
-        response.headers['Content-Type'] = 'text/csv'
-        
+        response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
         sections_str = '_'.join(sections) if sections else 'all'
-        filename = f'selected_{len(user_codes)}_{sections_str}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        filename = f'selected_{len(user_codes)}_{sections_str}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
         response.headers['Content-Disposition'] = f'attachment; filename={filename}'
-        
+
         return response
         
     except Exception as e:
