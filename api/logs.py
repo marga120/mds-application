@@ -73,12 +73,14 @@ def get_logs():
     offset = int(request.args.get("offset", 0))
     action_filter = request.args.get("action_type")
     user_search = request.args.get("user_search")
+    target_id = request.args.get("target_id")
 
     logs, error = get_activity_logs(
         limit=limit,
         offset=offset,
         filter_action_type=action_filter,
         filter_user_search=user_search,
+        filter_target_id=target_id,
     )
 
     if error:

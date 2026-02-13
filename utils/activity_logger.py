@@ -85,7 +85,7 @@ def log_activity(
 
 
 def get_activity_logs(
-    limit=50, offset=0, filter_action_type=None, filter_user_search=None
+    limit=50, offset=0, filter_action_type=None, filter_user_search=None, filter_target_id=None
 ):
     """Get activity logs with optional filtering"""
     conn = get_db_connection()
@@ -105,6 +105,10 @@ def get_activity_logs(
         if filter_action_type:
             where_conditions = ["action_type = %s"]  # Override the IN clause
             params = [filter_action_type]
+
+        if filter_target_id:
+            where_conditions.append("al.target_id = %s")
+            params.append(filter_target_id)
 
         if filter_user_search:
             where_conditions.append("(u.first_name ILIKE %s OR u.last_name ILIKE %s)")
