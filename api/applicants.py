@@ -437,8 +437,8 @@ def update_applicant_status(user_code):
 
     success, message = update_applicant_application_status(user_code, status)
 
-    # Log the status change
-    if success:
+    # Log the status change only if the status actually changed
+    if success and old_status != status:
         log_activity(
             action_type="status_change",
             target_entity="applicant",
