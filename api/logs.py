@@ -1,6 +1,8 @@
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from utils.activity_logger import get_activity_logs
+from utils.db_helpers import fetch_all
+from utils.csv_helpers import create_csv_response, generate_export_filename
 
 logs_api = Blueprint("logs_api", __name__)
 
@@ -95,3 +97,71 @@ def get_logs():
             "offset": offset,
         }
     )
+
+
+@logs_api.route("/logs/export/status-changes", methods=["GET"])
+@login_required
+def export_status_changes():
+    """Export applicant status change logs as a CSV file.
+
+    Returns all status_change activity log entries as a downloadable CSV.
+    Optionally filtered to a specific admin's changes via user_id query param.
+
+    @requires: Admin authentication
+    @method: GET
+    @param user_id: Filter by admin user ID (query param, optional)
+    @param_type user_id: int
+
+    @return: CSV file attachment
+    @status_codes:
+        - 200: CSV file returned
+        - 403: Access denied (non-Admin user)
+        - 500: Database or generation error
+    """
+    if not current_user.is_authenticated or not current_user.is_admin:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+
+    user_ids_param = request.args.get("user_ids", "")
+    user_ids = [int(uid) for uid in user_ids_param.split(",") if uid.strip().isdigit()]
+
+    try:
+        where_clause = "WHERE al.action_type = 'status_change'"
+        params = []
+        if user_ids:
+            placeholders = ",".join(["%s"] * len(user_ids))
+            where_clause += f" AND al.user_id IN ({placeholders})"
+            params.extend(user_ids)
+
+        rows = fetch_all(
+            f"""
+            SELECT al.created_at, u.first_name, u.last_name, u.email,
+                   al.target_id, al.old_value, al.new_value
+            FROM activity_log al
+            LEFT JOIN "user" u ON al.user_id = u.id
+            {where_clause}
+            ORDER BY al.created_at DESC
+            """,
+            params if params else None,
+        )
+
+        fieldnames = ["Date/Time", "Admin Name", "Admin Email", "Applicant Code", "Old Status", "New Status"]
+
+        export_rows = []
+        for row in rows:
+            first = row["first_name"]
+            last = row["last_name"]
+            admin_name = f"{first} {last}".strip() if (first or last) else "Unknown User"
+            export_rows.append({
+                "Date/Time": row["created_at"].strftime("%Y-%m-%d %H:%M:%S") if row["created_at"] else "",
+                "Admin Name": admin_name,
+                "Admin Email": row["email"] or "",
+                "Applicant Code": row["target_id"] or "",
+                "Old Status": row["old_value"] or "",
+                "New Status": row["new_value"] or "",
+            })
+
+        filename = generate_export_filename("status_change_logs", len(export_rows))
+        return create_csv_response(export_rows, filename, fieldnames)
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
