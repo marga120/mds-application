@@ -15,6 +15,11 @@ class LogsManager {
     this.maxLogs = 50; // Maximum logs total (also might need to change in logs.py)
     this.totalPages = 1;
     this.currentFilters = {};
+    this.selectedExportUserIds = new Set();
+    this.exportUsers = [];
+    this.currentDisplayedUserIds = [];
+    this.exportSortField = "name";
+    this.exportSortDir = "asc";
 
     this.initializeEventListeners();
     this.loadInitialData();
@@ -45,6 +50,55 @@ class LogsManager {
     document.getElementById("userSearch").addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
         this.applyFilters();
+      }
+    });
+
+    document.getElementById("exportStatusChangesBtn").addEventListener("click", () => {
+      this.showExportModal();
+    });
+
+    document.getElementById("closeExportModal").addEventListener("click", () => {
+      this.closeExportModal();
+    });
+
+    document.getElementById("cancelExportBtn").addEventListener("click", () => {
+      this.closeExportModal();
+    });
+
+    document.getElementById("exportAllBtn").addEventListener("click", () => {
+      this.exportStatusChanges(null);
+    });
+
+    document.getElementById("exportForAdminBtn").addEventListener("click", () => {
+      if (this.selectedExportUserIds.size > 0) {
+        this.exportStatusChanges([...this.selectedExportUserIds]);
+      }
+    });
+
+    document.getElementById("exportSelectAllCheckbox").addEventListener("change", (e) => {
+      this.toggleSelectAllExportUsers(e.target.checked);
+    });
+
+    document.getElementById("exportAdminSearch").addEventListener("input", (e) => {
+      this.filterExportUsers(e.target.value.trim());
+    });
+
+    document.getElementById("exportSortNameTh").addEventListener("click", () => {
+      this.sortExportUsers("name");
+    });
+
+    document.getElementById("exportSortEmailTh").addEventListener("click", () => {
+      this.sortExportUsers("email");
+    });
+
+    document.getElementById("exportSortRoleTh").addEventListener("click", () => {
+      this.sortExportUsers("role");
+    });
+
+    // Close modal on backdrop click
+    document.getElementById("exportStatusChangesModal").addEventListener("click", (e) => {
+      if (e.target === document.getElementById("exportStatusChangesModal")) {
+        this.closeExportModal();
       }
     });
   }
@@ -314,5 +368,293 @@ class LogsManager {
         <p class="text-red-600">Error: ${message}</p>
       </div>
     `;
+  }
+
+  showExportModal() {
+    this.selectedExportUserIds = new Set();
+    this.exportSortField = "name";
+    this.exportSortDir = "asc";
+    document.getElementById("exportAdminSearch").value = "";
+    document.getElementById("selectedAdminText").classList.add("hidden");
+    document.getElementById("exportForAdminBtn").disabled = true;
+    document.getElementById("exportForAdminBtn").textContent = "Export for Selected";
+    document.getElementById("exportSelectAllCheckbox").checked = false;
+    document.getElementById("exportSelectAllCheckbox").indeterminate = false;
+    this.resetExportSortIcons();
+
+    const modal = document.getElementById("exportStatusChangesModal");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+
+    this.loadExportUsers();
+  }
+
+  closeExportModal() {
+    const modal = document.getElementById("exportStatusChangesModal");
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+
+  async loadExportUsers() {
+    document.getElementById("exportUsersTableBody").innerHTML = `
+      <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-gray-500">Loading users...</td></tr>
+    `;
+
+    try {
+      const response = await fetch("/api/auth/users");
+      const result = await response.json();
+
+      if (result.success) {
+        this.exportUsers = result.users;
+        this.renderExportUsersTable(this.exportUsers);
+      } else {
+        document.getElementById("exportUsersTableBody").innerHTML = `
+          <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-red-500">Failed to load users</td></tr>
+        `;
+      }
+    } catch (error) {
+      console.error("Error loading users:", error);
+      document.getElementById("exportUsersTableBody").innerHTML = `
+        <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-red-500">Failed to load users</td></tr>
+      `;
+    }
+  }
+
+  filterExportUsers(query) {
+    if (!query) {
+      this.renderExportUsersTable(this.exportUsers);
+      return;
+    }
+
+    const q = query.toLowerCase();
+    const filtered = this.exportUsers.filter(
+      (u) =>
+        u.full_name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        this.getExportRoleName(u.role_id).toLowerCase().includes(q)
+    );
+    this.renderExportUsersTable(filtered);
+  }
+
+  sortExportUsers(field) {
+    if (this.exportSortField === field) {
+      this.exportSortDir = this.exportSortDir === "asc" ? "desc" : "asc";
+    } else {
+      this.exportSortField = field;
+      this.exportSortDir = "asc";
+    }
+
+    this.resetExportSortIcons();
+    const icon = document.getElementById(
+      `exportSort${field.charAt(0).toUpperCase() + field.slice(1)}Icon`
+    );
+    if (icon) {
+      icon.textContent = this.exportSortDir === "asc" ? "↑" : "↓";
+      icon.classList.replace("text-gray-400", "text-blue-600");
+    }
+
+    const query = document.getElementById("exportAdminSearch").value.trim();
+    const q = query.toLowerCase();
+    const source = q
+      ? this.exportUsers.filter(
+          (u) =>
+            u.full_name.toLowerCase().includes(q) ||
+            u.email.toLowerCase().includes(q) ||
+            this.getExportRoleName(u.role_id).toLowerCase().includes(q)
+        )
+      : [...this.exportUsers];
+
+    source.sort((a, b) => {
+      let aVal, bVal;
+      if (field === "name") { aVal = a.full_name; bVal = b.full_name; }
+      else if (field === "email") { aVal = a.email; bVal = b.email; }
+      else { aVal = this.getExportRoleName(a.role_id); bVal = this.getExportRoleName(b.role_id); }
+
+      return this.exportSortDir === "asc"
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal);
+    });
+
+    this.renderExportUsersTable(source);
+  }
+
+  resetExportSortIcons() {
+    ["Name", "Email", "Role"].forEach((f) => {
+      const icon = document.getElementById(`exportSort${f}Icon`);
+      if (icon) {
+        icon.textContent = "⇅";
+        icon.classList.replace("text-blue-600", "text-gray-400");
+      }
+    });
+  }
+
+  renderExportUsersTable(users) {
+    const tbody = document.getElementById("exportUsersTableBody");
+    this.currentDisplayedUserIds = users ? users.map((u) => u.id) : [];
+
+    if (!users || users.length === 0) {
+      tbody.innerHTML = `
+        <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-gray-500">No users found</td></tr>
+      `;
+      this.updateSelectAllCheckbox();
+      return;
+    }
+
+    tbody.innerHTML = users
+      .map((user) => {
+        const initials = user.full_name
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2);
+        const isSelected = this.selectedExportUserIds.has(user.id);
+
+        return `
+          <tr
+            class="hover:bg-blue-50 cursor-pointer transition-colors ${isSelected ? "bg-blue-50" : ""}"
+            data-user-id="${user.id}"
+          >
+            <td class="px-4 py-3 w-8">
+              <input type="checkbox" class="export-user-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer"
+                data-user-id="${user.id}" ${isSelected ? "checked" : ""}>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span class="text-blue-600 text-xs font-semibold">${initials}</span>
+                </div>
+                <div class="ml-3 text-sm font-medium text-gray-900">${user.full_name}</div>
+              </div>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${user.email}</td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${this.getExportRoleBadge(user.role_id)}">
+                ${this.getExportRoleName(user.role_id)}
+              </span>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+              ${new Date(user.created_at).toLocaleDateString()}
+            </td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    tbody.querySelectorAll("tr[data-user-id]").forEach((row) => {
+      row.addEventListener("click", (e) => {
+        if (e.target.type === "checkbox") return;
+        const cb = row.querySelector(".export-user-checkbox");
+        cb.checked = !cb.checked;
+        this.toggleExportAdmin(parseInt(row.dataset.userId), cb.checked);
+      });
+    });
+
+    tbody.querySelectorAll(".export-user-checkbox").forEach((cb) => {
+      cb.addEventListener("change", (e) => {
+        e.stopPropagation();
+        this.toggleExportAdmin(parseInt(cb.dataset.userId), cb.checked);
+      });
+    });
+
+    this.updateSelectAllCheckbox();
+  }
+
+  getExportRoleName(roleId) {
+    switch (roleId) {
+      case 1: return "Admin";
+      case 2: return "Faculty";
+      case 3: return "Viewer";
+      default: return "Unknown";
+    }
+  }
+
+  getExportRoleBadge(roleId) {
+    switch (roleId) {
+      case 1: return "bg-purple-100 text-purple-800";
+      case 2: return "bg-blue-100 text-blue-800";
+      case 3: return "bg-gray-100 text-gray-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  }
+
+  toggleExportAdmin(userId, checked) {
+    if (checked) {
+      this.selectedExportUserIds.add(userId);
+    } else {
+      this.selectedExportUserIds.delete(userId);
+    }
+
+    // Update row highlight without re-rendering
+    const row = document.querySelector(`tr[data-user-id="${userId}"]`);
+    if (row) {
+      row.classList.toggle("bg-blue-50", checked);
+    }
+
+    this.updateSelectAllCheckbox();
+    this.updateExportSelectionUI();
+  }
+
+  toggleSelectAllExportUsers(checked) {
+    this.currentDisplayedUserIds.forEach((id) => {
+      if (checked) {
+        this.selectedExportUserIds.add(id);
+      } else {
+        this.selectedExportUserIds.delete(id);
+      }
+      const row = document.querySelector(`tr[data-user-id="${id}"]`);
+      if (row) {
+        row.classList.toggle("bg-blue-50", checked);
+        const cb = row.querySelector(".export-user-checkbox");
+        if (cb) cb.checked = checked;
+      }
+    });
+    this.updateExportSelectionUI();
+  }
+
+  updateSelectAllCheckbox() {
+    const selectAll = document.getElementById("exportSelectAllCheckbox");
+    if (!selectAll || this.currentDisplayedUserIds.length === 0) return;
+
+    const selectedCount = this.currentDisplayedUserIds.filter((id) =>
+      this.selectedExportUserIds.has(id)
+    ).length;
+
+    selectAll.checked = selectedCount === this.currentDisplayedUserIds.length;
+    selectAll.indeterminate =
+      selectedCount > 0 && selectedCount < this.currentDisplayedUserIds.length;
+  }
+
+  updateExportSelectionUI() {
+    const count = this.selectedExportUserIds.size;
+    const btn = document.getElementById("exportForAdminBtn");
+    const text = document.getElementById("selectedAdminText");
+
+    if (count === 0) {
+      btn.disabled = true;
+      btn.textContent = "Export for Selected";
+      text.classList.add("hidden");
+    } else {
+      btn.disabled = false;
+      btn.textContent = `Export for Selected (${count})`;
+      text.textContent = `${count} admin${count !== 1 ? "s" : ""} selected`;
+      text.classList.remove("hidden");
+    }
+  }
+
+  exportStatusChanges(userIds) {
+    const url =
+      userIds && userIds.length > 0
+        ? `/api/logs/export/status-changes?user_ids=${userIds.join(",")}`
+        : "/api/logs/export/status-changes";
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    this.closeExportModal();
   }
 }
