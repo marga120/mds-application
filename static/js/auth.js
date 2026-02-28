@@ -1,8 +1,8 @@
 /**
  * AUTHENTICATION MANAGER
- * 
+ *
  * This file handles user authentication, session management, and role-based access control.
- * It manages user login/logout, session validation, user information display, 
+ * It manages user login/logout, session validation, user information display,
  * and updates the UI based on user permissions (Admin, Faculty, Viewer roles).
  */
 
@@ -25,7 +25,7 @@ class AuthManager {
       // Update UI with user info
       this.updateUserInfo(result.user);
       this.updateUploadSection(result.user);
-      
+
       // Initialize session badge
       await this.initializeSessionBadge();
     } catch (error) {
@@ -36,13 +36,18 @@ class AuthManager {
 
   updateUserInfo(user) {
     // Add Session Badge with dropdown to the left
-    const sessionsDropdownArea = document.getElementById("sessionsDropdownArea");
+    const sessionsDropdownArea = document.getElementById(
+      "sessionsDropdownArea",
+    );
     if (sessionsDropdownArea) {
-      const createSessionOption = user.role === "Admin" ? `
+      const createSessionOption =
+        user.role === "Admin"
+          ? `
         <a href="/create-new-session" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-md">
           Create Session
         </a>
-      ` : '';
+      `
+          : "";
 
       sessionsDropdownArea.innerHTML = `
         <div class="relative">
@@ -170,21 +175,20 @@ class AuthManager {
 
     // Initialize all dropdowns
     this.initializeDropdowns();
-    
+
     // Store user for session badge
     this.currentUser = user;
-    
+
     // Create modals for upload and clear data (if admin)
     if (user.role === "Admin") {
       this.createDataModals();
     }
   }
 
-
   updateUploadSection(user) {
     const uploadSection = document.getElementById("uploadSection");
     const clearDataSection = document.getElementById("clearDataSection");
-    
+
     if (user.role === "Viewer" || user.role === "Faculty") {
       if (uploadSection) uploadSection.style.display = "none";
       if (clearDataSection) clearDataSection.style.display = "none";
@@ -202,7 +206,11 @@ class AuthManager {
     if (userDropdownBtn && userDropdownMenu) {
       userDropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.toggleDropdown("userDropdownMenu", ["usersDropdownMenu", "dataDropdownMenu", "sessionsDropdownMenu"]);
+        this.toggleDropdown("userDropdownMenu", [
+          "usersDropdownMenu",
+          "dataDropdownMenu",
+          "sessionsDropdownMenu",
+        ]);
       });
     }
 
@@ -213,7 +221,11 @@ class AuthManager {
     if (usersDropdownBtn && usersDropdownMenu) {
       usersDropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.toggleDropdown("usersDropdownMenu", ["userDropdownMenu", "sessionsDropdownMenu", "dataDropdownMenu"]);
+        this.toggleDropdown("usersDropdownMenu", [
+          "userDropdownMenu",
+          "sessionsDropdownMenu",
+          "dataDropdownMenu",
+        ]);
       });
     }
 
@@ -224,18 +236,28 @@ class AuthManager {
     if (dataDropdownBtn && dataDropdownMenu) {
       dataDropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.toggleDropdown("dataDropdownMenu", ["userDropdownMenu", "sessionsDropdownMenu", "usersDropdownMenu"]);
+        this.toggleDropdown("dataDropdownMenu", [
+          "userDropdownMenu",
+          "sessionsDropdownMenu",
+          "usersDropdownMenu",
+        ]);
       });
     }
 
     // Sessions dropdown
     const sessionBadge = document.getElementById("sessionBadge");
-    const sessionsDropdownMenu = document.getElementById("sessionsDropdownMenu");
+    const sessionsDropdownMenu = document.getElementById(
+      "sessionsDropdownMenu",
+    );
 
     if (sessionBadge && sessionsDropdownMenu) {
       sessionBadge.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.toggleDropdown("sessionsDropdownMenu", ["userDropdownMenu", "usersDropdownMenu", "dataDropdownMenu"]);
+        this.toggleDropdown("sessionsDropdownMenu", [
+          "userDropdownMenu",
+          "usersDropdownMenu",
+          "dataDropdownMenu",
+        ]);
       });
     }
 
@@ -257,7 +279,12 @@ class AuthManager {
 
     // Close dropdowns when clicking outside
     document.addEventListener("click", () => {
-      ["userDropdownMenu", "usersDropdownMenu", "dataDropdownMenu", "sessionsDropdownMenu"].forEach(id => {
+      [
+        "userDropdownMenu",
+        "usersDropdownMenu",
+        "dataDropdownMenu",
+        "sessionsDropdownMenu",
+      ].forEach((id) => {
         const menu = document.getElementById(id);
         if (menu) {
           menu.classList.add("hidden");
@@ -268,8 +295,8 @@ class AuthManager {
   }
 
   async initializeSessionBadge() {
-    const badge = document.getElementById('sessionBadge');
-    const badgeText = document.getElementById('sessionBadgeText');
+    const badge = document.getElementById("sessionBadge");
+    const badgeText = document.getElementById("sessionBadgeText");
 
     if (!badge || !badgeText) return;
 
@@ -285,24 +312,24 @@ class AuthManager {
         this.updateSessionBadgeDisplay();
       });
     } catch (error) {
-      console.error('Error initializing session badge:', error);
-      badgeText.textContent = 'Select Session';
+      console.error("Error initializing session badge:", error);
+      badgeText.textContent = "Select Session";
     }
   }
 
   updateSessionBadgeDisplay() {
-    const badgeText = document.getElementById('sessionBadgeText');
-    
+    const badgeText = document.getElementById("sessionBadgeText");
+
     if (!badgeText) return;
-    
+
     const metadata = SessionStore.getSessionMetadata();
-    
+
     if (metadata && metadata.name) {
       // Normal state - session selected
       badgeText.textContent = metadata.name;
     } else {
       // No session state - show "Sessions" like other dropdowns
-      badgeText.textContent = 'Sessions';
+      badgeText.textContent = "Sessions";
     }
   }
 
@@ -310,9 +337,9 @@ class AuthManager {
     if (!this.sessionModal) {
       this.sessionModal = new SessionModal({
         onSwitch: (session) => {
-          console.log('Switched to session:', session.name);
+          console.log("Switched to session:", session.name);
           // Page will reload via SessionStore event
-        }
+        },
       });
     }
     this.sessionModal.open();
@@ -325,7 +352,7 @@ class AuthManager {
     const isHidden = target.classList.contains("hidden");
 
     // Close other dropdowns
-    closeIds.forEach(id => {
+    closeIds.forEach((id) => {
       const menu = document.getElementById(id);
       if (menu) {
         menu.classList.add("hidden");
@@ -369,115 +396,10 @@ class AuthManager {
       window.location.href = "/login";
     }
   }
-  
-  initializeResetPassword() {
-  // Open modal
-  document.addEventListener("click", (e) => {
-    if (e.target.id === "resetPasswordBtn") {
-      const modal = document.getElementById("resetPasswordModal");
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
-      
-      // Close the user dropdown
-      const userDropdownMenu = document.getElementById("userDropdownMenu");
-      if (userDropdownMenu) {
-        userDropdownMenu.classList.add("hidden");
-      }
-    }
-  });
-
-  //Close modal if x/cancel
-  document.addEventListener("click", (e) => {
-    const closeButton = e.target.closest("#closeResetPasswordModal");
-    const cancelButton = e.target.closest("#cancelResetPassword");
-    
-    if (closeButton || cancelButton) {
-      this.closeResetPasswordModal();
-    }
-  });
-
-  // Handle form submission
-  const form = document.getElementById("resetPasswordForm");
-  if (form) {
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      this.handleResetPassword();
-    });
-  }
-}
-//close pass modal
-closeResetPasswordModal() {
-  const modal = document.getElementById("resetPasswordModal");
-  modal.classList.add("hidden");
-  modal.classList.remove("flex");
-  
-  document.getElementById("resetPasswordForm").reset();
-  document.getElementById("resetPasswordError").classList.add("hidden");
-  document.getElementById("resetPasswordSuccess").classList.add("hidden");
-}
-
-  async handleResetPassword() {
-    const currentPassword = document.getElementById("currentPassword").value;
-    const newPassword = document.getElementById("newPassword").value;
-    const confirmPassword = document.getElementById("confirmPassword").value;
-    const errorDiv = document.getElementById("resetPasswordError");
-    const successDiv = document.getElementById("resetPasswordSuccess");
-
-    // Hide previous messages
-    errorDiv.classList.add("hidden");
-    successDiv.classList.add("hidden");
-
-    // Validate passwords match
-    if (newPassword !== confirmPassword) {
-      errorDiv.textContent = "New passwords do not match";
-      errorDiv.classList.remove("hidden");
-      return;
-    }
-
-    // Validate password length
-    if (newPassword.length < 8) {
-      errorDiv.textContent = "Password must be at least 8 characters";
-      errorDiv.classList.remove("hidden");
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          current_password: currentPassword,
-          new_password: newPassword,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        successDiv.textContent = "Password reset successfully!";
-        successDiv.classList.remove("hidden");
-        
-        // Close modal after 2 seconds
-        setTimeout(() => {
-          this.closeResetPasswordModal();
-        }, 2000);
-      } else {
-        errorDiv.textContent = result.message || "Failed to reset password";
-        errorDiv.classList.remove("hidden");
-      }
-    } catch (error) {
-      console.error("Reset password error:", error);
-      errorDiv.textContent = "An error occurred. Please try again.";
-      errorDiv.classList.remove("hidden");
-    }
-  }
 
   createDataModals() {
-  // Create Upload CSV Modal
-  const uploadModalHTML = `
+    // Create Upload CSV Modal
+    const uploadModalHTML = `
     <div id="uploadCsvModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
       <div class="relative top-20 mx-auto p-8 border w-11/12 max-w-2xl shadow-lg rounded-lg bg-white">
         <div class="flex justify-between items-center mb-6">
@@ -521,9 +443,9 @@ closeResetPasswordModal() {
       </div>
     </div>
   `;
-  
-  // Create Clear Data Modal
-  const clearModalHTML = `
+
+    // Create Clear Data Modal
+    const clearModalHTML = `
     <div id="clearDataModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
       <div class="relative top-20 mx-auto p-8 border w-11/12 max-w-md shadow-lg rounded-lg bg-white">
         <div class="flex justify-between items-center mb-6">
@@ -566,317 +488,221 @@ closeResetPasswordModal() {
       </div>
     </div>
   `;
-  document.body.insertAdjacentHTML('beforeend', uploadModalHTML);
-  document.body.insertAdjacentHTML('beforeend', clearModalHTML);
-  this.setupUploadModal();
-  this.setupClearModal();
-  this.setupDatabaseBackup();
-  this.setupDatabaseImport();
-  this.setupExportApplicantData();
-}
-
-setupUploadModal() {
-  const uploadMenuItem = document.getElementById('uploadCsvMenuItem');
-  const modal = document.getElementById('uploadCsvModal');
-  const closeButtons = modal.querySelectorAll('.close-upload-modal');
-  const dropZone = document.getElementById('dropZoneModal');
-  const fileInput = document.getElementById('csvFileInputModal');
-  const uploadBtn = document.getElementById('uploadCsvBtnModal');
-  const fileName = document.getElementById('fileNameModal');
-  const uploadStatus = document.getElementById('uploadStatusModal');
-  const uploadTimestamp = document.getElementById('uploadTimestampModal');
-  const lastUploadTime = document.getElementById('lastUploadTime');
-  const lastUploadRecords = document.getElementById('lastUploadRecords');
-  
-  let selectedFile = null;
-  
-  // Function to load and display last upload info
-  const loadLastUploadInfo = () => {
-    const lastUpload = localStorage.getItem('lastUploadInfo');
-    if (lastUpload) {
-      try {
-        const info = JSON.parse(lastUpload);
-        lastUploadTime.textContent = new Date(info.timestamp).toLocaleString();
-        lastUploadRecords.textContent = info.records;
-        uploadTimestamp.style.display = 'block';
-      } catch (e) {
-        console.error('Error loading last upload info:', e);
-      }
-    }
-  };
-  
-  uploadMenuItem.addEventListener('click', (e) => {
-    e.preventDefault();
-    modal.classList.remove('hidden');
-    loadLastUploadInfo(); // Load last upload info when opening modal
-  });
-  
-  closeButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      modal.classList.add('hidden');
-      selectedFile = null;
-      fileName.textContent = 'No file chosen';
-      fileInput.value = '';
-      uploadBtn.disabled = true;
-      uploadStatus.classList.add('hidden');
-    });
-  });
-  
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.classList.add('hidden');
-    }
-  });
-  
-  dropZone.addEventListener('click', () => fileInput.click());
-  
-  fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file && file.name.endsWith('.csv')) {
-      selectedFile = file;
-      fileName.textContent = file.name;
-      uploadBtn.disabled = false;
-    }
-  });
-  
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('border-blue-400', 'bg-blue-50');
-  });
-  
-  dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('border-blue-400', 'bg-blue-50');
-  });
-  
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('border-blue-400', 'bg-blue-50');
-    const file = e.dataTransfer.files[0];
-    if (file && file.name.endsWith('.csv')) {
-      selectedFile = file;
-      fileName.textContent = file.name;
-      uploadBtn.disabled = false;
-    }
-  });
-  
-  uploadBtn.addEventListener('click', async () => {
-    if (!selectedFile) return;
-    
-    uploadBtn.disabled = true;
-    uploadBtn.textContent = 'Uploading...';
-    
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        // Save upload info to localStorage
-        const uploadInfo = {
-          timestamp: new Date().toISOString(),
-          records: result.records_processed
-        };
-        localStorage.setItem('lastUploadInfo', JSON.stringify(uploadInfo));
-        
-        // Update timestamp display
-        lastUploadTime.textContent = new Date(uploadInfo.timestamp).toLocaleString();
-        lastUploadRecords.textContent = uploadInfo.records;
-        uploadTimestamp.style.display = 'block';
-        
-        uploadStatus.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
-        uploadStatus.textContent = 'CSV uploaded successfully! Reloading...';
-        uploadStatus.classList.remove('hidden');
-        setTimeout(() => window.location.reload(), 1500);
-      } else {
-        uploadStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-        uploadStatus.textContent = result.message || 'Upload failed';
-        uploadStatus.classList.remove('hidden');
-        uploadBtn.disabled = false;
-        uploadBtn.textContent = 'Upload CSV';
-      }
-    } catch (error) {
-      uploadStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-      uploadStatus.textContent = 'Error uploading file';
-      uploadStatus.classList.remove('hidden');
-      uploadBtn.disabled = false;
-      uploadBtn.textContent = 'Upload CSV';
-    }
-  });
+    document.body.insertAdjacentHTML("beforeend", uploadModalHTML);
+    document.body.insertAdjacentHTML("beforeend", clearModalHTML);
+    this.setupUploadModal();
+    this.setupClearModal();
+    this.setupDatabaseBackup();
+    this.setupDatabaseImport();
+    this.setupExportApplicantData();
   }
-  
-  initializeResetPassword() {
-    // Open modal
-    document.addEventListener("click", (e) => {
-      if (e.target.id === "resetPasswordBtn") {
-        const modal = document.getElementById("resetPasswordModal");
-        modal.classList.remove("hidden");
-        modal.classList.add("flex");
-        
-        // Close the user dropdown
-        const userDropdownMenu = document.getElementById("userDropdownMenu");
-        if (userDropdownMenu) {
-          userDropdownMenu.classList.add("hidden");
+
+  setupUploadModal() {
+    const uploadMenuItem = document.getElementById("uploadCsvMenuItem");
+    const modal = document.getElementById("uploadCsvModal");
+    const closeButtons = modal.querySelectorAll(".close-upload-modal");
+    const dropZone = document.getElementById("dropZoneModal");
+    const fileInput = document.getElementById("csvFileInputModal");
+    const uploadBtn = document.getElementById("uploadCsvBtnModal");
+    const fileName = document.getElementById("fileNameModal");
+    const uploadStatus = document.getElementById("uploadStatusModal");
+    const uploadTimestamp = document.getElementById("uploadTimestampModal");
+    const lastUploadTime = document.getElementById("lastUploadTime");
+    const lastUploadRecords = document.getElementById("lastUploadRecords");
+
+    let selectedFile = null;
+
+    // Function to load and display last upload info
+    const loadLastUploadInfo = () => {
+      const lastUpload = localStorage.getItem("lastUploadInfo");
+      if (lastUpload) {
+        try {
+          const info = JSON.parse(lastUpload);
+          lastUploadTime.textContent = new Date(
+            info.timestamp,
+          ).toLocaleString();
+          lastUploadRecords.textContent = info.records;
+          uploadTimestamp.style.display = "block";
+        } catch (e) {
+          console.error("Error loading last upload info:", e);
         }
       }
+    };
+
+    uploadMenuItem.addEventListener("click", (e) => {
+      e.preventDefault();
+      modal.classList.remove("hidden");
+      loadLastUploadInfo(); // Load last upload info when opening modal
     });
 
-    // Close modal ONLY with X button or Cancel button
-    document.addEventListener("click", (e) => {
-      // Check if the clicked element or its parent is the close button or cancel button
-      const closeButton = e.target.closest("#closeResetPasswordModal");
-      const cancelButton = e.target.closest("#cancelResetPassword");
-      
-      if (closeButton || cancelButton) {
-        this.closeResetPasswordModal();
+    closeButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        modal.classList.add("hidden");
+        selectedFile = null;
+        fileName.textContent = "No file chosen";
+        fileInput.value = "";
+        uploadBtn.disabled = true;
+        uploadStatus.classList.add("hidden");
+      });
+    });
+
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        modal.classList.add("hidden");
       }
     });
 
-    // Handle form submission
-    const form = document.getElementById("resetPasswordForm");
-    if (form) {
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        this.handleResetPassword();
-      });
-    }
-  }
-  closeResetPasswordModal() {
-    const modal = document.getElementById("resetPasswordModal");
-    modal.classList.add("hidden");
-    modal.classList.remove("flex");
-    
-    document.getElementById("resetPasswordForm").reset();
-    document.getElementById("resetPasswordError").classList.add("hidden");
-    document.getElementById("resetPasswordSuccess").classList.add("hidden");
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file && file.name.endsWith(".csv")) {
+        selectedFile = file;
+        fileName.textContent = file.name;
+        uploadBtn.disabled = false;
+      }
+    });
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("border-blue-400", "bg-blue-50");
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("border-blue-400", "bg-blue-50");
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("border-blue-400", "bg-blue-50");
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith(".csv")) {
+        selectedFile = file;
+        fileName.textContent = file.name;
+        uploadBtn.disabled = false;
+      }
+    });
+
+    uploadBtn.addEventListener("click", async () => {
+      if (!selectedFile) return;
+
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = "Uploading...";
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      try {
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          // Save upload info to localStorage
+          const uploadInfo = {
+            timestamp: new Date().toISOString(),
+            records: result.records_processed,
+          };
+          localStorage.setItem("lastUploadInfo", JSON.stringify(uploadInfo));
+
+          // Update timestamp display
+          lastUploadTime.textContent = new Date(
+            uploadInfo.timestamp,
+          ).toLocaleString();
+          lastUploadRecords.textContent = uploadInfo.records;
+          uploadTimestamp.style.display = "block";
+
+          uploadStatus.className =
+            "mt-4 p-4 rounded-lg bg-green-100 text-green-800";
+          uploadStatus.textContent = "CSV uploaded successfully! Reloading...";
+          uploadStatus.classList.remove("hidden");
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          uploadStatus.className =
+            "mt-4 p-4 rounded-lg bg-red-100 text-red-800";
+          uploadStatus.textContent = result.message || "Upload failed";
+          uploadStatus.classList.remove("hidden");
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = "Upload CSV";
+        }
+      } catch (error) {
+        uploadStatus.className = "mt-4 p-4 rounded-lg bg-red-100 text-red-800";
+        uploadStatus.textContent = "Error uploading file";
+        uploadStatus.classList.remove("hidden");
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = "Upload CSV";
+      }
+    });
   }
 
   setupClearModal() {
-    const clearMenuItem = document.getElementById('clearDataMenuItem');
-    const modal = document.getElementById('clearDataModal');
-    const closeButtons = modal.querySelectorAll('.close-clear-modal');
-    const confirmBtn = document.getElementById('confirmClearDataBtn');
-    const clearStatus = document.getElementById('clearStatusModal');
-    
-    clearMenuItem.addEventListener('click', (e) => {
+    const clearMenuItem = document.getElementById("clearDataMenuItem");
+    const modal = document.getElementById("clearDataModal");
+    const closeButtons = modal.querySelectorAll(".close-clear-modal");
+    const confirmBtn = document.getElementById("confirmClearDataBtn");
+    const clearStatus = document.getElementById("clearStatusModal");
+
+    clearMenuItem.addEventListener("click", (e) => {
       e.preventDefault();
-      modal.classList.remove('hidden');
+      modal.classList.remove("hidden");
     });
-    
-    closeButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        modal.classList.add('hidden');
-        clearStatus.classList.add('hidden');
+
+    closeButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        modal.classList.add("hidden");
+        clearStatus.classList.add("hidden");
       });
     });
-    
-    modal.addEventListener('click', (e) => {
+
+    modal.addEventListener("click", (e) => {
       if (e.target === modal) {
-        modal.classList.add('hidden');
+        modal.classList.add("hidden");
       }
     });
-    
-    confirmBtn.addEventListener('click', async () => {
+
+    confirmBtn.addEventListener("click", async () => {
       confirmBtn.disabled = true;
-      confirmBtn.textContent = 'Deleting...';
-      
+      confirmBtn.textContent = "Deleting...";
+
       try {
-        const response = await fetch('/api/clear-all-data', {
-          method: 'DELETE'
+        const response = await fetch("/api/clear-all-data", {
+          method: "DELETE",
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
-          clearStatus.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
-          clearStatus.textContent = 'All data deleted successfully! Reloading...';
-          clearStatus.classList.remove('hidden');
+          clearStatus.className =
+            "mt-4 p-4 rounded-lg bg-green-100 text-green-800";
+          clearStatus.textContent =
+            "All data deleted successfully! Reloading...";
+          clearStatus.classList.remove("hidden");
           setTimeout(() => window.location.reload(), 1500);
         } else {
-          clearStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-          clearStatus.textContent = result.message || 'Failed to clear data';
-          clearStatus.classList.remove('hidden');
+          clearStatus.className = "mt-4 p-4 rounded-lg bg-red-100 text-red-800";
+          clearStatus.textContent = result.message || "Failed to clear data";
+          clearStatus.classList.remove("hidden");
           confirmBtn.disabled = false;
-          confirmBtn.textContent = 'Yes, Delete All Data';
+          confirmBtn.textContent = "Yes, Delete All Data";
         }
       } catch (error) {
-        clearStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-        clearStatus.textContent = 'Error clearing data';
-        clearStatus.classList.remove('hidden');
+        clearStatus.className = "mt-4 p-4 rounded-lg bg-red-100 text-red-800";
+        clearStatus.textContent = "Error clearing data";
+        clearStatus.classList.remove("hidden");
         confirmBtn.disabled = false;
-        confirmBtn.textContent = 'Yes, Delete All Data';
+        confirmBtn.textContent = "Yes, Delete All Data";
       }
     });
-  }
-  async handleResetPassword() {
-    const currentPassword = document.getElementById("currentPassword").value;
-    const newPassword = document.getElementById("newPassword").value;
-    const confirmPassword = document.getElementById("confirmPassword").value;
-    const errorDiv = document.getElementById("resetPasswordError");
-    const successDiv = document.getElementById("resetPasswordSuccess");
-
-    // Hide previous messages
-    errorDiv.classList.add("hidden");
-    successDiv.classList.add("hidden");
-
-    // Validate passwords match
-    if (newPassword !== confirmPassword) {
-      errorDiv.textContent = "New passwords do not match";
-      errorDiv.classList.remove("hidden");
-      return;
-    }
-
-    // Validate password length
-    if (newPassword.length < 8) {
-      errorDiv.textContent = "Password must be at least 8 characters";
-      errorDiv.classList.remove("hidden");
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          current_password: currentPassword,
-          new_password: newPassword,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        successDiv.textContent = "Password reset successfully!";
-        successDiv.classList.remove("hidden");
-        
-        // Close modal after 2 seconds
-        setTimeout(() => {
-          this.closeResetPasswordModal();
-        }, 2000);
-      } else {
-        errorDiv.textContent = result.message || "Failed to reset password";
-        errorDiv.classList.remove("hidden");
-      }
-    } catch (error) {
-      console.error("Reset password error:", error);
-      errorDiv.textContent = "An error occurred. Please try again.";
-      errorDiv.classList.remove("hidden");
-    }
   }
 
   setupDatabaseBackup() {
-    const backupBtn = document.getElementById('backupDatabase');
+    const backupBtn = document.getElementById("backupDatabase");
 
     if (backupBtn) {
-      backupBtn.addEventListener('click', (e) => {
+      backupBtn.addEventListener("click", (e) => {
         e.preventDefault();
         this.showBackupModal();
       });
@@ -969,37 +795,37 @@ setupUploadModal() {
     `;
 
     // Remove existing modal if present
-    const existingModal = document.getElementById('backupDatabaseModal');
+    const existingModal = document.getElementById("backupDatabaseModal");
     if (existingModal) {
       existingModal.remove();
     }
 
     // Add modal to DOM
-    document.body.insertAdjacentHTML('beforeend', backupModalHTML);
+    document.body.insertAdjacentHTML("beforeend", backupModalHTML);
 
     // Setup modal functionality
     this.setupBackupModalHandlers();
   }
 
   setupBackupModalHandlers() {
-    const modal = document.getElementById('backupDatabaseModal');
-    const closeButtons = modal.querySelectorAll('.close-backup-modal');
-    const backupBtn = document.getElementById('confirmBackupBtn');
-    const backupStatus = document.getElementById('backupStatusModal');
+    const modal = document.getElementById("backupDatabaseModal");
+    const closeButtons = modal.querySelectorAll(".close-backup-modal");
+    const backupBtn = document.getElementById("confirmBackupBtn");
+    const backupStatus = document.getElementById("backupStatusModal");
 
-    closeButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
+    closeButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
         modal.remove();
       });
     });
 
-    modal.addEventListener('click', (e) => {
+    modal.addEventListener("click", (e) => {
       if (e.target === modal) {
         modal.remove();
       }
     });
 
-    backupBtn.addEventListener('click', async () => {
+    backupBtn.addEventListener("click", async () => {
       backupBtn.disabled = true;
       backupBtn.innerHTML = `
         <svg class="animate-spin h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1009,8 +835,8 @@ setupUploadModal() {
       `;
 
       try {
-        const response = await fetch('/api/backup-database', {
-          method: 'POST'
+        const response = await fetch("/api/backup-database", {
+          method: "POST",
         });
 
         if (response.ok) {
@@ -1019,12 +845,14 @@ setupUploadModal() {
 
           // Create a download link
           const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
+          const a = document.createElement("a");
           a.href = url;
 
           // Extract filename from Content-Disposition header if available
-          const contentDisposition = response.headers.get('Content-Disposition');
-          let filename = 'database_backup.sql';
+          const contentDisposition = response.headers.get(
+            "Content-Disposition",
+          );
+          let filename = "database_backup.sql";
           if (contentDisposition) {
             const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
             if (filenameMatch) {
@@ -1038,7 +866,8 @@ setupUploadModal() {
           window.URL.revokeObjectURL(url);
           document.body.removeChild(a);
 
-          backupStatus.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
+          backupStatus.className =
+            "mt-4 p-4 rounded-lg bg-green-100 text-green-800";
           backupStatus.innerHTML = `
             <div class="flex items-center">
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1047,7 +876,7 @@ setupUploadModal() {
               Database backup created successfully! File: ${filename}
             </div>
           `;
-          backupStatus.classList.remove('hidden');
+          backupStatus.classList.remove("hidden");
 
           // Close modal after 2 seconds
           setTimeout(() => {
@@ -1055,9 +884,11 @@ setupUploadModal() {
           }, 2000);
         } else {
           const result = await response.json();
-          backupStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-          backupStatus.textContent = result.message || 'Failed to create backup';
-          backupStatus.classList.remove('hidden');
+          backupStatus.className =
+            "mt-4 p-4 rounded-lg bg-red-100 text-red-800";
+          backupStatus.textContent =
+            result.message || "Failed to create backup";
+          backupStatus.classList.remove("hidden");
           backupBtn.disabled = false;
           backupBtn.innerHTML = `
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1067,10 +898,10 @@ setupUploadModal() {
           `;
         }
       } catch (error) {
-        console.error('Backup error:', error);
-        backupStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-        backupStatus.textContent = 'Error creating backup. Please try again.';
-        backupStatus.classList.remove('hidden');
+        console.error("Backup error:", error);
+        backupStatus.className = "mt-4 p-4 rounded-lg bg-red-100 text-red-800";
+        backupStatus.textContent = "Error creating backup. Please try again.";
+        backupStatus.classList.remove("hidden");
         backupBtn.disabled = false;
         backupBtn.innerHTML = `
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1083,10 +914,10 @@ setupUploadModal() {
   }
 
   setupDatabaseImport() {
-    const importBtn = document.getElementById('importDatabase');
+    const importBtn = document.getElementById("importDatabase");
 
     if (importBtn) {
-      importBtn.addEventListener('click', (e) => {
+      importBtn.addEventListener("click", (e) => {
         e.preventDefault();
         this.showImportModal();
       });
@@ -1146,121 +977,130 @@ setupUploadModal() {
     `;
 
     // Remove existing modal if present
-    const existingModal = document.getElementById('importDatabaseModal');
+    const existingModal = document.getElementById("importDatabaseModal");
     if (existingModal) {
       existingModal.remove();
     }
 
     // Add modal to DOM
-    document.body.insertAdjacentHTML('beforeend', importModalHTML);
+    document.body.insertAdjacentHTML("beforeend", importModalHTML);
 
     // Setup modal functionality
     this.setupImportModalHandlers();
   }
 
   setupImportModalHandlers() {
-    const modal = document.getElementById('importDatabaseModal');
-    const closeButtons = modal.querySelectorAll('.close-import-modal');
-    const dropZone = document.getElementById('dropZoneImport');
-    const fileInput = document.getElementById('sqlFileInput');
-    const importBtn = document.getElementById('confirmImportBtn');
-    const fileName = document.getElementById('fileNameImport');
-    const importStatus = document.getElementById('importStatusModal');
+    const modal = document.getElementById("importDatabaseModal");
+    const closeButtons = modal.querySelectorAll(".close-import-modal");
+    const dropZone = document.getElementById("dropZoneImport");
+    const fileInput = document.getElementById("sqlFileInput");
+    const importBtn = document.getElementById("confirmImportBtn");
+    const fileName = document.getElementById("fileNameImport");
+    const importStatus = document.getElementById("importStatusModal");
 
     let selectedFile = null;
 
-    closeButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
+    closeButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
         modal.remove();
       });
     });
 
-    modal.addEventListener('click', (e) => {
+    modal.addEventListener("click", (e) => {
       if (e.target === modal) {
         modal.remove();
       }
     });
 
-    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener("click", () => fileInput.click());
 
-    fileInput.addEventListener('change', (e) => {
+    fileInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
-      if (file && file.name.endsWith('.sql')) {
+      if (file && file.name.endsWith(".sql")) {
         selectedFile = file;
         fileName.textContent = file.name;
         importBtn.disabled = false;
       }
     });
 
-    dropZone.addEventListener('dragover', (e) => {
+    dropZone.addEventListener("dragover", (e) => {
       e.preventDefault();
-      dropZone.classList.add('border-blue-400', 'bg-blue-50');
+      dropZone.classList.add("border-blue-400", "bg-blue-50");
     });
 
-    dropZone.addEventListener('dragleave', () => {
-      dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("border-blue-400", "bg-blue-50");
     });
 
-    dropZone.addEventListener('drop', (e) => {
+    dropZone.addEventListener("drop", (e) => {
       e.preventDefault();
-      dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+      dropZone.classList.remove("border-blue-400", "bg-blue-50");
       const file = e.dataTransfer.files[0];
-      if (file && file.name.endsWith('.sql')) {
+      if (file && file.name.endsWith(".sql")) {
         selectedFile = file;
         fileName.textContent = file.name;
         importBtn.disabled = false;
       }
     });
 
-    importBtn.addEventListener('click', async () => {
+    importBtn.addEventListener("click", async () => {
       if (!selectedFile) return;
 
       // Double confirmation
-      if (!confirm('Are you ABSOLUTELY SURE you want to import this database? This will REPLACE all existing data!')) {
+      if (
+        !confirm(
+          "Are you ABSOLUTELY SURE you want to import this database? This will REPLACE all existing data!",
+        )
+      ) {
         return;
       }
 
       importBtn.disabled = true;
-      importBtn.textContent = 'Importing...';
+      importBtn.textContent = "Importing...";
 
       const formData = new FormData();
-      formData.append('file', selectedFile);
+      formData.append("file", selectedFile);
 
       try {
-        const response = await fetch('/api/import-database', {
-          method: 'POST',
-          body: formData
+        const response = await fetch("/api/import-database", {
+          method: "POST",
+          body: formData,
         });
 
         const result = await response.json();
 
         if (result.success) {
-          importStatus.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
-          importStatus.textContent = 'Database imported successfully! Reloading...';
-          importStatus.classList.remove('hidden');
+          importStatus.className =
+            "mt-4 p-4 rounded-lg bg-green-100 text-green-800";
+          importStatus.textContent =
+            "Database imported successfully! Reloading...";
+          importStatus.classList.remove("hidden");
           setTimeout(() => window.location.reload(), 3500);
         } else {
-          importStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-          importStatus.textContent = result.message || 'Import failed';
-          importStatus.classList.remove('hidden');
+          importStatus.className =
+            "mt-4 p-4 rounded-lg bg-red-100 text-red-800";
+          importStatus.textContent = result.message || "Import failed";
+          importStatus.classList.remove("hidden");
           importBtn.disabled = false;
-          importBtn.textContent = 'Import Database';
+          importBtn.textContent = "Import Database";
         }
       } catch (error) {
-        importStatus.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
-        importStatus.textContent = 'Error importing database';
-        importStatus.classList.remove('hidden');
+        importStatus.className = "mt-4 p-4 rounded-lg bg-red-100 text-red-800";
+        importStatus.textContent = "Error importing database";
+        importStatus.classList.remove("hidden");
         importBtn.disabled = false;
-        importBtn.textContent = 'Import Database';
+        importBtn.textContent = "Import Database";
       }
     });
   }
 
   setupExportApplicantData() {
-    const exportMenuItem = document.getElementById('exportApplicantDataMenuItem');
+    const exportMenuItem = document.getElementById(
+      "exportApplicantDataMenuItem",
+    );
 
     if (exportMenuItem) {
-      exportMenuItem.addEventListener('click', (e) => {
+      exportMenuItem.addEventListener("click", (e) => {
         e.preventDefault();
         // Call the export function from applicantsManager
         if (window.applicantsManager) {
@@ -1268,8 +1108,8 @@ setupUploadModal() {
         } else {
           // If applicantsManager is not available (on other pages), redirect to home page
           // and set a flag to open the export modal after page load
-          localStorage.setItem('openExportModal', 'true');
-          window.location.href = '/';
+          localStorage.setItem("openExportModal", "true");
+          window.location.href = "/";
         }
       });
     }
