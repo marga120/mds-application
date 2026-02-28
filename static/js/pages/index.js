@@ -1,3 +1,10 @@
+import { api } from "../api/client.js";
+import { Notification } from "../components/notification.js";
+import { applicantService } from "../services/applicant-service.js";
+import { statusService } from "../services/status-service.js";
+import { getRoleName, getRoleBadgeClass, formatDate, formatDateTime, getTimeAgo } from "../utils/formatters.js";
+import { validateRating } from "../utils/validators.js";
+
 /**
  * APPLICANTS MANAGER - Main Application Controller
  * 
@@ -5767,3 +5774,5 @@ async exportAllApplicantsAllData() {
 }
 
 }
+
+new ApplicantsManager();

@@ -44,7 +44,7 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 # File upload configuration
 app.config["UPLOAD_FOLDER"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "documents")
-app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
+app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024  # 30MB max file size (documents)
 
 # Initialize Flask-Login
 login_manager = LoginManager()

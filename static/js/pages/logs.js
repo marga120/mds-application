@@ -1,18 +1,14 @@
-/**
- * LOGS MANAGER
- * 
- * This file manages the system activity logs interface for Admin users.
- * It handles loading, filtering, pagination, and display of system activity logs
- * including user actions, status changes, and audit trail information.
- */
+import { api } from "../api/client.js";
+import { Notification } from "../components/notification.js";
+import { getRoleName, getRoleBadgeClass } from "../utils/formatters.js";
 
 class LogsManager {
   constructor() {
     this.logs = [];
-    this.allUsers = new Map(); // Cache all users here
+    this.allUsers = new Map();
     this.currentPage = 1;
-    this.limit = 10; // Show logs per page
-    this.maxLogs = 50; // Maximum logs total (also might need to change in logs.py)
+    this.limit = 10;
+    this.maxLogs = 50;
     this.totalPages = 1;
     this.currentFilters = {};
     this.selectedExportUserIds = new Set();
@@ -46,20 +42,23 @@ class LogsManager {
       this.goToNextPage();
     });
 
-    // Add search on Enter key
     document.getElementById("userSearch").addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
         this.applyFilters();
       }
     });
 
-    document.getElementById("exportStatusChangesBtn").addEventListener("click", () => {
-      this.showExportModal();
-    });
+    document
+      .getElementById("exportStatusChangesBtn")
+      .addEventListener("click", () => {
+        this.showExportModal();
+      });
 
-    document.getElementById("closeExportModal").addEventListener("click", () => {
-      this.closeExportModal();
-    });
+    document
+      .getElementById("closeExportModal")
+      .addEventListener("click", () => {
+        this.closeExportModal();
+      });
 
     document.getElementById("cancelExportBtn").addEventListener("click", () => {
       this.closeExportModal();
@@ -69,55 +68,62 @@ class LogsManager {
       this.exportStatusChanges(null);
     });
 
-    document.getElementById("exportForAdminBtn").addEventListener("click", () => {
-      if (this.selectedExportUserIds.size > 0) {
-        this.exportStatusChanges([...this.selectedExportUserIds]);
-      }
-    });
+    document
+      .getElementById("exportForAdminBtn")
+      .addEventListener("click", () => {
+        if (this.selectedExportUserIds.size > 0) {
+          this.exportStatusChanges([...this.selectedExportUserIds]);
+        }
+      });
 
-    document.getElementById("exportSelectAllCheckbox").addEventListener("change", (e) => {
-      this.toggleSelectAllExportUsers(e.target.checked);
-    });
+    document
+      .getElementById("exportSelectAllCheckbox")
+      .addEventListener("change", (e) => {
+        this.toggleSelectAllExportUsers(e.target.checked);
+      });
 
-    document.getElementById("exportAdminSearch").addEventListener("input", (e) => {
-      this.filterExportUsers(e.target.value.trim());
-    });
+    document
+      .getElementById("exportAdminSearch")
+      .addEventListener("input", (e) => {
+        this.filterExportUsers(e.target.value.trim());
+      });
 
-    document.getElementById("exportSortNameTh").addEventListener("click", () => {
-      this.sortExportUsers("name");
-    });
+    document
+      .getElementById("exportSortNameTh")
+      .addEventListener("click", () => {
+        this.sortExportUsers("name");
+      });
 
-    document.getElementById("exportSortEmailTh").addEventListener("click", () => {
-      this.sortExportUsers("email");
-    });
+    document
+      .getElementById("exportSortEmailTh")
+      .addEventListener("click", () => {
+        this.sortExportUsers("email");
+      });
 
-    document.getElementById("exportSortRoleTh").addEventListener("click", () => {
-      this.sortExportUsers("role");
-    });
+    document
+      .getElementById("exportSortRoleTh")
+      .addEventListener("click", () => {
+        this.sortExportUsers("role");
+      });
 
-    // Close modal on backdrop click
-    document.getElementById("exportStatusChangesModal").addEventListener("click", (e) => {
-      if (e.target === document.getElementById("exportStatusChangesModal")) {
-        this.closeExportModal();
-      }
-    });
+    document
+      .getElementById("exportStatusChangesModal")
+      .addEventListener("click", (e) => {
+        if (e.target === document.getElementById("exportStatusChangesModal")) {
+          this.closeExportModal();
+        }
+      });
   }
 
   async loadInitialData() {
-    // First load all logs without filters to get all users
     await this.loadAllUsers();
-    // Then load the actual logs for display
     await this.loadLogs();
   }
 
   async loadAllUsers() {
     try {
-      // Load logs without any filters to get all users
-      const response = await fetch(`/api/logs?limit=1000`); // Get a large number to capture all users
-      const result = await response.json();
-
+      const result = await api.get("/api/logs", { limit: 1000 });
       if (result.success) {
-        // Cache all unique users
         result.logs.forEach((log) => {
           if (log.user_id && !this.allUsers.has(log.user_id)) {
             this.allUsers.set(log.user_id, {
@@ -135,22 +141,18 @@ class LogsManager {
 
   async loadLogs() {
     try {
-      const offset = (this.currentPage - 1) * this.limit;
-      const params = new URLSearchParams({
-        limit: this.maxLogs, // Get all logs first
+      const params = {
+        limit: this.maxLogs,
         offset: 0,
         ...this.currentFilters,
-      });
+      };
 
-      const response = await fetch(`/api/logs?${params}`);
-      const result = await response.json();
+      const result = await api.get("/api/logs", params);
 
       if (result.success) {
-        // Calculate pagination based on all logs
         const allLogs = result.logs;
         this.totalPages = Math.ceil(allLogs.length / this.limit);
 
-        // Get logs for current page
         const startIndex = (this.currentPage - 1) * this.limit;
         const endIndex = startIndex + this.limit;
         this.logs = allLogs.slice(startIndex, endIndex);
@@ -204,19 +206,15 @@ class LogsManager {
       return;
     }
 
-    const logsHtml = this.logs.map((log) => this.createLogCard(log)).join("");
-    container.innerHTML = logsHtml;
+    container.innerHTML = this.logs
+      .map((log) => this.createLogCard(log))
+      .join("");
   }
 
   createLogCard(log) {
     const timestamp = new Date(log.created_at).toLocaleString();
 
-    // Special handling for clear_all_data action
     if (log.action_type === "clear_all_data") {
-      const metadata = log.additional_metadata || {};
-      const recordsDeleted = metadata.records_deleted || {};
-      
-      // Total records deleted = just the number of applicants
       const totalRecords = parseInt(log.old_value) || 0;
 
       return `
@@ -230,19 +228,19 @@ class LogsManager {
                   </span>
                 </div>
               </div>
-              
+
               <div class="text-sm text-gray-900 mb-1">
-                <span class="font-medium">${log.user_name || 'Unknown User'}</span>
-                <span class="text-gray-600">(${log.user_role || 'Unknown'})</span>
+                <span class="font-medium">${log.user_name || "Unknown User"}</span>
+                <span class="text-gray-600">(${log.user_role || "Unknown"})</span>
                 performed <span class="font-medium">${this.formatActionType(log.action_type)}</span>
               </div>
 
               <div class="mt-2 text-sm text-gray-600">
-                <span class="font-medium">Total records deleted:</span> 
+                <span class="font-medium">Total records deleted:</span>
                 <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-semibold">${totalRecords}</span>
               </div>
             </div>
-            
+
             <div class="text-right text-xs text-gray-500">
               <div>${timestamp}</div>
             </div>
@@ -255,7 +253,7 @@ class LogsManager {
     if (log.old_value && log.new_value && log.old_value !== log.new_value) {
       changeDetails = `
         <div class="mt-2 text-sm text-gray-600">
-          <span class="font-medium">Changed from:</span> 
+          <span class="font-medium">Changed from:</span>
           <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">${log.old_value}</span>
           <span class="mx-2">→</span>
           <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">${log.new_value}</span>
@@ -283,18 +281,16 @@ class LogsManager {
                 </span>
               </div>
             </div>
-            
+
             <div class="text-sm text-gray-900 mb-1">
               <span class="font-medium">${log.user_name}</span>
               <span class="text-gray-600">(${log.user_role})</span>
-              performed <span class="font-medium">${this.formatActionType(
-                log.action_type
-              )}</span>
+              performed <span class="font-medium">${this.formatActionType(log.action_type)}</span>
             </div>
-            
+
             ${targetInfo}
             ${changeDetails}
-            
+
             ${
               log.additional_metadata
                 ? `
@@ -310,7 +306,7 @@ class LogsManager {
                 : ""
             }
           </div>
-          
+
           <div class="text-right text-xs text-gray-500">
             <div>${timestamp}</div>
           </div>
@@ -338,7 +334,7 @@ class LogsManager {
     if (actionFilter) this.currentFilters.action_type = actionFilter;
     if (userSearch) this.currentFilters.user_search = userSearch;
 
-    this.currentPage = 1; // Reset to first page when applying filters
+    this.currentPage = 1;
     this.loadLogs();
   }
 
@@ -351,14 +347,8 @@ class LogsManager {
   }
 
   refreshLogs() {
-    // Refresh both users and logs
     this.allUsers.clear();
     this.loadInitialData();
-  }
-
-  loadMoreLogs() {
-    this.offset += this.limit;
-    this.loadLogs(false);
   }
 
   showError(message) {
@@ -377,7 +367,8 @@ class LogsManager {
     document.getElementById("exportAdminSearch").value = "";
     document.getElementById("selectedAdminText").classList.add("hidden");
     document.getElementById("exportForAdminBtn").disabled = true;
-    document.getElementById("exportForAdminBtn").textContent = "Export for Selected";
+    document.getElementById("exportForAdminBtn").textContent =
+      "Export for Selected";
     document.getElementById("exportSelectAllCheckbox").checked = false;
     document.getElementById("exportSelectAllCheckbox").indeterminate = false;
     this.resetExportSortIcons();
@@ -401,9 +392,7 @@ class LogsManager {
     `;
 
     try {
-      const response = await fetch("/api/auth/users");
-      const result = await response.json();
-
+      const result = await api.get("/api/auth/users");
       if (result.success) {
         this.exportUsers = result.users;
         this.renderExportUsersTable(this.exportUsers);
@@ -431,7 +420,7 @@ class LogsManager {
       (u) =>
         u.full_name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
-        this.getExportRoleName(u.role_id).toLowerCase().includes(q)
+        getRoleName(u.role_id).toLowerCase().includes(q),
     );
     this.renderExportUsersTable(filtered);
   }
@@ -446,7 +435,7 @@ class LogsManager {
 
     this.resetExportSortIcons();
     const icon = document.getElementById(
-      `exportSort${field.charAt(0).toUpperCase() + field.slice(1)}Icon`
+      `exportSort${field.charAt(0).toUpperCase() + field.slice(1)}Icon`,
     );
     if (icon) {
       icon.textContent = this.exportSortDir === "asc" ? "↑" : "↓";
@@ -460,15 +449,22 @@ class LogsManager {
           (u) =>
             u.full_name.toLowerCase().includes(q) ||
             u.email.toLowerCase().includes(q) ||
-            this.getExportRoleName(u.role_id).toLowerCase().includes(q)
+            getRoleName(u.role_id).toLowerCase().includes(q),
         )
       : [...this.exportUsers];
 
     source.sort((a, b) => {
       let aVal, bVal;
-      if (field === "name") { aVal = a.full_name; bVal = b.full_name; }
-      else if (field === "email") { aVal = a.email; bVal = b.email; }
-      else { aVal = this.getExportRoleName(a.role_id); bVal = this.getExportRoleName(b.role_id); }
+      if (field === "name") {
+        aVal = a.full_name;
+        bVal = b.full_name;
+      } else if (field === "email") {
+        aVal = a.email;
+        bVal = b.email;
+      } else {
+        aVal = getRoleName(a.role_id);
+        bVal = getRoleName(b.role_id);
+      }
 
       return this.exportSortDir === "asc"
         ? aVal.localeCompare(bVal)
@@ -529,8 +525,8 @@ class LogsManager {
             </td>
             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${user.email}</td>
             <td class="px-4 py-3 whitespace-nowrap">
-              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${this.getExportRoleBadge(user.role_id)}">
-                ${this.getExportRoleName(user.role_id)}
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeClass(user.role_id)}">
+                ${getRoleName(user.role_id)}
               </span>
             </td>
             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
@@ -560,24 +556,6 @@ class LogsManager {
     this.updateSelectAllCheckbox();
   }
 
-  getExportRoleName(roleId) {
-    switch (roleId) {
-      case 1: return "Admin";
-      case 2: return "Faculty";
-      case 3: return "Viewer";
-      default: return "Unknown";
-    }
-  }
-
-  getExportRoleBadge(roleId) {
-    switch (roleId) {
-      case 1: return "bg-purple-100 text-purple-800";
-      case 2: return "bg-blue-100 text-blue-800";
-      case 3: return "bg-gray-100 text-gray-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  }
-
   toggleExportAdmin(userId, checked) {
     if (checked) {
       this.selectedExportUserIds.add(userId);
@@ -585,7 +563,6 @@ class LogsManager {
       this.selectedExportUserIds.delete(userId);
     }
 
-    // Update row highlight without re-rendering
     const row = document.querySelector(`tr[data-user-id="${userId}"]`);
     if (row) {
       row.classList.toggle("bg-blue-50", checked);
@@ -617,7 +594,7 @@ class LogsManager {
     if (!selectAll || this.currentDisplayedUserIds.length === 0) return;
 
     const selectedCount = this.currentDisplayedUserIds.filter((id) =>
-      this.selectedExportUserIds.has(id)
+      this.selectedExportUserIds.has(id),
     ).length;
 
     selectAll.checked = selectedCount === this.currentDisplayedUserIds.length;
@@ -658,3 +635,5 @@ class LogsManager {
     this.closeExportModal();
   }
 }
+
+new LogsManager();

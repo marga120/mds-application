@@ -1,14 +1,21 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - MDS Application</title>
-    
+
     <!-- Preload critical resources -->
-    <link rel="preload" href="{{ url_for('static', filename='css/output.css') }}" as="style">
-    <link rel="preload" href="{{ url_for('static', filename='js/login.js') }}" as="script">
-    
+    <link
+      rel="preload"
+      href="{{ url_for('static', filename='css/output.css') }}"
+      as="style"
+    />
+    <link
+      rel="modulepreload"
+      href="{{ url_for('static', filename='js/pages/login.js') }}"
+    />
+
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/output.css') }}"
@@ -83,6 +90,9 @@
       </div>
     </div>
 
-    <script defer src="{{ url_for('static', filename='js/login.js') }}"></script>
+    <script
+      type="module"
+      src="{{ url_for('static', filename='js/pages/login.js') }}"
+    ></script>
   </body>
 </html>
