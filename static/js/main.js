@@ -1,14 +1,10 @@
 /**
  * MAIN APPLICATION ENTRY POINT
  *
- * This file initializes the core application components when the page loads.
- * It coordinates the startup of ApplicantsManager, AuthManager, and SessionManager
- * to ensure proper initialization order and component communication.
+ * Initializes auth and session UI on pages where auth.js is loaded.
+ * ApplicantsManager is initialized in pages/index.js (ES module).
  */
 
-// Initialize the app when the page loads
 document.addEventListener("DOMContentLoaded", function () {
-  window.applicantsManager = new ApplicantsManager();
   new AuthManager();
-  new SessionManager();
 });

@@ -5,6 +5,7 @@ This module handles processing test scores from CSV data.
 Uses the generic processor from utils/test_score_helpers for all test types.
 """
 
+from utils.db_helpers import db_transaction
 from utils.test_score_helpers import (
     process_test_score,
     process_all_test_scores,
@@ -75,6 +76,31 @@ def process_other_test_scores(user_code, row, cursor, current_time):
             changed = True
 
     return changed
+
+
+def save_duolingo_score(user_code, score, description, date_written, current_time):
+    """
+    Upsert a Duolingo score record.
+
+    @param user_code: Unique identifier for the applicant
+    @param score: Duolingo test score (int, 0-160, or None)
+    @param description: Test description or notes
+    @param date_written: Test date (date object or None)
+    @param current_time: Timestamp for updated_at
+    """
+    with db_transaction() as (conn, cursor):
+        cursor.execute(
+            """
+            INSERT INTO duolingo (user_code, score, description, date_written, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (user_code) DO UPDATE SET
+                score = EXCLUDED.score,
+                description = EXCLUDED.description,
+                date_written = EXCLUDED.date_written,
+                updated_at = EXCLUDED.updated_at
+            """,
+            (user_code, score, description, date_written, current_time, current_time),
+        )
 
 
 # Re-export for convenience

@@ -7,13 +7,12 @@ applicant records into the database.
 
 import pandas as pd
 from datetime import datetime, date
-from utils.database import get_db_connection
 from models.test_scores import (
     process_toefl_scores,
     process_ielts_scores,
     process_other_test_scores,
 )
-from utils.db_helpers import db_connection
+from utils.db_helpers import db_transaction
 from models.institutions import process_institution_info
 from .english_status import compute_english_status
 from .core import convert_id_to_string
@@ -67,7 +66,7 @@ def create_or_get_sessions(cursor, program_code, program, session_abbrev, campus
 
         existing_session = cursor.fetchone()
         if existing_session:
-            return existing_session[0], f"Found existing session: {name}"
+            return existing_session["id"], f"Found existing session: {name}"
 
         cursor.execute(
             """
@@ -78,7 +77,7 @@ def create_or_get_sessions(cursor, program_code, program, session_abbrev, campus
             (program_code, program, session_abbrev, year, name, "", campus, datetime.now(), datetime.now()),
         )
 
-        session_id = cursor.fetchone()[0]
+        session_id = cursor.fetchone()["id"]
         return session_id, f"Created new session: {name} (ID: {session_id})"
 
     except ValueError as e:
@@ -115,16 +114,10 @@ def calculate_application_info_fields(user_code, cursor):
         selected_institution = None
 
         for institution in institutions:
-            if isinstance(institution, tuple):
-                credential_receive = institution[1]
-                date_confer = institution[2]
-                program_study = institution[3]
-                gpa = institution[4]
-            else:
-                credential_receive = institution["credential_receive"]
-                date_confer = institution["date_confer"]
-                program_study = institution["program_study"]
-                gpa = institution["gpa"]
+            credential_receive = institution["credential_receive"]
+            date_confer = institution["date_confer"]
+            program_study = institution["program_study"]
+            gpa = institution["gpa"]
 
             if not credential_receive:
                 continue
@@ -222,158 +215,149 @@ def process_csv_data(df):
     @param df: Pandas DataFrame containing CSV data
     @return: Tuple of (success, message, records_processed)
     """
-    conn = get_db_connection()
     touched_user_codes = set()
 
-    if not conn:
-        return False, "Database connection failed", 0
-
     try:
-        cursor = conn.cursor()
-        records_processed = 0
-        session_id = None
+        with db_transaction() as (conn, cursor):
+            records_processed = 0
+            session_id = None
 
-        if not df.empty:
-            first_row = df.iloc[0]
-            program_code = str(first_row.get("Program CODE", "")).strip()
-            program = str(first_row.get("Program", "")).strip()
-            session_abbrev = str(first_row.get("Session", "")).strip()
+            if not df.empty:
+                first_row = df.iloc[0]
+                program_code = str(first_row.get("Program CODE", "")).strip()
+                program = str(first_row.get("Program", "")).strip()
+                session_abbrev = str(first_row.get("Session", "")).strip()
 
-            campus = str(first_row.get("Campus", first_row.get("campus", ""))).strip()
+                campus = str(first_row.get("Campus", first_row.get("campus", ""))).strip()
 
-            if campus and campus.upper() in ['UBC-O', 'UBCO', 'O', 'OKANAGAN']:
-                campus = 'UBC-O'
-            elif campus and campus.upper() in ['UBC-V', 'UBCV', 'V', 'VANCOUVER']:
-                campus = 'UBC-V'
-            else:
-                if program_code.upper().startswith('OG'):
+                if campus and campus.upper() in ['UBC-O', 'UBCO', 'O', 'OKANAGAN']:
                     campus = 'UBC-O'
-                elif program_code.upper().startswith('VG'):
+                elif campus and campus.upper() in ['UBC-V', 'UBCV', 'V', 'VANCOUVER']:
                     campus = 'UBC-V'
                 else:
-                    campus = 'UBC-V'
+                    if program_code.upper().startswith('OG'):
+                        campus = 'UBC-O'
+                    elif program_code.upper().startswith('VG'):
+                        campus = 'UBC-V'
+                    else:
+                        campus = 'UBC-V'
 
-            if not program_code or program_code == "nan":
-                return False, f"Invalid Program CODE", 0
-            if not program or program == "nan":
-                return False, f"Invalid Program", 0
-            if not session_abbrev or session_abbrev == "nan":
-                return False, f"Invalid Session", 0
+                if not program_code or program_code == "nan":
+                    return False, "Invalid Program CODE", 0
+                if not program or program == "nan":
+                    return False, "Invalid Program", 0
+                if not session_abbrev or session_abbrev == "nan":
+                    return False, "Invalid Session", 0
 
-            sessions_result, message = create_or_get_sessions(cursor, program_code, program, session_abbrev, campus)
-            if sessions_result is None:
-                return False, f"Session creation failed: {message}", 0
+                sessions_result, message = create_or_get_sessions(cursor, program_code, program, session_abbrev, campus)
+                if sessions_result is None:
+                    return False, f"Session creation failed: {message}", 0
 
-            session_id = sessions_result
-        else:
-            return False, "CSV file is empty", 0
-
-        for _, row in df.iterrows():
-            user_code = str(row.get("User Code", "")).strip()
-            if not user_code or user_code == "nan":
-                continue
-
-            data_changed = False
-
-            date_birth = None
-            if pd.notna(row.get("Date of Birth")):
-                try:
-                    date_birth = pd.to_datetime(row.get("Date of Birth")).date()
-                except:
-                    pass
-
-            age = calculate_age(date_birth)
-            current_time = datetime.now()
-
-            ubc_academic_history = row.get(
-                "{ UBC Academic History List - eVision Record #; Start Date; End Date; Category; Program of Study; Degree Conferred?; Date Conferred; Credential Received; Withdrawal Reasons; Honours }",
-                "",
-            )
-
-            if pd.isna(ubc_academic_history) or str(ubc_academic_history).strip() == "nan":
-                ubc_academic_history = ""
+                session_id = sessions_result
             else:
-                ubc_academic_history = str(ubc_academic_history).strip()
+                return False, "CSV file is empty", 0
 
-            racialized_value = row.get("Racialized")
-            if pd.isna(racialized_value):
-                racialized_value = None
-            else:
-                racialized_value = str(racialized_value).strip()
+            for _, row in df.iterrows():
+                user_code = str(row.get("User Code", "")).strip()
+                if not user_code or user_code == "nan":
+                    continue
 
-            cursor.execute("SELECT updated_at FROM applicant_info WHERE user_code = %s", (user_code,))
-            old_info_updated = cursor.fetchone()
+                data_changed = False
 
-            # Insert applicant_info
-            _insert_applicant_info(cursor, user_code, session_id, row, date_birth, age,
-                                   ubc_academic_history, racialized_value, current_time)
+                date_birth = None
+                if pd.notna(row.get("Date of Birth")):
+                    try:
+                        date_birth = pd.to_datetime(row.get("Date of Birth")).date()
+                    except:
+                        pass
 
-            cursor.execute("SELECT updated_at FROM applicant_info WHERE user_code = %s", (user_code,))
-            new_info_updated = cursor.fetchone()
+                age = calculate_age(date_birth)
+                current_time = datetime.now()
 
-            if old_info_updated is None or (old_info_updated and new_info_updated and old_info_updated[0] != new_info_updated[0]):
-                data_changed = True
-
-            # Parse dates for applicant_status
-            app_start = None
-            submit_date = None
-            if pd.notna(row.get("Application Started")):
-                try:
-                    app_start = pd.to_datetime(row.get("Application Started")).date()
-                except:
-                    pass
-            if pd.notna(row.get("Submitted Date")):
-                try:
-                    submit_date = pd.to_datetime(row.get("Submitted Date")).date()
-                except:
-                    pass
-
-            cursor.execute("SELECT updated_at FROM applicant_status WHERE user_code = %s", (user_code,))
-            old_status_updated = cursor.fetchone()
-
-            _insert_applicant_status(cursor, user_code, row, app_start, submit_date, current_time)
-
-            cursor.execute("SELECT updated_at FROM applicant_status WHERE user_code = %s", (user_code,))
-            new_status_updated = cursor.fetchone()
-
-            if old_status_updated is None or (old_status_updated and new_status_updated and old_status_updated[0] != new_status_updated[0]):
-                data_changed = True
-
-            # Process test scores
-            toefl_changed = process_toefl_scores(user_code, row, cursor, current_time)
-            ielts_changed = process_ielts_scores(user_code, row, cursor, current_time)
-            other_tests_changed = process_other_test_scores(user_code, row, cursor, current_time)
-
-            touched_user_codes.add(user_code)
-
-            # Process institution information
-            institution_changed = process_institution_info(user_code, row, cursor, current_time)
-
-            # Process application_info
-            process_application_info(user_code, row, cursor, current_time)
-
-            if data_changed or institution_changed or toefl_changed or ielts_changed or other_tests_changed:
-                cursor.execute(
-                    "UPDATE applicant_status SET updated_at = %s WHERE user_code = %s",
-                    (current_time, user_code)
+                ubc_academic_history = row.get(
+                    "{ UBC Academic History List - eVision Record #; Start Date; End Date; Category; Program of Study; Degree Conferred?; Date Conferred; Credential Received; Withdrawal Reasons; Honours }",
+                    "",
                 )
 
-            records_processed += 1
+                if pd.isna(ubc_academic_history) or str(ubc_academic_history).strip() == "nan":
+                    ubc_academic_history = ""
+                else:
+                    ubc_academic_history = str(ubc_academic_history).strip()
 
-        conn.commit()
+                racialized_value = row.get("Racialized")
+                if pd.isna(racialized_value):
+                    racialized_value = None
+                else:
+                    racialized_value = str(racialized_value).strip()
 
-        # Recompute English status for all updated applicants
+                cursor.execute("SELECT updated_at FROM applicant_info WHERE user_code = %s", (user_code,))
+                old_info_updated = cursor.fetchone()
+
+                # Insert applicant_info
+                _insert_applicant_info(cursor, user_code, session_id, row, date_birth, age,
+                                       ubc_academic_history, racialized_value, current_time)
+
+                cursor.execute("SELECT updated_at FROM applicant_info WHERE user_code = %s", (user_code,))
+                new_info_updated = cursor.fetchone()
+
+                if old_info_updated is None or (old_info_updated and new_info_updated and
+                        old_info_updated["updated_at"] != new_info_updated["updated_at"]):
+                    data_changed = True
+
+                # Parse dates for applicant_status
+                app_start = None
+                submit_date = None
+                if pd.notna(row.get("Application Started")):
+                    try:
+                        app_start = pd.to_datetime(row.get("Application Started")).date()
+                    except:
+                        pass
+                if pd.notna(row.get("Submitted Date")):
+                    try:
+                        submit_date = pd.to_datetime(row.get("Submitted Date")).date()
+                    except:
+                        pass
+
+                cursor.execute("SELECT updated_at FROM applicant_status WHERE user_code = %s", (user_code,))
+                old_status_updated = cursor.fetchone()
+
+                _insert_applicant_status(cursor, user_code, row, app_start, submit_date, current_time)
+
+                cursor.execute("SELECT updated_at FROM applicant_status WHERE user_code = %s", (user_code,))
+                new_status_updated = cursor.fetchone()
+
+                if old_status_updated is None or (old_status_updated and new_status_updated and
+                        old_status_updated["updated_at"] != new_status_updated["updated_at"]):
+                    data_changed = True
+
+                # Process test scores
+                toefl_changed = process_toefl_scores(user_code, row, cursor, current_time)
+                ielts_changed = process_ielts_scores(user_code, row, cursor, current_time)
+                other_tests_changed = process_other_test_scores(user_code, row, cursor, current_time)
+
+                touched_user_codes.add(user_code)
+
+                # Process institution information
+                institution_changed = process_institution_info(user_code, row, cursor, current_time)
+
+                # Process application_info
+                process_application_info(user_code, row, cursor, current_time)
+
+                if data_changed or institution_changed or toefl_changed or ielts_changed or other_tests_changed:
+                    cursor.execute(
+                        "UPDATE applicant_status SET updated_at = %s WHERE user_code = %s",
+                        (current_time, user_code)
+                    )
+
+                records_processed += 1
+
+        # Recompute English status after transaction commits
         for uc in touched_user_codes:
             compute_english_status(uc)
 
-        cursor.close()
-        conn.close()
         return True, "Data processed successfully", records_processed
 
     except Exception as e:
-        if conn:
-            conn.rollback()
-            conn.close()
         return False, f"Database error: {str(e)}", 0
 
 

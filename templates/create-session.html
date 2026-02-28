@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -75,7 +75,9 @@
                 maxlength="10"
                 aria-label="Program code"
               />
-              <p class="mt-1 text-sm text-gray-500">2-10 uppercase letters (e.g., OGMMDS)</p>
+              <p class="mt-1 text-sm text-gray-500">
+                2-10 uppercase letters (e.g., OGMMDS)
+              </p>
             </div>
 
             <!-- Program Name -->
@@ -157,7 +159,10 @@
                     </svg>
                   </div>
                   <div>
-                    <p class="text-lg font-semibold text-blue-800" id="sessionNamePreview">
+                    <p
+                      class="text-lg font-semibold text-blue-800"
+                      id="sessionNamePreview"
+                    >
                       OGMMDS-V 2025W1
                     </p>
                     <p class="text-sm text-blue-600 mt-1">
@@ -192,7 +197,7 @@
               <button
                 id="cancelBtn"
                 class="btn-ubc-outline"
-                onclick="window.location.href='/'"
+                onclick="window.location.href = '/'"
               >
                 Cancel
               </button>
@@ -208,18 +213,20 @@
     </div>
 
     <!-- Session Management Scripts - Load before auth -->
-    <script defer src="{{ url_for('static', filename='js/sessionStore.js') }}"></script>
-    <script defer src="{{ url_for('static', filename='js/sessionModal.js') }}"></script>
+    <script
+      defer
+      src="{{ url_for('static', filename='js/sessionStore.js') }}"
+    ></script>
+    <script
+      defer
+      src="{{ url_for('static', filename='js/sessionModal.js') }}"
+    ></script>
 
     <!-- Application Scripts -->
     <script defer src="{{ url_for('static', filename='js/auth.js') }}"></script>
-    <script defer src="{{ url_for('static', filename='js/sessions.js') }}"></script>
-    <script>
-      // Initialize components for this page
-      document.addEventListener("DOMContentLoaded", function () {
-        new AuthManager();
-        new SessionManager();
-      });
-    </script>
+    <script
+      type="module"
+      src="{{ url_for('static', filename='js/pages/create-session.js') }}"
+    ></script>
   </body>
 </html>

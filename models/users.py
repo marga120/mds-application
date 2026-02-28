@@ -1,48 +1,12 @@
-from utils.database import get_db_connection
-from psycopg2.extras import RealDictCursor
+from utils.db_helpers import db_connection, db_transaction
 import bcrypt
 from flask_login import UserMixin
 
 
 class User(UserMixin):
-    """
-    User model class for Flask-Login integration.
+    """Flask-Login user model. Keep this class — required by Flask-Login."""
 
-    Represents a system user with authentication credentials and role information.
-    Integrates with Flask-Login for session management and provides role-based
-    property accessors.
-
-    @param id: Unique user identifier
-    @param_type id: int
-    @param first_name: User's first name
-    @param_type first_name: str
-    @param last_name: User's last name
-    @param_type last_name: str
-    @param email: User's email address
-    @param_type email: str
-    @param password_hash: Hashed password
-    @param_type password_hash: str
-    @param role_user_id: Foreign key to role table
-    @param_type role_user_id: int
-    @param role_name: Role name (optional)
-    @param_type role_name: str or None
-
-    @property full_name: Returns formatted full name
-    @property is_admin: Returns True if user role is Admin
-    @property is_faculty: Returns True if user role is Faculty
-    @property is_viewer: Returns True if user role is Viewer
-    """
-
-    def __init__(
-        self,
-        id,
-        first_name,
-        last_name,
-        email,
-        password_hash,
-        role_user_id,
-        role_name=None,
-    ):
+    def __init__(self, id, first_name, last_name, email, password_hash, role_user_id, role_name=None):
         self.id = id
         self.first_name = first_name
         self.last_name = last_name
@@ -68,289 +32,216 @@ class User(UserMixin):
         return self.role_name == "Viewer"
 
 
+# ---------------------------------------------------------------------------
+# Utility kept for seed.py compatibility
+# ---------------------------------------------------------------------------
+
 def hash_password(password):
-    """
-    Hash a password using bcrypt with salt.
-
-    Securely hashes a plaintext password using bcrypt algorithm with
-    automatically generated salt for secure storage in database.
-
-    @param password: Plaintext password to hash
-    @param_type password: str
-
-    @return: Hashed password string
-    @return_type: str
-
-    @security: Uses bcrypt.gensalt() for random salt generation
-    @encoding: Handles UTF-8 encoding/decoding
-
-    @example:
-        hashed = hash_password("user_password123")
-        # Returns bcrypt hashed string like "$2b$12$..."
-    """
-
-    """Hash a password using bcrypt"""
-    salt = bcrypt.gensalt()
-    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+    """Hash a plaintext password with bcrypt. Used by seed.py."""
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
-def verify_password(password, password_hash):
-    """
-    Verify a password against its hash.
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
 
-    Verifies that a plaintext password matches a previously hashed password
-    using bcrypt verification algorithm.
-
-    @param password: Plaintext password to verify
-    @param_type password: str
-    @param password_hash: Stored password hash
-    @param_type password_hash: str
-
-    @return: True if password matches hash, False otherwise
-    @return_type: bool
-
-    @security: Uses bcrypt.checkpw() for secure verification
-    @encoding: Handles UTF-8 encoding
-
-    @example:
-        is_valid = verify_password("user_password123", stored_hash)
-        if is_valid:
-            print("Password is correct")
-    """
-
-    """Verify a password against its hash"""
-    return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+_USER_SELECT = """
+    SELECT u.id, u.first_name, u.last_name, u.email, u.password,
+           u.role_user_id, r.name AS role_name, u.created_at, u.updated_at
+    FROM "user" u
+    JOIN role_user r ON u.role_user_id = r.id
+"""
 
 
-def get_user_by_email(email):
-    """
-    Retrieve user information by email address.
-
-    Searches the database for a user with the specified email address
-    and returns a User object with role information if found.
-
-    @param email: Email address to search for
-    @param_type email: str
-
-    @return: User object if found, None otherwise
-    @return_type: User or None
-
-    @db_tables: user, role_user
-    @joins: JOIN with role_user table for role information
-
-    @example:
-        user = get_user_by_email("admin@example.com")
-        if user:
-            print(f"Found user: {user.full_name} ({user.role_name})")
-    """
-
-    """Get user by email address"""
-    conn = get_db_connection()
-    if not conn:
+def _to_user(row):
+    if not row:
         return None
+    return User(
+        id=row["id"],
+        first_name=row["first_name"],
+        last_name=row["last_name"],
+        email=row["email"],
+        password_hash=row["password"],
+        role_user_id=row["role_user_id"],
+        role_name=row["role_name"],
+    )
 
+
+def _to_dict(row):
+    if not row:
+        return None
+    return {
+        "id": row["id"],
+        "first_name": row["first_name"],
+        "last_name": row["last_name"],
+        "full_name": f"{row['first_name']} {row['last_name']}",
+        "email": row["email"],
+        "role_id": row["role_user_id"],
+        "role_user_id": row["role_user_id"],
+        "role_name": row.get("role_name"),
+        "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
+        "updated_at": row["updated_at"].isoformat() if row.get("updated_at") else None,
+    }
+
+
+# ---------------------------------------------------------------------------
+# SQL functions — data access only
+# ---------------------------------------------------------------------------
+
+def authenticate_user(email, password):
+    """Return User object if credentials valid, else None."""
     try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute(
-            """
-            SELECT u.id, u.first_name, u.last_name, u.email, u.password, u.role_user_id, r.name as role_name
-            FROM "user" u
-            JOIN role_user r ON u.role_user_id = r.id
-            WHERE u.email = %s
-        """,
-            (email,),
-        )
-
-        user_data = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        if user_data:
-            return User(
-                id=user_data["id"],
-                first_name=user_data["first_name"],
-                last_name=user_data["last_name"],
-                email=user_data["email"],
-                password_hash=user_data["password"],
-                role_user_id=user_data["role_user_id"],
-                role_name=user_data["role_name"],
-            )
+        with db_connection() as (conn, cursor):
+            cursor.execute(_USER_SELECT + " WHERE u.email = %s", (email,))
+            row = cursor.fetchone()
+        if row and bcrypt.checkpw(password.encode("utf-8"), row["password"].encode("utf-8")):
+            return _to_user(row)
         return None
-
-    except Exception as e:
-        print(f"Error getting user: {e}")
+    except Exception:
         return None
 
 
 def get_user_by_id(user_id):
-    """
-    Retrieve user information by user ID.
-
-    Searches the database for a user with the specified ID and returns
-    a User object with role information. Used by Flask-Login user loader.
-
-    @param user_id: User ID to search for
-    @param_type user_id: int
-
-    @return: User object if found, None otherwise
-    @return_type: User or None
-
-    @db_tables: user, role_user
-    @joins: JOIN with role_user table for role information
-    @flask_login: Used as user_loader callback
-
-    @example:
-        user = get_user_by_id(1)
-        if user:
-            print(f"Loaded user: {user.email}")
-    """
-
-    """Get user by ID (required for Flask-Login)"""
-    conn = get_db_connection()
-    if not conn:
+    """Return User object — used by Flask-Login user_loader."""
+    try:
+        with db_connection() as (conn, cursor):
+            cursor.execute(_USER_SELECT + " WHERE u.id = %s", (user_id,))
+            return _to_user(cursor.fetchone())
+    except Exception:
         return None
 
+
+def get_user_by_id_dict(user_id):
+    """Return user as dict for API responses."""
     try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        with db_connection() as (conn, cursor):
+            cursor.execute(_USER_SELECT + " WHERE u.id = %s", (user_id,))
+            return _to_dict(cursor.fetchone())
+    except Exception:
+        return None
+
+
+def get_user_by_email(email):
+    """Return user dict if email exists, else None. Used for duplicate checks."""
+    try:
+        with db_connection() as (conn, cursor):
+            cursor.execute(_USER_SELECT + " WHERE u.email = %s", (email,))
+            return _to_dict(cursor.fetchone())
+    except Exception:
+        return None
+
+
+def get_user_password_hash(user_id):
+    """Return stored bcrypt hash for a user. Used for password verification."""
+    try:
+        with db_connection() as (conn, cursor):
+            cursor.execute('SELECT password FROM "user" WHERE id = %s', (user_id,))
+            row = cursor.fetchone()
+            return row["password"] if row else None
+    except Exception:
+        return None
+
+
+def get_all_users(search_query=None):
+    """Return list of user dicts, optionally filtered by name/email."""
+    try:
+        with db_connection() as (conn, cursor):
+            sql = """
+                SELECT u.id, u.first_name, u.last_name, u.email, u.role_user_id,
+                       r.name AS role_name, u.created_at, u.updated_at
+                FROM "user" u
+                JOIN role_user r ON u.role_user_id = r.id
+            """
+            params = []
+            if search_query:
+                sql += " WHERE CONCAT(u.first_name, ' ', u.last_name) ILIKE %s OR u.email ILIKE %s"
+                term = f"%{search_query}%"
+                params = [term, term]
+            sql += " ORDER BY u.created_at DESC LIMIT 50"
+            cursor.execute(sql, params)
+            return [_to_dict(r) for r in cursor.fetchall()]
+    except Exception:
+        return []
+
+
+def create_user(email, password_hash, first_name, last_name, role_id):
+    """INSERT new user. Returns created user dict."""
+    with db_transaction() as (conn, cursor):
         cursor.execute(
             """
-            SELECT u.id, u.first_name, u.last_name, u.email, u.password, u.role_user_id, r.name as role_name
-            FROM "user" u
-            JOIN role_user r ON u.role_user_id = r.id
-            WHERE u.id = %s
-        """,
-            (user_id,),
-        )
-
-        user_data = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        if user_data:
-            return User(
-                id=user_data["id"],
-                first_name=user_data["first_name"],
-                last_name=user_data["last_name"],
-                email=user_data["email"],
-                password_hash=user_data["password"],
-                role_user_id=user_data["role_user_id"],
-                role_name=user_data["role_name"],
-            )
-        return None
-
-    except Exception as e:
-        print(f"Error getting user by ID: {e}")
-        return None
-
-
-def authenticate_user(email, password):
-    """
-    Authenticate user with email and password.
-
-    Verifies user credentials by checking email exists and password
-    matches the stored hash. Returns User object if authentication succeeds.
-
-    @param email: User's email address
-    @param_type email: str
-    @param password: User's plaintext password
-    @param_type password: str
-
-    @return: User object if authenticated, None if invalid credentials
-    @return_type: User or None
-
-    @security: Uses bcrypt password verification
-    @process:
-        1. Look up user by email
-        2. Verify password against stored hash
-        3. Return user object if both checks pass
-
-    @example:
-        user = authenticate_user("admin@example.com", "password123")
-        if user:
-            print(f"Authentication successful for {user.full_name}")
-        else:
-            print("Invalid credentials")
-    """
-
-    """Authenticate a user with email and password"""
-    user = get_user_by_email(email)
-    if user and verify_password(password, user.password_hash):
-        return user
-    return None
-
-
-def create_user(first_name, last_name, email, password, role_user_id):
-    """
-    Create a new user account in the system.
-
-    Creates a new user record with hashed password and specified role.
-    Validates that email is unique and handles database transaction rollback
-    on errors.
-
-    @param first_name: User's first name
-    @param_type first_name: str
-    @param last_name: User's last name
-    @param_type last_name: str
-    @param email: User's email address (must be unique)
-    @param_type email: str
-    @param password: User's plaintext password
-    @param_type password: str
-    @param role_user_id: Role ID (1=Admin, 2=Faculty, 3=Viewer)
-    @param_type role_user_id: int
-
-    @return: Tuple of (success, message)
-    @return_type: tuple[bool, str]
-
-    @validation:
-        - Checks for duplicate email addresses
-        - Automatically hashes password before storage
-        - Sets created_at and updated_at timestamps
-
-    @security: Password hashed using bcrypt before database storage
-    @transaction: Uses database transaction with rollback on error
-
-    @example:
-        success, message = create_user("John", "Doe", "john@example.com", "password123", 2)
-        if success:
-            print("User created successfully")
-        else:
-            print(f"Error: {message}")
-    """
-
-    """Create a new user"""
-    conn = get_db_connection()
-    if not conn:
-        return False, "Database connection failed"
-
-    try:
-        cursor = conn.cursor()
-
-        # Check if user already exists
-        cursor.execute('SELECT id FROM "user" WHERE email = %s', (email,))
-        if cursor.fetchone():
-            cursor.close()
-            conn.close()
-            return False, "User with this email already exists"
-
-        # Hash password
-        password_hash = hash_password(password)
-
-        # Insert new user
-        cursor.execute(
-            """
-            INSERT INTO "user" (first_name, last_name, email, password, role_user_id, created_at, updated_at)
+            INSERT INTO "user" (first_name, last_name, email, password, role_user_id,
+                                created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        """,
-            (first_name, last_name, email, password_hash, role_user_id),
+            RETURNING id, first_name, last_name, email, role_user_id, created_at, updated_at
+            """,
+            (first_name, last_name, email, password_hash, role_id),
         )
+        row = cursor.fetchone()
+        return {
+            "id": row["id"],
+            "first_name": row["first_name"],
+            "last_name": row["last_name"],
+            "full_name": f"{row['first_name']} {row['last_name']}",
+            "email": row["email"],
+            "role_id": row["role_user_id"],
+            "role_user_id": row["role_user_id"],
+            "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
+        }
 
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return True, "User created successfully"
 
-    except Exception as e:
-        if conn:
-            conn.rollback()
-            conn.close()
-        return False, f"Error creating user: {str(e)}"
+def update_user(user_id, email, first_name, last_name, role_id, password_hash=None):
+    """UPDATE user fields. Returns updated user dict."""
+    with db_transaction() as (conn, cursor):
+        if password_hash:
+            cursor.execute(
+                'UPDATE "user" SET first_name=%s, last_name=%s, email=%s, role_user_id=%s, '
+                "password=%s, updated_at=CURRENT_TIMESTAMP WHERE id=%s",
+                (first_name, last_name, email, role_id, password_hash, user_id),
+            )
+        else:
+            cursor.execute(
+                'UPDATE "user" SET first_name=%s, last_name=%s, email=%s, role_user_id=%s, '
+                "updated_at=CURRENT_TIMESTAMP WHERE id=%s",
+                (first_name, last_name, email, role_id, user_id),
+            )
+    return get_user_by_id_dict(user_id)
+
+
+def delete_user(user_id):
+    """DELETE a user. Handles cascade: ratings, activity_log null. Returns True."""
+    with db_transaction() as (conn, cursor):
+        cursor.execute("DELETE FROM ratings WHERE user_id = %s", (user_id,))
+        cursor.execute("UPDATE activity_log SET user_id = NULL WHERE user_id = %s", (user_id,))
+        cursor.execute('DELETE FROM "user" WHERE id = %s', (user_id,))
+    return True
+
+
+def delete_users_bulk(user_ids):
+    """DELETE multiple users in one transaction. Returns count deleted."""
+    if not user_ids:
+        return 0
+    with db_transaction() as (conn, cursor):
+        cursor.execute("DELETE FROM ratings WHERE user_id = ANY(%s)", (user_ids,))
+        cursor.execute("UPDATE activity_log SET user_id = NULL WHERE user_id = ANY(%s)", (user_ids,))
+        cursor.execute('DELETE FROM "user" WHERE id = ANY(%s)', (user_ids,))
+        return cursor.rowcount
+
+
+def update_email(user_id, email):
+    """UPDATE user email. Returns updated user dict."""
+    with db_transaction() as (conn, cursor):
+        cursor.execute(
+            'UPDATE "user" SET email=%s, updated_at=CURRENT_TIMESTAMP WHERE id=%s',
+            (email, user_id),
+        )
+    return get_user_by_id_dict(user_id)
+
+
+def update_password(user_id, password_hash):
+    """UPDATE user password hash. Returns True."""
+    with db_transaction() as (conn, cursor):
+        cursor.execute(
+            'UPDATE "user" SET password=%s, updated_at=CURRENT_TIMESTAMP WHERE id=%s',
+            (password_hash, user_id),
+        )
+    return True

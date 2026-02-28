@@ -5,7 +5,6 @@ This module contains the basic CRUD operations for applicants including
 retrieval of applicant data, status, test scores, and institutions.
 """
 
-from psycopg2.extras import RealDictCursor
 from utils.db_helpers import db_connection, db_transaction
 
 

@@ -5,9 +5,7 @@ This module handles computation and update of English language proficiency
 status for applicants based on their test scores (TOEFL, IELTS, MELAB, PTE, CAEL).
 """
 
-from psycopg2.extras import RealDictCursor
 from utils.db_helpers import db_connection, db_transaction
-from utils.database import get_db_connection
 
 # Test score thresholds
 TOEFL_LR_MIN = 22  # listening & reading
@@ -150,183 +148,168 @@ def compute_english_status(user_code: str, not_required_rule=None):
     desc = None
     failed_tests = []
 
-    conn = get_db_connection()
-    try:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+    with db_transaction() as (conn, cursor):
 
-            # Optional "Not Required" rule hook
-            if callable(not_required_rule):
-                nr_ok, nr_reason = not_required_rule(cur, user_code)
-                if nr_ok:
-                    status = "Not Required"
-                    desc = nr_reason or "Exempt from English requirement"
-                    cur.execute(
-                        """
-                        UPDATE application_info
-                           SET english_status = %s,
-                               english_description = %s,
-                               english = TRUE
-                         WHERE user_code = %s
-                        """,
-                        (status, desc, user_code),
-                    )
-                    conn.commit()
-                    return
-
-            # 1) TOEFL
-            cur.execute(
-                """
-                SELECT toefl_number, listening, structure_written, reading, speaking,
-                       total_score, mybest_listening, mybest_writing,
-                       mybest_reading, mybest_speaking, mybest_total
-                  FROM toefl
-                 WHERE user_code = %s
-                 ORDER BY toefl_number
-                """,
-                (user_code,),
-            )
-            for row in cur.fetchall():
-                passed, description, failures = check_toefl_pass(row)
-                if passed:
-                    status = "Passed"
-                    desc = description
-                    break
-                failed_tests.extend(failures)
-
-            if status == "Passed":
-                _update_english_passed(cur, user_code, status, desc)
-                conn.commit()
+        # Optional "Not Required" rule hook
+        if callable(not_required_rule):
+            nr_ok, nr_reason = not_required_rule(cursor, user_code)
+            if nr_ok:
+                status = "Not Required"
+                desc = nr_reason or "Exempt from English requirement"
+                cursor.execute(
+                    """
+                    UPDATE application_info
+                       SET english_status = %s,
+                           english_description = %s,
+                           english = TRUE
+                     WHERE user_code = %s
+                    """,
+                    (status, desc, user_code),
+                )
                 return
 
-            # 2) IELTS
-            cur.execute(
-                """
-                SELECT ielts_number, listening, reading, writing, speaking, total_band_score
-                  FROM ielts
-                 WHERE user_code = %s
-                 ORDER BY ielts_number
-                """,
-                (user_code,),
-            )
-            for row in cur.fetchall():
-                passed, description, failures = check_ielts_pass(row)
-                if passed:
-                    status = "Passed"
-                    desc = description
-                    break
-                failed_tests.extend(failures)
+        # 1) TOEFL
+        cursor.execute(
+            """
+            SELECT toefl_number, listening, structure_written, reading, speaking,
+                   total_score, mybest_listening, mybest_writing,
+                   mybest_reading, mybest_speaking, mybest_total
+              FROM toefl
+             WHERE user_code = %s
+             ORDER BY toefl_number
+            """,
+            (user_code,),
+        )
+        for row in cursor.fetchall():
+            passed, description, failures = check_toefl_pass(row)
+            if passed:
+                status = "Passed"
+                desc = description
+                break
+            failed_tests.extend(failures)
 
-            if status == "Passed":
-                _update_english_passed(cur, user_code, status, desc)
-                conn.commit()
-                return
+        if status == "Passed":
+            _update_english_passed(cursor, user_code, status, desc)
+            return
 
-            # 3) MELAB
-            cur.execute("SELECT total FROM melab WHERE user_code = %s", (user_code,))
-            melab = cur.fetchone()
-            if melab is not None:
-                total = safe_int(melab["total"])
-                if total is not None and total >= MELAB_TOTAL_MIN:
-                    status = "Passed"
-                    desc = "MELAB, score is above the minimum requirement (64)"
-                else:
-                    failed_tests.append("MELAB")
+        # 2) IELTS
+        cursor.execute(
+            """
+            SELECT ielts_number, listening, reading, writing, speaking, total_band_score
+              FROM ielts
+             WHERE user_code = %s
+             ORDER BY ielts_number
+            """,
+            (user_code,),
+        )
+        for row in cursor.fetchall():
+            passed, description, failures = check_ielts_pass(row)
+            if passed:
+                status = "Passed"
+                desc = description
+                break
+            failed_tests.extend(failures)
 
-            if status == "Passed":
-                _update_english_passed(cur, user_code, status, desc)
-                conn.commit()
-                return
+        if status == "Passed":
+            _update_english_passed(cursor, user_code, status, desc)
+            return
 
-            # 4) PTE
-            cur.execute("SELECT total FROM pte WHERE user_code = %s", (user_code,))
-            pte = cur.fetchone()
-            if pte is not None:
-                total = safe_int(pte["total"])
-                if total is not None and total >= PTE_TOTAL_MIN:
-                    status = "Passed"
-                    desc = "PTE, score is above the minimum requirement (65)"
-                else:
-                    failed_tests.append("PTE")
-
-            if status == "Passed":
-                _update_english_passed(cur, user_code, status, desc)
-                conn.commit()
-                return
-
-            # 5) CAEL
-            cur.execute(
-                "SELECT reading, listening, writing, speaking FROM cael WHERE user_code = %s",
-                (user_code,),
-            )
-            cael = cur.fetchone()
-            if cael is not None:
-                R = safe_int(cael["reading"])
-                L = safe_int(cael["listening"])
-                W = safe_int(cael["writing"])
-                S = safe_int(cael["speaking"])
-                if all(v is not None for v in (R, L, W, S)) and min(R, L, W, S) >= CAEL_EACH_MIN:
-                    status = "Passed"
-                    desc = "CAEL, all sections >= 60"
-                else:
-                    failed_sections = []
-                    if all(v is not None for v in (R, L, W, S)):
-                        if R < CAEL_EACH_MIN:
-                            failed_sections.append("Reading")
-                        if L < CAEL_EACH_MIN:
-                            failed_sections.append("Listening")
-                        if W < CAEL_EACH_MIN:
-                            failed_sections.append("Writing")
-                        if S < CAEL_EACH_MIN:
-                            failed_sections.append("Speaking")
-                    if failed_sections:
-                        failed_tests.append(f"CAEL ({', '.join(failed_sections)})")
-                    else:
-                        failed_tests.append("CAEL")
-
-            # Finalize result
-            if status == "Passed":
-                _update_english_passed(cur, user_code, status, desc)
+        # 3) MELAB
+        cursor.execute("SELECT total FROM melab WHERE user_code = %s", (user_code,))
+        melab = cursor.fetchone()
+        if melab is not None:
+            total = safe_int(melab["total"])
+            if total is not None and total >= MELAB_TOTAL_MIN:
+                status = "Passed"
+                desc = "MELAB, score is above the minimum requirement (64)"
             else:
-                if not failed_tests:
-                    cur.execute(
-                        """
-                        UPDATE application_info
-                           SET english_status = 'Not Met',
-                               english_description = 'No English tests submitted',
-                               english = FALSE
-                         WHERE user_code = %s
-                        """,
-                        (user_code,),
-                    )
+                failed_tests.append("MELAB")
+
+        if status == "Passed":
+            _update_english_passed(cursor, user_code, status, desc)
+            return
+
+        # 4) PTE
+        cursor.execute("SELECT total FROM pte WHERE user_code = %s", (user_code,))
+        pte = cursor.fetchone()
+        if pte is not None:
+            total = safe_int(pte["total"])
+            if total is not None and total >= PTE_TOTAL_MIN:
+                status = "Passed"
+                desc = "PTE, score is above the minimum requirement (65)"
+            else:
+                failed_tests.append("PTE")
+
+        if status == "Passed":
+            _update_english_passed(cursor, user_code, status, desc)
+            return
+
+        # 5) CAEL
+        cursor.execute(
+            "SELECT reading, listening, writing, speaking FROM cael WHERE user_code = %s",
+            (user_code,),
+        )
+        cael = cursor.fetchone()
+        if cael is not None:
+            R = safe_int(cael["reading"])
+            L = safe_int(cael["listening"])
+            W = safe_int(cael["writing"])
+            S = safe_int(cael["speaking"])
+            if all(v is not None for v in (R, L, W, S)) and min(R, L, W, S) >= CAEL_EACH_MIN:
+                status = "Passed"
+                desc = "CAEL, all sections >= 60"
+            else:
+                failed_sections = []
+                if all(v is not None for v in (R, L, W, S)):
+                    if R < CAEL_EACH_MIN:
+                        failed_sections.append("Reading")
+                    if L < CAEL_EACH_MIN:
+                        failed_sections.append("Listening")
+                    if W < CAEL_EACH_MIN:
+                        failed_sections.append("Writing")
+                    if S < CAEL_EACH_MIN:
+                        failed_sections.append("Speaking")
+                if failed_sections:
+                    failed_tests.append(f"CAEL ({', '.join(failed_sections)})")
                 else:
-                    if len(failed_tests) == 1:
-                        desc_text = f"{failed_tests[0]} is below the minimum requirement"
-                    else:
-                        desc_text = f"{', '.join(failed_tests)} are below the minimum requirement"
+                    failed_tests.append("CAEL")
 
-                    cur.execute(
-                        """
-                        UPDATE application_info
-                        SET english_status = 'Not Met',
-                            english_description = %s,
-                            english = FALSE
-                        WHERE user_code = %s
-                        """,
-                        (desc_text, user_code),
-                    )
+        # Finalize result
+        if status == "Passed":
+            _update_english_passed(cursor, user_code, status, desc)
+        else:
+            if not failed_tests:
+                cursor.execute(
+                    """
+                    UPDATE application_info
+                       SET english_status = 'Not Met',
+                           english_description = 'No English tests submitted',
+                           english = FALSE
+                     WHERE user_code = %s
+                    """,
+                    (user_code,),
+                )
+            else:
+                if len(failed_tests) == 1:
+                    desc_text = f"{failed_tests[0]} is below the minimum requirement"
+                else:
+                    desc_text = f"{', '.join(failed_tests)} are below the minimum requirement"
 
-        conn.commit()
+                cursor.execute(
+                    """
+                    UPDATE application_info
+                    SET english_status = 'Not Met',
+                        english_description = %s,
+                        english = FALSE
+                    WHERE user_code = %s
+                    """,
+                    (desc_text, user_code),
+                )
 
-    finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
 
-
-def _update_english_passed(cur, user_code, status, desc):
+def _update_english_passed(cursor, user_code, status, desc):
     """Helper to update application_info with passed English status."""
-    cur.execute(
+    cursor.execute(
         """
         UPDATE application_info
            SET english_status = %s,
@@ -342,16 +325,9 @@ def compute_english_status_for_all(not_required_rule=None):
     """
     Recompute english_status for every row in application_info.
     """
-    conn = get_db_connection()
-    try:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT user_code FROM application_info ORDER BY user_code")
-            codes = [r["user_code"] for r in cur.fetchall()]
-    finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
+    with db_connection() as (conn, cursor):
+        cursor.execute("SELECT user_code FROM application_info ORDER BY user_code")
+        codes = [r["user_code"] for r in cursor.fetchall()]
 
     for code in codes:
         compute_english_status(code, not_required_rule=not_required_rule)
