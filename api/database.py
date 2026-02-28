@@ -8,11 +8,11 @@ for all operations to maintain data integrity and security.
 
 from flask import Blueprint, jsonify, request, send_file
 from flask_login import login_required, current_user
-import psycopg2
 import os
 import subprocess
 from datetime import datetime
 from utils.database import DB_CONFIG
+from utils.db_helpers import db_connection
 from utils.activity_logger import log_activity
 from utils.permissions import require_admin
 
@@ -204,12 +204,9 @@ def import_database():
             time.sleep(0.5)  # Brief pause to ensure transaction is fully committed
 
             # Verify import by checking if applicant_info has data
-            verify_conn = psycopg2.connect(**DB_CONFIG)
-            verify_cursor = verify_conn.cursor()
-            verify_cursor.execute("SELECT COUNT(*) FROM applicant_info")
-            count = verify_cursor.fetchone()[0]
-            verify_cursor.close()
-            verify_conn.close()
+            with db_connection() as (verify_conn, verify_cursor):
+                verify_cursor.execute("SELECT COUNT(*) AS cnt FROM applicant_info")
+                count = verify_cursor.fetchone()["cnt"]
 
             if count == 0:
                 raise Exception("No applicant data found after import")

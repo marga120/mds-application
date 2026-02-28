@@ -10,6 +10,7 @@ from models.statuses import (
     create_status as _create_status,
     update_status as _update_status,
     delete_status as _delete_status,
+    reorder_statuses as _reorder_statuses,
 )
 from utils.activity_logger import log_activity
 
@@ -98,25 +99,9 @@ class StatusService:
             if "id" not in s or "display_order" not in s:
                 raise ValueError("Each status must have 'id' and 'display_order'")
 
-        # Direct DB call (no dedicated model fn for batch reorder yet)
-        from utils.database import get_db_connection
-        conn = get_db_connection()
-        if not conn:
-            raise ValueError("Database connection failed")
-        try:
-            cursor = conn.cursor()
-            for s in statuses:
-                cursor.execute(
-                    "UPDATE status_configuration SET display_order = %s, updated_at = NOW() WHERE id = %s",
-                    (s["display_order"], s["id"]),
-                )
-            conn.commit()
-            cursor.close()
-            conn.close()
-        except Exception as e:
-            conn.rollback()
-            conn.close()
-            raise ValueError(f"Database error: {str(e)}")
+        success, message = _reorder_statuses(statuses)
+        if not success:
+            raise ValueError(message)
 
         log_activity(
             action_type="reorder_statuses",

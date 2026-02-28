@@ -1,4 +1,3 @@
-from utils.database import get_db_connection
 import pandas as pd
 from datetime import datetime
 
@@ -36,7 +35,7 @@ def process_institution_info(user_code, row, cursor, current_time):
          # Check existing institution data before processing
         cursor.execute("SELECT institution_number, updated_at FROM institution_info WHERE user_code = %s ORDER BY institution_number", (user_code,))
         old_institution_records = cursor.fetchall()
-        old_institution_dict = {record[0]: record[1] for record in old_institution_records} if old_institution_records else {}
+        old_institution_dict = {record["institution_number"]: record["updated_at"] for record in old_institution_records} if old_institution_records else {}
 
         # Process up to 6 institutions (I1 through I6)
         for i in range(1, 7):
@@ -189,7 +188,7 @@ def process_institution_info(user_code, row, cursor, current_time):
         # Check if data changed after processing
         cursor.execute("SELECT institution_number, updated_at FROM institution_info WHERE user_code = %s ORDER BY institution_number", (user_code,))
         new_institution_records = cursor.fetchall()
-        new_institution_dict = {record[0]: record[1] for record in new_institution_records} if new_institution_records else {}
+        new_institution_dict = {record["institution_number"]: record["updated_at"] for record in new_institution_records} if new_institution_records else {}
         
         # Detect changes
         if len(old_institution_dict) != len(new_institution_dict):
