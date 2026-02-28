@@ -1,617 +1,440 @@
 # MDS Application Management System
 
-A comprehensive Flask web application for managing Masters of Data Science (MDS) student applications at the University of British Columbia (UBC). This system provides role-based access control for admins, faculty, and viewers to efficiently process, review, and track student applications.
+A Flask web application for managing Masters of Data Science student applications at UBC. Supports role-based access for Admins, Faculty, and Viewers to process, review, and track applicants across academic sessions.
 
-- **Last updated**: 1/8/2026
+- **Last updated**: 2/28/2026
+
+---
 
 ## Table of Contents
 
-1. [Local Development Steps](#-local-development-steps)
-2. [User Documentation](#-user-documentation)
-3. [Technical Documentation](#-technical-documentation)
+1. [Local Development](#local-development)
+2. [Architecture](#architecture)
+3. [Project Structure](#project-structure)
+4. [API Reference](#api-reference)
+5. [User Guide](#user-guide)
+6. [Troubleshooting](#troubleshooting)
 
 ---
 
-## Local Development Steps
+## Local Development
 
 ### Prerequisites
 
-Before running this application, ensure you have the following installed:
+- [Python 3.10+](https://www.python.org/downloads/)
+- [Node.js 18+](https://nodejs.org/)
+- [PostgreSQL](https://www.postgresql.org/download/)
 
-- **Python** - [Download here](https://www.python.org/downloads/)
-- **Node.js** - [Download here](https://nodejs.org/)
-- **PostgreSQL and pgAdmin** - [Download here](https://www.postgresql.org/download/)
-- **Git** - [Download here](https://git-scm.com/)
+### Setup
 
-### 1. Clone the Repository
 ```bash
-git clone <your-repository-url>
+# Clone the repo
+git clone <repository-url>
 cd mds-application
-```
 
-### 2. Set Up Python Environment
-```bash
-# Create virtual environment
+# Create and activate a virtual environment
 python -m venv venv
+source venv/bin/activate        # Mac/Linux
+venv\Scripts\activate           # Windows
 
-# Activate virtual environment
-# On Windows:
-venv\Scripts\activate
-# On Mac/Linux:
-source venv/bin/activate
-
-# Install Python dependencies
+# Install dependencies
 pip install -r requirements.txt
-```
-
-### 3. Set Up Node.js Dependencies
-```bash
-# Install Node.js packages for Tailwind CSS
 npm install
 ```
 
-### 4. Configure Database
-Create a `.env` file in the project root with your PostgreSQL credentials:
+### Environment Variables
+
+Create a `.env` file in the project root:
+
 ```env
 HOST=localhost
 DATABASE=mds_database
-USER=your_username
-PASSWORD=your_password
+USER=your_postgres_username
+PASSWORD=your_postgres_password
 PORT=5432
-SECRET_KEY=your_secret_key
+SECRET_KEY=your-secret-key
 ```
 
-### 5. Create PostgreSQL Database
+### Create the Database
+
 ```sql
--- Connect to PostgreSQL and create database
 CREATE DATABASE mds_database;
 ```
 
-### 6. Run the Application
+The schema is applied automatically on first startup — no manual migration needed.
+
+### Run the App
+
 ```bash
-# Start both Flask server and Tailwind CSS compiler
+# Start Flask + Tailwind watch mode together (recommended)
 npm run dev
+
+# Flask only
+python main.py
+
+# Build CSS once without watching
+npm run build-css-once
 ```
 
-This creates:
-- **Roles**: Admin, Faculty, Viewer
-- **Test Users** with different access levels
+Open [http://localhost:5000](http://localhost:5000) in your browser.
 
-### 8. Access the Application
-Open your browser and navigate to:
-```
-http://localhost:5000
-```
+### Test Accounts
 
-### Test Login Credentials
-After seeding, use these test accounts:
-- **Admin**: `1@example.com` / `password`, `testuser2@example.com` / `password`
-- **Faculty**: `testuser3@example.com` / `password`
-- **Viewer**: `testuser4@example.com` / `password`
+Run `python seed.py` to create these accounts (all use password `password`):
+
+| Role    | Email                 |
+| ------- | --------------------- |
+| Admin   | testuser1@example.com |
+| Admin   | testuser2@example.com |
+| Faculty | testuser3@example.com |
+| Viewer  | testuser4@example.com |
 
 ---
 
-## User Documentation
+## Architecture
 
-### System Overview
+The codebase follows a strict four-layer architecture. Each layer has one responsibility and may only depend on layers below it.
 
-The MDS Application Management System uses role-based access control with three distinct user types, each with specific permissions and capabilities.
+```
+HTTP Request
+    └── API Layer       (api/)       — Route handling, auth checks, request parsing
+          └── Service Layer  (services/) — Business logic, orchestration, activity logging
+                └── Model Layer  (models/) — SQL queries via db_helpers context managers
+                      └── Database  (utils/db_helpers.py + utils/database.py)
+```
 
-### Admin Users
+### Layer Rules
 
-**Full System Access** - Complete control over all system functions
+| Layer       | Responsible For                                     | Not Allowed                        |
+| ----------- | --------------------------------------------------- | ---------------------------------- |
+| `api/`      | Flask routes, permission decorators, JSON responses | SQL, business logic                |
+| `services/` | Business logic, validation, calling models, logging | Flask imports, SQL, DB connections |
+| `models/`   | SQL via `db_connection` / `db_transaction`          | Flask, business logic              |
+| `utils/`    | Shared helpers                                      | Application-specific logic         |
 
-#### What Admins Can Do:
-- **User Management** (NEW - via `/users` page)
-  - Create new user accounts for Faculty and Viewers with email and password
-  - Edit existing user emails and reset passwords
-  - Delete user accounts (cannot delete own account)
-  - Search and filter users by name, email, or role
-  - Assign and modify user roles (Admin, Faculty, Viewer)
-  - View system activity logs and audit trails
+### Database Access Pattern
 
-- **Session Management**
-  - Not implemented yet
-  - Assigns which session the applications are in via the CSV
+All database access uses context managers from `utils/db_helpers.py`. Raw `get_db_connection()` is never called directly in models, services, or API files.
 
-- **Application Data Management**
-  - Upload CSV files containing student application data
-  - Process and import large batches of applications
-  - Delete and modify application records via the CSV
+```python
+from utils.db_helpers import db_connection, db_transaction
 
-- **Data Export** 
-  - Export complete database with all applicants and all data sections
-  - Selective export with search, filter, and applicant selection
-  - Choose specific data sections to export (Personal Info, Application Data, Test Scores, Ratings, etc.)
-  - Sort and filter applicants before export
-  - Downloads as CSV files with timestamp naming
+# Reads — no commit needed
+with db_connection() as (conn, cursor):
+    cursor.execute("SELECT * FROM table WHERE id = %s", (id,))
+    row = cursor.fetchone()   # Returns a dict (RealDictCursor)
 
-- **Student Review Process**
-  - View all student applications
-  - Update application statuses (Not Reviewed → Reviewed → Offer/Declined/etc.)
-  - Edit English proficiency requirements and comments
-  - Modify prerequisite course requirements and GPA data
-  - Add and edit ratings/comments for students
+# Writes — auto-commits on success, rolls back on exception
+with db_transaction() as (conn, cursor):
+    cursor.execute("INSERT INTO table (col) VALUES (%s)", (value,))
+```
 
-- **Test Score Management**
-  - View all English language test scores (TOEFL, IELTS, etc.)
-  - View all  graduate test scores (GRE, GMAT)
-  - Update test score validity and requirements
+### Adding a New Feature
 
-- **System Administration**
-  - Access system logs and user activity tracking
+**New API endpoint:**
 
-#### Admin Workflow:
-1. **Setup**: Create user accounts and academic sessions
-2. **Import**: Upload student application data via CSV
-3. **Review**: Coordinate review process with Faculty
-4. **Decisions**: Make final application decisions
-5. **Monitor**: Track system usage and maintain data integrity
+1. Add a route to the appropriate blueprint in `api/`
+2. Apply `@login_required` and a permission check
+3. Parse and validate request data at the boundary
+4. Delegate to a service method — no logic in the controller
+5. Return `jsonify({"success": True, ...})`
 
-### Faculty Users
+**New service method:**
 
-**Academic Review Focus** - Access to review and evaluate student applications
+1. Add the method to the appropriate class in `services/`
+2. Call model functions — no SQL here
+3. Call `log_activity(...)` for any mutations
+4. Raise `ValueError` for expected failures (bad input, conflicts)
 
-#### What Faculty Can Do:
-- **Student Application Review**
-  - View comprehensive student profiles and academic history
-  - Access all test scores and academic transcripts
-  - Review prerequisite course completion
-  - View English proficiency test results
+**New model function:**
 
-- **Rating, Prerequisite, and Feedback**
-  - Assign numerical ratings (0.0-10.0) to applicants
-  - Add detailed comments about student qualifications (NEW - can save comments independently without rating)
-  - View ratings from other Faculty members (aggregate scores)
-  - Able to modify the student prerequisite courses
-  - Save All button properly persists ratings and comments together
+1. Use `db_connection()` for reads, `db_transaction()` for writes
+2. Access row columns by name — all cursors return dicts
+3. Return `(result, error_message)` tuples for callers that need error propagation
 
-- **Application Status Tracking**
-  - Monitor current application status for each student
-  - Track review progress across the applicant pool
+**New database column:**
 
-- **Academic Assessment**
-  - Review student GPA and degree information
-  - Evaluate prerequisite course completion (CS, Statistics, Mathematics)
-  - Assess academic background and institutional history
-
-#### What Faculty Cannot Do:
-- Create or modify user accounts
-- Upload new application data
-- Change application statuses
-- Edit English proficiency comments or status
-- Access system administration features
-- Delete application records
-
-#### Faculty Workflow:
-1. **Access**: Log in to view assigned application pool
-2. **Review**: Examine student profiles, scores, and backgrounds
-3. **Evaluate**: Assign ratings, add evaluation comments, comment on prerequisite courses
-4. **Collaborate**: Coordinate with other Faculty on decisions
-5. **Recommend**: Provide input for final admission decisions
-
-### Viewer Users
-
-**Read-Only Access** - Limited to viewing application data
-
-#### What Viewers Can Do:
-- **View Student Information**
-  - Access to student contact and demographic information
-  - View application submission status and timelines
-  - See academic history and institutional backgrounds
-
-- **Review Test Scores**
-  - View English language test results (TOEFL, IELTS, etc.)
-  - Access graduate test scores (GRE, GMAT)
-  - Review test score validity and dates
-
-- **Monitor Application Progress**
-  - Track current application statuses
-  - View submission and review timelines
-
-- **Academic Background Review**
-  - View student GPA and degree information
-  - Review prerequisite course information
-  - Access institutional academic history
-
-#### What Viewers Cannot Do:
-- Add or edit any data
-- Assign ratings or comments
-- Change application statuses
-- Upload new files or data
-- Access user management features
-- Modify student information
-- Edit test scores or academic records
-
-#### Viewer Workflow:
-1. **Monitor**: Track application processing progress
-2. **Report**: Generate insights from application data
-3. **Support**: Assist in administrative coordination
-4. **Observe**: Stay informed about admission cycle status
-
-### Common Features for All Users
-
-#### Navigation and Interface
-- **Dashboard**: Centralized view of current session applicants
-- **Search and Filter**: Find specific students by name, status, or criteria
-- **Statistics Page**: Access via `/statistics` page
-- **Account Settings**: Access via `/account` page
-
-#### Statistics Page (NEW - All Users)
-All users can view comprehensive application analytics:
-
-- **Overall Statistics**
-  - Total submitted applications
-  - Total unsubmitted applications
-  - Domestic vs International applicant breakdown
-  - Gender distribution with visual bar charts
-
-- **Review Status Analytics**
-  - Visual breakdown by status (Not Reviewed, Reviewed by PPA, etc.)
-  - Percentage calculations for each status category
-  - Color-coded progress bars
-
-- **Filtering Options**
-  - Filter statistics by review status
-  - View submitted applications only
-  - View unsubmitted applications only
-  - Real-time chart updates based on filters
-
-#### Account Settings (NEW - All Users)
-All users can manage their own account through the Account Settings page:
-
-- **View Profile Information**
-  - Display current name, email, and role
-  - View account creation and last update timestamps
-
-- **Update Email Address**
-  - Change account email with password confirmation
-  - Email uniqueness validation
-  - Immediate session update after successful change
-
-- **Change Password**
-  - Requires current password verification
-  - Minimum 8 character requirement enforced
-  - Password confirmation to prevent typos
-  - Secure bcrypt hashing
-
-**Security Features:**
-- All changes require current password verification
-- Server-side validation of all inputs
-- Activity logging for audit trails
-- Cannot view or modify other users' accounts
-
-#### Student Profile View
-- **Personal Information**: Contact details, demographics
-- **Academic History**: Previous institutions and degrees
-- **Test Scores**: Comprehensive view of all standardized tests
-- **Application Status**: Current stage in review process
-- **Ratings**: Faculty evaluations and comments (where permitted)
-
-#### Session Management
-- **Session Selection**: Not implemented
-- **Data Filtering**: Not implemented
-- **Status Tracking**: Not implemented
+1. Add it to `schema.sql`
+2. Restart Flask — schema changes are applied automatically
+3. Update the model, service, and API as needed
 
 ---
 
-## Technical Documentation
-
-### Project Architecture
-
-The MDS Application Management System is built using a modern web stack with clear separation between frontend and backend components.
-
-#### Technology Stack
-- **Backend**: Python Flask with Flask-Login for authentication
-- **Frontend**: Vanilla JavaScript with Tailwind CSS
-- **Database**: PostgreSQL
-- **Build Tools**: Node.js with Tailwind CLI
-- **Security**: bcrypt for password hashing, session-based auth
-
-### Project Structure
+## Project Structure
 
 ```
 mds-application/
-├── api/                        # API route handlers
-│   ├── applicants.py          # Student application endpoints
-│   ├── auth.py                # Authentication endpoints
-│   ├── logs.py                # Activity logging endpoints
-│   ├── ratings.py             # Rating/comment endpoints
-│   ├── sessions.py            # Session management endpoints
-│   └── test_scores.py         # Test score endpoints
-├── models/                     # Database interaction layer
-│   ├── applicants.py          # Student data operations
-│   ├── institutions.py        # Academic institution handling
-│   ├── ratings.py             # Rating system operations
-│   ├── sessions.py            # Session management
-│   ├── test_scores.py         # Test score processing
-│   └── users.py               # User authentication & management
-├── static/                     # Frontend static assets
+├── main.py                          # App entry point, blueprint registration
+├── schema.sql                       # Database schema (auto-applied on startup)
+├── seed.py                          # Test data seeder
+│
+├── api/                             # HTTP layer — routes only, no SQL
+│   ├── applicants.py                # Applicant CRUD, CSV upload, export
+│   ├── auth.py                      # Login, logout, user management
+│   ├── database.py                  # DB backup and restore endpoints
+│   ├── documents.py                 # Document upload and retrieval
+│   ├── logs.py                      # Activity log endpoints
+│   ├── ratings.py                   # Faculty ratings
+│   ├── sessions.py                  # Academic session management
+│   ├── statuses.py                  # Review status configuration
+│   └── test_scores.py               # Test score updates
+│
+├── services/                        # Business logic layer — no Flask, no SQL
+│   ├── applicant_service.py
+│   ├── auth_service.py
+│   ├── csv_import_service.py
+│   ├── document_service.py
+│   ├── export_service.py
+│   ├── log_service.py
+│   ├── rating_service.py
+│   ├── session_service.py
+│   └── status_service.py
+│
+├── models/                          # Data access layer — SQL only
+│   ├── applicants/
+│   │   ├── core.py                  # Applicant CRUD queries
+│   │   ├── csv_processing.py        # CSV row parsing and DB inserts
+│   │   ├── english_status.py        # English proficiency computation
+│   │   └── export.py                # XLSX export queries
+│   ├── documents.py
+│   ├── institutions.py
+│   ├── ratings.py
+│   ├── sessions.py
+│   ├── statuses.py
+│   ├── test_scores.py
+│   └── users.py
+│
+├── utils/
+│   ├── database.py                  # Connection config, schema init (foundation)
+│   ├── db_helpers.py                # db_connection / db_transaction context managers
+│   ├── activity_logger.py           # Audit trail logging
+│   ├── csv_helpers.py               # CSV response helpers
+│   ├── permissions.py               # @require_admin, @require_faculty_or_admin
+│   └── test_score_helpers.py        # Generic test score processor
+│
+├── static/
 │   ├── css/
-│   │   ├── input.css          # Tailwind CSS source
-│   │   └── output.css         # Compiled CSS (auto-generated)
+│   │   ├── input.css                # Tailwind source (edit this)
+│   │   └── output.css               # Auto-generated (do not edit)
 │   └── js/
-│       ├── applicants.js      # Main application logic (includes export modal)
-│       ├── auth.js            # Authentication handling
-│       ├── account.js         # Account settings 
-│       ├── users.js           # User management for admins 
-│       ├── statistics.js      # Statistics page logic 
-│       ├── sessions.js        # Session creation
-│       ├── logs.js            # Activity log viewer
-│       └── main.js            # Application entry point
-├── templates/                  # HTML template files
-│   ├── create-session.html    # Session creation page
-│   ├── index.html             # Main application interface
-│   ├── login.html             # Login page
-│   ├── account.html           # Account settings page 
-│   ├── users.html             # User management page (Admin only)
-│   ├── statistics.html        # Statistics page 
-│   ├── header.html            # Header component
-│   └── logs.html              # Activity logs page
-├── utils/                      # Utility functions
-│   ├── activity_logger.py     # System activity tracking
-│   └── database.py            # Database connection & initialization
-├── main.py                     # Flask application entry point
-├── schema.sql                  # Database schema definition
-├── seed.py                     # Database seeding script
-├── requirements.txt            # Python dependencies
-├── package.json                # Node.js dependencies
-└── .env                        # Environment configuration
+│       ├── api/
+│       │   └── client.js            # Centralized fetch wrapper
+│       ├── components/              # Reusable UI components
+│       │   ├── data-table.js
+│       │   ├── modal.js
+│       │   └── notification.js
+│       ├── pages/                   # One file per page
+│       │   ├── account.js
+│       │   ├── create-session.js
+│       │   ├── index.js
+│       │   ├── login.js
+│       │   ├── logs.js
+│       │   ├── statistics.js
+│       │   ├── statuses.js
+│       │   └── users.js
+│       ├── services/                # API call wrappers
+│       │   ├── applicant-service.js
+│       │   ├── auth-service.js
+│       │   ├── session-service.js
+│       │   └── status-service.js
+│       └── utils/
+│           ├── constants.js
+│           ├── formatters.js
+│           └── validators.js
+│
+└── templates/                       # Jinja2 HTML templates
+    ├── index.html
+    ├── login.html
+    ├── account.html
+    ├── users.html
+    ├── logs.html
+    ├── statistics.html
+    ├── status-config.html
+    └── create-session.html
 ```
 
-### Database Schema
+---
 
-#### Core Tables
+## API Reference
 
-**users & roles**
-- `role_user`: User role definitions (Admin, Faculty, Viewer)
-- `user`: System users with authentication credentials
-- Foreign key relationship maintaining role-based access
+All endpoints require authentication unless marked Public. Responses use `{"success": true/false, ...}`.
 
-**sessions**
-- Manages academic application cycles
-- Links to specific program codes and years
-- Enables multi-session support
+### Auth — `/api/auth/`
 
-**applicant_info**
-- Core student information and demographics
-- References session for data organization
-- Primary key: `user_code` (unique student identifier)
+| Method | Path                | Description         | Role   |
+| ------ | ------------------- | ------------------- | ------ |
+| POST   | `/login`            | Login               | Public |
+| POST   | `/logout`           | Logout              | Any    |
+| GET    | `/check-session`    | Session check       | Public |
+| GET    | `/user`             | Current user info   | Any    |
+| GET    | `/users`            | List all users      | Admin  |
+| GET    | `/user/<id>`        | Get user by ID      | Admin  |
+| POST   | `/register`         | Create user         | Admin  |
+| PUT    | `/user/<id>`        | Update user         | Admin  |
+| DELETE | `/delete-user/<id>` | Delete user         | Admin  |
+| DELETE | `/delete-users`     | Bulk delete users   | Admin  |
+| POST   | `/update-email`     | Change own email    | Any    |
+| POST   | `/reset-password`   | Change own password | Any    |
 
-**application_info**
-- Application status tracking and metadata
-- English proficiency status and comments
-- Prerequisite course tracking
-- GPA and academic requirements
+### Applicants — `/api/`
 
-#### Test Score Tables
-- `toefl`: TOEFL test results with detailed scores
-- `ielts`: IELTS test results and bands
-- `melab`, `pte`, `cael`, `celpip`: Additional English tests
-- `duolingo`: Duolingo English test scores
-- `gre`: Graduate Record Examination scores
-- `gmat`: Graduate Management Admission Test scores
+| Method | Path                                                 | Description             | Role          |
+| ------ | ---------------------------------------------------- | ----------------------- | ------------- |
+| GET    | `/applicants`                                        | List applicants         | Any           |
+| POST   | `/upload`                                            | Upload CSV              | Admin         |
+| GET    | `/applicant-info/<code>`                             | Personal info           | Any           |
+| GET    | `/applicant-test-scores/<code>`                      | Test scores             | Any           |
+| GET    | `/applicant-institutions/<code>`                     | Institution history     | Any           |
+| GET    | `/applicant-application-info/<code>`                 | Application info        | Any           |
+| PUT    | `/applicant-application-info/<code>/status`          | Update review status    | Admin         |
+| PUT    | `/applicant-application-info/<code>/prerequisites`   | Update prereqs/GPA      | Admin/Faculty |
+| PUT    | `/applicant-application-info/<code>/english-status`  | Update English status   | Admin         |
+| PUT    | `/applicant-application-info/<code>/english-comment` | Update English comment  | Admin         |
+| PUT    | `/applicant-application-info/<code>/scholarship`     | Update scholarship      | Admin         |
+| GET    | `/export/all`                                        | Export all as XLSX      | Admin/Faculty |
+| POST   | `/export/selected`                                   | Export selected as XLSX | Admin/Faculty |
+| DELETE | `/clear-all-data`                                    | Wipe all applicant data | Admin         |
 
-#### Supporting Tables
-- `ratings`: Faculty ratings and comments for applicants
-- `institution_info`: Academic history and institutional data
-- `activity_log`: System audit trail and user activity tracking
+### Sessions — `/api/`
 
-### API Endpoints
+| Method | Path                     | Description       | Role  |
+| ------ | ------------------------ | ----------------- | ----- |
+| GET    | `/sessions`              | List all sessions | Any   |
+| POST   | `/sessions/create`       | Create session    | Admin |
+| PUT    | `/sessions/<id>/archive` | Archive session   | Admin |
+| PUT    | `/sessions/<id>/restore` | Restore session   | Admin |
 
-#### Authentication (`/api/auth/`)
-- `POST /login`: User authentication
-- `POST /logout`: Session termination
-- `GET /check-session`: Session validation
-- `GET /user`: Current user information
-- `POST /register`: User creation (Admin only)
-- `GET /users`: List all users with search (Admin only) 
-- `GET /user/<user_id>`: Get specific user details (Admin only)
-- `PUT /user/<user_id>`: Update user details (Admin only) 
-- `DELETE /delete-user/<user_id>`: Delete user account (Admin only)
-- `POST /update-email`: Update current user's email 
-- `POST /reset-password`: Change current user's password 
+### Ratings — `/api/`
 
-#### Applicants (`/api/`)
-- `GET /applicant-status`: List all applicants with status
-- `POST /upload`: CSV file processing (Admin only)
-- `GET /applicant-application-info/<user_code>`: Detailed applicant data
-- `PUT /applicant-application-info/<user_code>/status`: Status updates (Admin only)
-- `PUT /applicant-application-info/<user_code>/prerequisites`: Course data updates
-- `PUT /applicant-application-info/<user_code>/english-comment`: English comments (Admin only)
-- `PUT /applicant-application-info/<user_code>/english-status`: English status (Admin only)
+| Method | Path                        | Description               | Role          |
+| ------ | --------------------------- | ------------------------- | ------------- |
+| GET    | `/ratings/<code>`           | All ratings for applicant | Any           |
+| GET    | `/ratings/<code>/my-rating` | Current user's rating     | Any           |
+| POST   | `/ratings/<code>`           | Add or update rating      | Admin/Faculty |
 
-#### Ratings (`/api/ratings/`)
-- `GET /<user_code>`: All ratings for applicant
-- `GET /<user_code>/my-rating`: Current user's rating
-- `POST /<user_code>`: Add/update rating and/or comment (Faculty/Admin only) - supports comment-only saves
+### Statuses — `/api/`
 
-#### Export (`/api/export/`)
-- `POST /selected`: Export selected applicants with chosen data sections (Admin only) 
+| Method | Path                          | Description      | Role  |
+| ------ | ----------------------------- | ---------------- | ----- |
+| GET    | `/api/statuses`               | Active statuses  | Any   |
+| GET    | `/api/admin/statuses`         | All statuses     | Admin |
+| POST   | `/api/admin/statuses`         | Create status    | Admin |
+| PUT    | `/api/admin/statuses/<id>`    | Update status    | Admin |
+| DELETE | `/api/admin/statuses/<id>`    | Delete status    | Admin |
+| POST   | `/api/admin/statuses/reorder` | Reorder statuses | Admin |
 
-#### Sessions (`/api/sessions/`)
-- `GET /`: List all sessions
-- `POST /`: Create new session (Admin only)
-- `POST /switch`: Change active session
+### Documents — `/api/`
 
-#### Test Scores (`/api/test-scores/`)
-- `GET /<user_code>/scores`: All test scores for applicant
-- `PUT /<user_code>/duolingo`: Update Duolingo scores (Admin only)
+| Method | Path                          | Description            | Role          |
+| ------ | ----------------------------- | ---------------------- | ------------- |
+| GET    | `/api/documents/<code>`       | List documents         | Any           |
+| POST   | `/api/documents/<code>`       | Upload document        | Admin/Faculty |
+| GET    | `/api/documents/view/<id>`    | View/download document | Any           |
+| DELETE | `/api/documents/<id>`         | Delete document        | Admin         |
+| GET    | `/api/documents/count/<code>` | Document count         | Any           |
 
-#### System Logs (`/api/logs/`)
-- `GET /logs`: System activity logs (Admin only)
+### Logs — `/api/`
 
-### Security Implementation
+| Method | Path                          | Description    | Role  |
+| ------ | ----------------------------- | -------------- | ----- |
+| GET    | `/logs`                       | Activity logs  | Admin |
+| GET    | `/logs/export/status-changes` | Export log CSV | Admin |
 
-#### Authentication
-- **Flask-Login**: Session-based user management
-- **bcrypt**: Password hashing with salt
-- **Session Security**: HTTPOnly cookies, CSRF protection
-- **Role Validation**: Server-side permission checks
+### Database — `/api/`
 
-#### Authorization Levels
-- **Route Protection**: Decorator-based access control
-- **Database Security**: Parameterized queries prevent SQL injection
-- **Input Validation**: Server-side data sanitization
-- **Audit Trail**: Complete activity logging for accountability
+| Method | Path               | Description      | Role  |
+| ------ | ------------------ | ---------------- | ----- |
+| POST   | `/database/export` | Export DB backup | Admin |
+| POST   | `/database/import` | Import DB backup | Admin |
 
-#### Permission Matrix
-| Feature | Admin | Faculty | Viewer |
-|---------|-------|---------|--------|
-| View Applications | ✅ | ✅ | ✅ |
-| Upload CSV | ✅ | ❌ | ❌ |
-| Export Data | ✅ | ❌ | ❌ |
-| Rate Students | ✅ | ✅ | ❌ |
-| Add Comments | ✅ | ✅ | ❌ |
-| Change Status | ✅ | ❌ | ❌ |
-| Edit English Status | ✅ | ❌ | ❌ |
-| Manage Users | ✅ | ❌ | ❌ |
-| Create Sessions | ✅ | ❌ | ❌ |
-| View Logs | ✅ | ❌ | ❌ |
-| View Statistics | ✅ | ✅ | ✅ |
+---
 
-### Frontend Architecture
+## User Guide
 
-#### Component Structure
-- **applicants.js**: Main application controller
-  - Handles data loading, modal management, user interactions
-  - Manages application state and API communications
-  - Implements permission-based UI updates
+### Roles and Permissions
 
-- **auth.js**: Authentication management
-  - User session handling and validation
-  - Role-based navigation control
-  - Logout functionality
+| Action                      | Admin | Faculty | Viewer |
+| --------------------------- | ----- | ------- | ------ |
+| View applications           | Yes   | Yes     | Yes    |
+| View statistics             | Yes   | Yes     | Yes    |
+| Update own email/password   | Yes   | Yes     | Yes    |
+| Rate students               | Yes   | Yes     | No     |
+| Edit prerequisites          | Yes   | Yes     | No     |
+| Upload/delete documents     | Yes   | Yes     | No     |
+| Change application status   | Yes   | No      | No     |
+| Edit English status/comment | Yes   | No      | No     |
+| Upload CSV                  | Yes   | No      | No     |
+| Export data                 | Yes   | No      | No     |
+| Manage users                | Yes   | No      | No     |
+| Create/archive sessions     | Yes   | No      | No     |
+| Configure statuses          | Yes   | No      | No     |
+| View activity logs          | Yes   | No      | No     |
+| Database backup/restore     | Yes   | No      | No     |
 
-#### State Management
-- **No External Framework**: Uses vanilla JavaScript for simplicity
-- **Event-Driven**: DOM-based event handling for user interactions
-- **API-First**: RESTful communication with backend
-- **Responsive**: Tailwind CSS for mobile-friendly design
+### Pages
 
-#### Data Flow
-1. **User Interaction**: Frontend captures user actions
-2. **API Call**: JavaScript makes authenticated requests
-3. **Server Processing**: Flask validates permissions and processes data
-4. **Database Update**: PostgreSQL handles data persistence
-5. **Response**: JSON data returned to frontend
-6. **UI Update**: DOM manipulation reflects changes
+| URL                   | Description                 | Access |
+| --------------------- | --------------------------- | ------ |
+| `/`                   | Main applicant list         | All    |
+| `/statistics`         | Application analytics       | All    |
+| `/account`            | Email and password settings | All    |
+| `/users`              | User management             | Admin  |
+| `/logs`               | Activity audit log          | Admin  |
+| `/status-config`      | Review status configuration | Admin  |
+| `/create-new-session` | Create academic session     | Admin  |
 
-### Development Workflows
+---
 
-#### Adding New Features
+## Troubleshooting
 
-1. **Backend Changes**:
-   ```python
-   # Add API route in appropriate api/ file
-   @blueprint.route("/new-endpoint", methods=["POST"])
-   @login_required
-   def new_feature():
-       # Implement permission checking
-       # Process request data
-       # Return JSON response
-   ```
+**Database connection errors**
 
-2. **Database Changes**:
-   ```sql
-   -- Add to schema.sql
-   ALTER TABLE table_name ADD COLUMN new_field VARCHAR(255);
-   ```
+- Verify PostgreSQL is running: `sudo systemctl status postgresql`
+- Double-check credentials in `.env`
+- Confirm the database exists: `psql -l`
 
-3. **Frontend Integration**:
-   ```javascript
-   // Add to appropriate JS file
-   async function callNewEndpoint() {
-       const response = await fetch('/api/new-endpoint', {
-           method: 'POST',
-           headers: { 'Content-Type': 'application/json' },
-           body: JSON.stringify(data)
-       });
-   }
-   ```
+**CSS not loading**
 
-#### Testing Approach
-- **Manual Testing**: Use provided seed data and test accounts
-- **Permission Testing**: Verify role-based access controls
-- **Data Validation**: Test with various CSV formats and edge cases
-- **Browser Testing**: Ensure cross-browser compatibility
-
-### Deployment Considerations
-
-#### Production Setup
-- **Environment Variables**: Use production-grade secrets
-- **Database**: Configure PostgreSQL with proper indexing
-- **SSL/HTTPS**: Enable secure connections
-- **Session Security**: Set secure cookie flags
-- **File Upload**: Implement size limits and validation
-
-#### Performance Optimization
-- **Database Indexing**: Optimize query performance
-- **Static Assets**: Use CDN for CSS/JS delivery
-- **Caching**: Implement appropriate caching strategies
-- **Connection Pooling**: Optimize database connections
-
-#### Monitoring and Maintenance
-- **Activity Logs**: Built-in audit trail for troubleshooting
-- **Error Handling**: Comprehensive error reporting
-- **Data Backup**: Regular PostgreSQL backups
-- **User Management**: Regular review of user access levels
-
-### Troubleshooting
-
-#### Common Issues
-
-**Database Connection Errors**
 ```bash
-# Check PostgreSQL service status
-sudo systemctl status postgresql
-
-# Verify credentials in .env file
-# Ensure database exists and user has permissions
-```
-
-**CSS Not Loading**
-```bash
-# Rebuild Tailwind CSS
 npm run build-css-once
-
-# Check if output.css was generated
-ls -la static/css/
 ```
 
-**Permission Denied Errors**
-- Verify user roles in database
-- Check Flask-Login session status
-- Review API route decorators
+**Schema changes not applying**
 
-**CSV Upload Issues**
-- Validate CSV format and column headers
-- Check file size limitations
-- Verify admin privileges
+- The schema is applied once on first startup. Drop and recreate the database, then restart Flask.
 
-#### Debug Mode
+**CSV upload fails**
+
+- Ensure the file has a `User Code` column
+- Verify the user is logged in as Admin
+- Check that `Program CODE`, `Program`, and `Session` columns are present
+
+**Permission denied on a route**
+
+- Check the user's role in the database
+- Verify `@login_required` and permission decorators on the route
+
+**Debug mode**
+
 ```bash
-# Enable Flask debug mode for development
 export FLASK_DEBUG=1
 python main.py
 ```
 
-#### Log Analysis
-- Check browser console for JavaScript errors
-- Review Flask logs for server-side issues
-- Use database logs for query debugging
-- Access activity logs through admin interface
+---
+
+## Production Checklist
+
+- Set `SECRET_KEY` to a secure random value in `.env`
+- Set `SESSION_COOKIE_SECURE = True` in `main.py` (requires HTTPS)
+- Set `debug=False` in `main.py`
+- Use a production WSGI server (Gunicorn, uWSGI)
+- Configure PostgreSQL connection pooling
+- Schedule regular database backups via the admin panel or pg_dump
+- Set `MAX_CONTENT_LENGTH` appropriate for your upload needs (default: 30MB)
 
 ---
 
 ## License
 
-This project is developed for the University of British Columbia's Masters of Data Science program. All rights reserved.
-
----
-
-**Need Help?** 
-- Check the troubleshooting section for common issues
-- Review the user documentation for your specific role
-- Examine the technical documentation for implementation details
-- Use the provided test accounts to explore system functionality
+Developed for the University of British Columbia's Masters of Data Science program. All rights reserved.
