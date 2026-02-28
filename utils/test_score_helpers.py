@@ -192,13 +192,13 @@ def get_old_records(cursor, config: TestScoreConfig, user_code: str) -> dict:
             (user_code,)
         )
         result = cursor.fetchone()
-        return {0: result[0] if result else None}
+        return {0: result["updated_at"] if result else None}
     else:
         cursor.execute(
             f"SELECT {config.number_field}, updated_at FROM {config.table_name} WHERE user_code = %s ORDER BY {config.number_field}",
             (user_code,)
         )
-        return {r[0]: r[1] for r in cursor.fetchall()}
+        return {r[config.number_field]: r["updated_at"] for r in cursor.fetchall()}
 
 
 def get_new_records(cursor, config: TestScoreConfig, user_code: str) -> dict:
