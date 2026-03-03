@@ -25,6 +25,21 @@ class AccountManager {
         if (el("displayName")) el("displayName").textContent = u.full_name;
         if (el("displayEmail")) el("displayEmail").textContent = u.email;
         if (el("displayRole")) el("displayRole").textContent = u.role;
+
+        // Campus — hidden for Super Admin (no campus restriction)
+        if (u.is_super_admin) {
+          el("campusRow")?.classList.add("hidden");
+        } else {
+          if (el("displayCampus"))
+            el("displayCampus").textContent = u.campus || "—";
+        }
+
+        // Program — only shown for Admin role
+        if (u.role === "Admin" && u.program) {
+          el("programRow")?.classList.remove("hidden");
+          if (el("displayProgram"))
+            el("displayProgram").textContent = u.program;
+        }
       }
     } catch (err) {
       console.error("Error loading user info:", err);

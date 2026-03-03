@@ -290,14 +290,13 @@ class UsersManager {
   }
 
   _toggleCampusProgramFields(roleId) {
-    const fields = document.getElementById("campusProgramFields");
-    if (!fields) return;
-    // Show campus/program only for Admin (role 1); hide for Super Admin, Faculty, Viewer
-    if (roleId === 1) {
-      fields.classList.remove("hidden");
-    } else {
-      fields.classList.add("hidden");
-    }
+    const campusField = document.getElementById("campusField");
+    const programField = document.getElementById("programField");
+    // Super Admin (4): no campus/program restriction
+    // Admin (1): campus + program
+    // Faculty (2) / Viewer (3): campus only
+    if (campusField) campusField.classList.toggle("hidden", roleId === 4);
+    if (programField) programField.classList.toggle("hidden", roleId !== 1);
   }
 
   async _loadUserData(userId) {
