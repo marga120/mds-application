@@ -15,6 +15,7 @@ import { validateEmail, validatePassword } from "../utils/validators.js";
 class UsersManager {
   constructor() {
     this._loggedInUserId = null;
+    this._loggedInUserIsSuperAdmin = false;
     this._currentUserId = null;
     this._currentUserData = null;
     this._usersCache = [];
@@ -35,7 +36,10 @@ class UsersManager {
   async _loadCurrentUser() {
     try {
       const result = await authService.getCurrentUser();
-      if (result.success && result.user) this._loggedInUserId = result.user.id;
+      if (result.success && result.user) {
+        this._loggedInUserId = result.user.id;
+        this._loggedInUserIsSuperAdmin = result.user.is_super_admin === true;
+      }
     } catch (err) {
       console.error("Error loading current user:", err);
     }
@@ -54,6 +58,11 @@ class UsersManager {
     document.getElementById("userForm")?.addEventListener("submit", (e) => {
       e.preventDefault();
       this._handleSaveUser();
+    });
+
+    // Show campus/program fields only for Admin role (not Super Admin, Faculty, Viewer)
+    document.getElementById("userRole")?.addEventListener("change", (e) => {
+      this._toggleCampusProgramFields(parseInt(e.target.value));
     });
 
     document
@@ -167,17 +176,23 @@ class UsersManager {
     tbody.innerHTML = sorted
       .map((u) => {
         const isSelf = u.id === this._loggedInUserId;
+        const isProtectedSuperAdmin =
+          u.role_name === "Super Admin" && !this._loggedInUserIsSuperAdmin;
+        const isDisabled = isSelf || isProtectedSuperAdmin;
         const initials = this._initials(u.full_name);
         const badgeClass = getRoleBadgeClass(u.role_id);
         const roleName = getRoleName(u.role_id);
-        const selfClass = isSelf ? "opacity-50 cursor-not-allowed" : "";
+        const disabledClass = isDisabled ? "opacity-50 cursor-not-allowed" : "";
+        const disabledTitle = isProtectedSuperAdmin
+          ? ' title="Only Super Admins can modify Super Admin accounts"'
+          : "";
         return `
         <tr class="hover:bg-gray-50">
           <td class="px-6 py-4 whitespace-nowrap">
             <input type="checkbox"
-              class="user-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 ${isSelf ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}"
+              class="user-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 ${isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}"
               data-user-id="${u.id}"
-              ${isSelf ? "disabled" : ""}
+              ${isDisabled ? "disabled" : ""}
               ${this._selectedUsers.has(u.id) ? "checked" : ""}
               onchange="window.usersManager.handleUserSelection(${u.id}, this.checked)">
           </td>
@@ -203,12 +218,12 @@ class UsersManager {
             ${u.created_at ? new Date(u.created_at).toLocaleDateString() : ""}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <button onclick="window.usersManager.editUser(${u.id})"
-              class="text-blue-600 hover:text-blue-900 mr-3 ${selfClass}"
-              ${isSelf ? "disabled" : ""}>Edit</button>
-            <button onclick="window.usersManager.showDeleteModal(${u.id})"
-              class="text-red-600 hover:text-red-900 ${selfClass}"
-              ${isSelf ? "disabled" : ""}>Delete</button>
+            <button onclick="${isDisabled ? "" : `window.usersManager.editUser(${u.id})`}"
+              class="text-blue-600 mr-3 ${isDisabled ? disabledClass : "hover:text-blue-900"}"
+              ${isDisabled ? "disabled" : ""}${disabledTitle}>Edit</button>
+            <button onclick="${isDisabled ? "" : `window.usersManager.showDeleteModal(${u.id})`}"
+              class="text-red-600 ${isDisabled ? disabledClass : "hover:text-red-900"}"
+              ${isDisabled ? "disabled" : ""}${disabledTitle}>Delete</button>
           </td>
         </tr>`;
       })
@@ -274,6 +289,17 @@ class UsersManager {
     }
   }
 
+  _toggleCampusProgramFields(roleId) {
+    const fields = document.getElementById("campusProgramFields");
+    if (!fields) return;
+    // Show campus/program only for Admin (role 1); hide for Super Admin, Faculty, Viewer
+    if (roleId === 1) {
+      fields.classList.remove("hidden");
+    } else {
+      fields.classList.add("hidden");
+    }
+  }
+
   async _loadUserData(userId) {
     try {
       const result = await authService.getUserById(userId);
@@ -286,7 +312,13 @@ class UsersManager {
         if (el("displayFullName")) el("displayFullName").textContent = fullName;
         if (el("displayEmail"))
           el("displayEmail").textContent = result.user.email;
-        if (el("userRole")) el("userRole").value = result.user.role_user_id;
+        if (el("userRole")) {
+          el("userRole").value = result.user.role_user_id;
+          this._toggleCampusProgramFields(result.user.role_user_id);
+        }
+        if (el("userCampus")) el("userCampus").value = result.user.campus || "";
+        if (el("userProgram"))
+          el("userProgram").value = result.user.program || "";
       }
     } catch {
       this._showModalMessage("Failed to load user data.", "error");
@@ -300,16 +332,20 @@ class UsersManager {
     saveBtn.disabled = true;
     saveBtn.textContent = "Saving...";
 
+    const campus = document.getElementById("userCampus")?.value.trim() || "";
+    const program = document.getElementById("userProgram")?.value.trim() || "";
+
     try {
       let result;
       if (this._currentUserId) {
         // Edit mode
-        const emailCheck = validateEmail(this._currentUserData.email);
         const body = {
           first_name: this._currentUserData.first_name,
           last_name: this._currentUserData.last_name,
           email: this._currentUserData.email,
           role_user_id: roleId,
+          campus: campus || null,
+          program: program || null,
           ...(password ? { password } : {}),
         };
         result = await authService.updateUser(this._currentUserId, body);
@@ -342,6 +378,8 @@ class UsersManager {
           email,
           password,
           role_user_id: roleId,
+          campus: campus || null,
+          program: program || null,
         });
       }
 
@@ -455,10 +493,17 @@ class UsersManager {
     this._updateSelectionUI();
   }
 
+  _isSelectable(u) {
+    if (u.id === this._loggedInUserId) return false;
+    if (u.role_name === "Super Admin" && !this._loggedInUserIsSuperAdmin)
+      return false;
+    return true;
+  }
+
   _handleSelectAll(isChecked) {
     if (isChecked) {
       this._usersCache.forEach((u) => {
-        if (u.id !== this._loggedInUserId) this._selectedUsers.add(u.id);
+        if (this._isSelectable(u)) this._selectedUsers.add(u.id);
       });
     } else {
       this._selectedUsers.clear();
@@ -471,9 +516,7 @@ class UsersManager {
   _updateSelectAllCheckbox() {
     const cb = document.getElementById("selectAllUsers");
     if (!cb) return;
-    const selectable = this._usersCache.filter(
-      (u) => u.id !== this._loggedInUserId,
-    );
+    const selectable = this._usersCache.filter((u) => this._isSelectable(u));
     const allSelected =
       selectable.length > 0 &&
       selectable.every((u) => this._selectedUsers.has(u.id));
