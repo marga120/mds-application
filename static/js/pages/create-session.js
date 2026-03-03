@@ -74,8 +74,12 @@ class SessionManager {
     const term = document.getElementById("sessionTerm")?.value || "W1";
     const campus = this._getSelectedCampus();
     const campusShort = campus === "UBC-O" ? "O" : "V";
+    const sessionAbbrev = `${year}${term}`;
 
-    preview.textContent = `${code}-${campusShort} ${year}${term}`;
+    preview.textContent = `${code}-${campusShort} ${sessionAbbrev}`;
+
+    const abbrevWarning = document.getElementById("sessionAbbrevWarning");
+    if (abbrevWarning) abbrevWarning.textContent = sessionAbbrev;
   }
 
   _validateForm() {

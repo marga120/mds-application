@@ -22,13 +22,13 @@ class DocumentsManager {
    */
   async loadUserRole() {
     try {
-      const response = await fetch('/api/auth/check-session');
+      const response = await fetch("/api/auth/check-session");
       const result = await response.json();
       if (result.authenticated && result.user) {
         this.userRole = result.user.role;
       }
     } catch (error) {
-      console.error('Failed to load user role:', error);
+      console.error("Failed to load user role:", error);
     }
   }
 
@@ -37,20 +37,20 @@ class DocumentsManager {
    */
   async loadDocumentTypes() {
     try {
-      const response = await fetch('/api/documents/types');
+      const response = await fetch("/api/documents/types");
       const result = await response.json();
       if (result.success) {
         this.documentTypes = result.types;
       }
     } catch (error) {
-      console.error('Failed to load document types:', error);
+      console.error("Failed to load document types:", error);
       // Default types if API fails
       this.documentTypes = [
-        { value: 'transcript', label: 'Transcript' },
-        { value: 'recommendation_letter', label: 'Recommendation Letter' },
-        { value: 'cv_resume', label: 'CV/Resume' },
-        { value: 'statement_of_purpose', label: 'Statement of Purpose' },
-        { value: 'other', label: 'Other' }
+        { value: "transcript", label: "Transcript" },
+        { value: "recommendation_letter", label: "Recommendation Letter" },
+        { value: "cv_resume", label: "CV/Resume" },
+        { value: "statement_of_purpose", label: "Statement of Purpose" },
+        { value: "other", label: "Other" },
       ];
     }
   }
@@ -77,10 +77,10 @@ class DocumentsManager {
         this.documents = result.documents;
       } else {
         this.documents = [];
-        console.error('Failed to load documents:', result.message);
+        console.error("Failed to load documents:", result.message);
       }
     } catch (error) {
-      console.error('Error loading documents:', error);
+      console.error("Error loading documents:", error);
       this.documents = [];
     }
 
@@ -109,7 +109,7 @@ class DocumentsManager {
    * Render the documents container
    */
   renderContainer() {
-    const container = document.getElementById('documentsContainer');
+    const container = document.getElementById("documentsContainer");
     if (!container) return;
 
     // Reset PDF viewer when loading new applicant
@@ -125,12 +125,12 @@ class DocumentsManager {
       return;
     }
 
-    const isAdmin = this.userRole === 'Admin';
-    const isFaculty = this.userRole === 'Faculty';
+    const isAdmin = this.userRole === "Admin";
+    const isFaculty = this.userRole === "Faculty";
     const canUpload = isAdmin || isFaculty;
 
     container.innerHTML = `
-      ${canUpload ? this.renderUploadForm() : ''}
+      ${canUpload ? this.renderUploadForm() : ""}
       <div class="mt-4">
         <h4 class="text-sm font-semibold text-ubc-blue mb-3 flex items-center">
           <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,7 +161,7 @@ class DocumentsManager {
 
         <form id="documentUploadForm" class="space-y-3">
           <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1">PDF File (Max 16MB)</label>
+            <label class="block text-xs font-medium text-gray-700 mb-1">PDF File (Max 30MB)</label>
             <input type="file" id="documentFile" accept=".pdf"
                    class="w-full text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ubc-blue file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-ubc-blue file:text-white hover:file:bg-blue-700">
           </div>
@@ -197,11 +197,11 @@ class DocumentsManager {
       `;
     }
 
-    const isAdmin = this.userRole === 'Admin';
+    const isAdmin = this.userRole === "Admin";
 
     return `
       <div class="space-y-2">
-        ${this.documents.map(doc => this.renderDocumentCard(doc, isAdmin)).join('')}
+        ${this.documents.map((doc) => this.renderDocumentCard(doc, isAdmin)).join("")}
       </div>
     `;
   }
@@ -212,13 +212,15 @@ class DocumentsManager {
    * @param {boolean} canDelete - Whether user can delete
    */
   renderDocumentCard(doc, canDelete) {
-    const typeLabel = this.documentTypes.find(t => t.value === doc.document_type)?.label || doc.document_type;
+    const typeLabel =
+      this.documentTypes.find((t) => t.value === doc.document_type)?.label ||
+      doc.document_type;
     const fileSize = this.formatFileSize(doc.file_size);
     const uploadDate = this.formatDate(doc.created_at);
     const isSelected = doc.id === this.selectedDocumentId;
 
     return `
-      <div class="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-all cursor-pointer ${isSelected ? 'ring-2 ring-ubc-blue bg-blue-50' : ''}"
+      <div class="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-all cursor-pointer ${isSelected ? "ring-2 ring-ubc-blue bg-blue-50" : ""}"
            data-document-id="${doc.id}"
            onclick="documentsManager.viewDocument(${doc.id})">
         <div class="flex items-start gap-3">
@@ -236,7 +238,7 @@ class DocumentsManager {
               <span class="ml-1">${fileSize}</span>
             </p>
             <p class="text-xs text-gray-400 mt-1 truncate">
-              ${uploadDate}${doc.uploaded_by_name ? ` - ${doc.uploaded_by_name}` : ''}
+              ${uploadDate}${doc.uploaded_by_name ? ` - ${doc.uploaded_by_name}` : ""}
             </p>
           </div>
           <div class="flex flex-col gap-1">
@@ -247,7 +249,9 @@ class DocumentsManager {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
               </svg>
             </button>
-            ${canDelete ? `
+            ${
+              canDelete
+                ? `
               <button onclick="event.stopPropagation(); documentsManager.deleteDocument(${doc.id}, '${doc.original_filename.replace(/'/g, "\\'")}')"
                       class="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                       title="Delete">
@@ -255,7 +259,9 @@ class DocumentsManager {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                 </svg>
               </button>
-            ` : ''}
+            `
+                : ""
+            }
           </div>
         </div>
       </div>
@@ -266,9 +272,9 @@ class DocumentsManager {
    * Attach event listeners to the form
    */
   attachEventListeners() {
-    const form = document.getElementById('documentUploadForm');
+    const form = document.getElementById("documentUploadForm");
     if (form) {
-      form.addEventListener('submit', (e) => this.handleUpload(e));
+      form.addEventListener("submit", (e) => this.handleUpload(e));
     }
   }
 
@@ -279,32 +285,32 @@ class DocumentsManager {
   async handleUpload(e) {
     e.preventDefault();
 
-    const fileInput = document.getElementById('documentFile');
-    const uploadBtn = document.getElementById('uploadDocumentBtn');
+    const fileInput = document.getElementById("documentFile");
+    const uploadBtn = document.getElementById("uploadDocumentBtn");
 
     if (!fileInput.files || fileInput.files.length === 0) {
-      this.showFeedback('Please select a file to upload', 'error');
+      this.showFeedback("Please select a file to upload", "error");
       return;
     }
 
     const file = fileInput.files[0];
 
     // Validate file type
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      this.showFeedback('Only PDF files are allowed', 'error');
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      this.showFeedback("Only PDF files are allowed", "error");
       return;
     }
 
-    // Validate file size (16MB max)
-    if (file.size > 16 * 1024 * 1024) {
-      this.showFeedback('File size exceeds 16MB limit', 'error');
+    // Validate file size (30MB max)
+    if (file.size >= 30 * 1024 * 1024) {
+      this.showFeedback("File size exceeds 30MB limit", "error");
       return;
     }
 
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('document_type', 'application_document');
-    formData.append('description', '');
+    formData.append("file", file);
+    formData.append("document_type", "application_document");
+    formData.append("description", "");
 
     uploadBtn.disabled = true;
     uploadBtn.innerHTML = `
@@ -317,29 +323,29 @@ class DocumentsManager {
 
     try {
       const response = await fetch(`/api/documents/${this.currentUserCode}`, {
-        method: 'POST',
-        body: formData
+        method: "POST",
+        body: formData,
       });
 
       const result = await response.json();
 
       if (result.success) {
-        this.showFeedback('Document uploaded successfully', 'success');
+        this.showFeedback("Document uploaded successfully", "success");
         // Clear form
-        fileInput.value = '';
+        fileInput.value = "";
         // Reload documents
         await this.loadDocuments(this.currentUserCode);
         // Update tab badge and Open PDF section
         this.updateTabBadge();
-        if (typeof applicantsManager !== 'undefined') {
+        if (typeof applicantsManager !== "undefined") {
           applicantsManager.updateOpenPdfSection();
         }
       } else {
-        this.showFeedback(result.message || 'Upload failed', 'error');
+        this.showFeedback(result.message || "Upload failed", "error");
       }
     } catch (error) {
-      console.error('Upload error:', error);
-      this.showFeedback('Upload failed. Please try again.', 'error');
+      console.error("Upload error:", error);
+      this.showFeedback("Upload failed. Please try again.", "error");
     }
 
     uploadBtn.disabled = false;
@@ -357,12 +363,12 @@ class DocumentsManager {
    */
   viewDocument(documentId) {
     this.selectedDocumentId = documentId;
-    const doc = this.documents.find(d => d.id === documentId);
+    const doc = this.documents.find((d) => d.id === documentId);
 
-    const viewerContainer = document.getElementById('pdfViewerContainer');
+    const viewerContainer = document.getElementById("pdfViewerContainer");
     if (!viewerContainer) {
       // Fallback to new tab if viewer not available
-      window.open(`/api/documents/view/${documentId}`, '_blank');
+      window.open(`/api/documents/view/${documentId}`, "_blank");
       return;
     }
 
@@ -373,7 +379,7 @@ class DocumentsManager {
             <svg class="w-5 h-5 flex-shrink-0 text-red-400" fill="currentColor" viewBox="0 0 24 24">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h6v6h6v10H6z"/>
             </svg>
-            <span class="text-sm font-medium truncate">${doc ? doc.original_filename : 'Document'}</span>
+            <span class="text-sm font-medium truncate">${doc ? doc.original_filename : "Document"}</span>
           </div>
           <div class="flex items-center gap-2">
             <button onclick="documentsManager.openInNewTab(${documentId})"
@@ -416,7 +422,7 @@ class DocumentsManager {
    * @param {number} documentId - Document ID
    */
   openInNewTab(documentId) {
-    window.open(`/api/documents/view/${documentId}`, '_blank');
+    window.open(`/api/documents/view/${documentId}`, "_blank");
   }
 
   /**
@@ -424,7 +430,7 @@ class DocumentsManager {
    */
   closePdfViewer() {
     this.selectedDocumentId = null;
-    const viewerContainer = document.getElementById('pdfViewerContainer');
+    const viewerContainer = document.getElementById("pdfViewerContainer");
     if (viewerContainer) {
       viewerContainer.innerHTML = `
         <div class="text-center text-gray-400">
@@ -442,13 +448,13 @@ class DocumentsManager {
    * Update visual selection state for documents
    */
   updateDocumentSelection() {
-    const cards = document.querySelectorAll('[data-document-id]');
-    cards.forEach(card => {
-      const docId = parseInt(card.getAttribute('data-document-id'));
+    const cards = document.querySelectorAll("[data-document-id]");
+    cards.forEach((card) => {
+      const docId = parseInt(card.getAttribute("data-document-id"));
       if (docId === this.selectedDocumentId) {
-        card.classList.add('ring-2', 'ring-ubc-blue', 'bg-blue-50');
+        card.classList.add("ring-2", "ring-ubc-blue", "bg-blue-50");
       } else {
-        card.classList.remove('ring-2', 'ring-ubc-blue', 'bg-blue-50');
+        card.classList.remove("ring-2", "ring-ubc-blue", "bg-blue-50");
       }
     });
   }
@@ -467,30 +473,34 @@ class DocumentsManager {
    * @param {string} filename - Filename for confirmation
    */
   async deleteDocument(documentId, filename) {
-    if (!confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${filename}"? This action cannot be undone.`,
+      )
+    ) {
       return;
     }
 
     try {
       const response = await fetch(`/api/documents/${documentId}`, {
-        method: 'DELETE'
+        method: "DELETE",
       });
 
       const result = await response.json();
 
       if (result.success) {
-        this.showFeedback('Document deleted successfully', 'success');
+        this.showFeedback("Document deleted successfully", "success");
         await this.loadDocuments(this.currentUserCode);
         this.updateTabBadge();
-        if (typeof applicantsManager !== 'undefined') {
+        if (typeof applicantsManager !== "undefined") {
           applicantsManager.updateOpenPdfSection();
         }
       } else {
-        this.showFeedback(result.message || 'Delete failed', 'error');
+        this.showFeedback(result.message || "Delete failed", "error");
       }
     } catch (error) {
-      console.error('Delete error:', error);
-      this.showFeedback('Delete failed. Please try again.', 'error');
+      console.error("Delete error:", error);
+      this.showFeedback("Delete failed. Please try again.", "error");
     }
   }
 
@@ -500,22 +510,22 @@ class DocumentsManager {
    * @param {string} type - 'success' or 'error'
    */
   showFeedback(message, type) {
-    const feedback = document.getElementById('uploadFeedback');
-    const text = document.getElementById('uploadFeedbackText');
+    const feedback = document.getElementById("uploadFeedback");
+    const text = document.getElementById("uploadFeedbackText");
 
     if (!feedback || !text) return;
 
     text.textContent = message;
     feedback.className = `mt-3 p-3 rounded-lg flex items-center ${
-      type === 'success'
-        ? 'bg-green-100 text-green-800'
-        : 'bg-red-100 text-red-800'
+      type === "success"
+        ? "bg-green-100 text-green-800"
+        : "bg-red-100 text-red-800"
     }`;
-    feedback.classList.remove('hidden');
+    feedback.classList.remove("hidden");
 
     // Auto-hide after 5 seconds
     setTimeout(() => {
-      feedback.classList.add('hidden');
+      feedback.classList.add("hidden");
     }, 5000);
   }
 
@@ -523,10 +533,10 @@ class DocumentsManager {
    * Update the documents tab badge count
    */
   async updateTabBadge() {
-    const badge = document.getElementById('documentsTabBadge');
+    const badge = document.getElementById("documentsTabBadge");
     if (badge) {
       badge.textContent = this.documents.length;
-      badge.style.display = this.documents.length > 0 ? 'inline-flex' : 'none';
+      badge.style.display = this.documents.length > 0 ? "inline-flex" : "none";
     }
   }
 
@@ -536,8 +546,8 @@ class DocumentsManager {
    * @returns {string} Formatted file size
    */
   formatFileSize(bytes) {
-    if (!bytes) return '0 B';
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    if (!bytes) return "0 B";
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
   }
@@ -548,13 +558,13 @@ class DocumentsManager {
    * @returns {string} Formatted date
    */
   formatDate(dateString) {
-    if (!dateString) return '';
+    if (!dateString) return "";
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       });
     } catch {
       return dateString;
