@@ -2,15 +2,21 @@ import { api } from "../api/client.js";
 import { Notification } from "../components/notification.js";
 import { applicantService } from "../services/applicant-service.js";
 import { statusService } from "../services/status-service.js";
-import { getRoleName, getRoleBadgeClass, formatDate, formatDateTime, getTimeAgo } from "../utils/formatters.js";
+import {
+  getRoleName,
+  getRoleBadgeClass,
+  formatDate,
+  formatDateTime,
+  getTimeAgo,
+} from "../utils/formatters.js";
 import { validateRating } from "../utils/validators.js";
 
 /**
  * APPLICANTS MANAGER - Main Application Controller
- * 
+ *
  * This file manages the core functionality of the MDS Application Management System.
  * It handles applicant data display, CSV file uploads, search/filtering, modal interactions,
- * test scores management, ratings system, status updates, and all user interactions 
+ * test scores management, ratings system, status updates, and all user interactions
  * with the applicant database. This is the primary controller for the main dashboard.
  */
 
@@ -19,7 +25,7 @@ class ApplicantsManager {
     this.allApplicants = [];
     this.sessionName = "";
     this.sortColumn = null;
-    this.sortDirection = 'asc';
+    this.sortDirection = "asc";
     this.reviewStatusFilter = ""; // Track selected review status filter
     this.statusOptions = []; // Cache for dynamic status options
     this.statusesLoaded = false; // Track if statuses are loaded
@@ -42,19 +48,19 @@ class ApplicantsManager {
 
   async loadStatuses() {
     try {
-      const response = await fetch('/api/statuses');
+      const response = await fetch("/api/statuses");
       const result = await response.json();
-      
+
       if (result.success) {
         this.statusOptions = result.statuses;
         this.statusesLoaded = true;
-        console.log('Loaded statuses:', this.statusOptions);
+        console.log("Loaded statuses:", this.statusOptions);
       } else {
-        console.error('Failed to load statuses:', result.message);
+        console.error("Failed to load statuses:", result.message);
         this.statusOptions = [];
       }
     } catch (error) {
-      console.error('Error loading statuses:', error);
+      console.error("Error loading statuses:", error);
       this.statusOptions = [];
     }
   }
@@ -67,80 +73,82 @@ class ApplicantsManager {
 
   populateStatusDropdown(selectElement) {
     if (!selectElement) {
-      console.warn('populateStatusDropdown: selectElement is null');
+      console.warn("populateStatusDropdown: selectElement is null");
       return;
     }
-    
+
     if (!this.statusesLoaded || this.statusOptions.length === 0) {
-      console.warn('populateStatusDropdown: statuses not loaded yet');
+      console.warn("populateStatusDropdown: statuses not loaded yet");
       return;
     }
-    
+
     // Clear existing options
-    selectElement.innerHTML = '';
-    
+    selectElement.innerHTML = "";
+
     // Populate with dynamic options
-    this.statusOptions.forEach(status => {
-      const option = document.createElement('option');
+    this.statusOptions.forEach((status) => {
+      const option = document.createElement("option");
       option.value = status.status_name;
       option.textContent = status.status_name;
       selectElement.appendChild(option);
     });
-    
-    console.log(`Populated ${selectElement.id} with ${this.statusOptions.length} statuses`);
+
+    console.log(
+      `Populated ${selectElement.id} with ${this.statusOptions.length} statuses`,
+    );
   }
 
   initializeEventListeners() {
-  const fileInput = document.getElementById("fileInput");
-  const uploadBtn = document.getElementById("uploadBtn");
-  const searchInput = document.getElementById("searchInput");
-  const searchFilter = document.getElementById("searchFilter");
-  const exportBtn = document.getElementById("exportBtn");
-  const bulkExportBtn = document.getElementById("bulkExportBtn");
-  
-  if (exportBtn) {
-    exportBtn.addEventListener("click", () => {
-      this.exportApplicants();
+    const fileInput = document.getElementById("fileInput");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const searchInput = document.getElementById("searchInput");
+    const searchFilter = document.getElementById("searchFilter");
+    const exportBtn = document.getElementById("exportBtn");
+    const bulkExportBtn = document.getElementById("bulkExportBtn");
+
+    if (exportBtn) {
+      exportBtn.addEventListener("click", () => {
+        this.exportApplicants();
+      });
+    }
+
+    if (bulkExportBtn) {
+      bulkExportBtn.addEventListener("click", () => {
+        this.exportSelectedApplicants();
+      });
+    }
+
+    fileInput.addEventListener("change", (e) => {
+      this.handleFileSelect(e.target.files[0]);
     });
-  }
 
-  if (bulkExportBtn) {
-    bulkExportBtn.addEventListener("click", () => {
-      this.exportSelectedApplicants();
+    uploadBtn.addEventListener("click", () => {
+      this.uploadFile();
     });
-  }
 
-  fileInput.addEventListener("change", (e) => {
-    this.handleFileSelect(e.target.files[0]);
-  });
-
-  uploadBtn.addEventListener("click", () => {
-    this.uploadFile();
-  });
-
-  searchInput.addEventListener("input", () => {
-    this.filterApplicants();
-  });
-
-  searchFilter.addEventListener("change", () => {
-    this.filterApplicants();
-  });
-
-  // Modal close buttons
-  const closeUploadModal = document.getElementById("closeUploadModal");
-  if (closeUploadModal) {
-    closeUploadModal.addEventListener("click", () => {
-      this.closeUploadModal();
+    searchInput.addEventListener("input", () => {
+      this.filterApplicants();
     });
-  }
 
-  const cancelUploadBtn = document.getElementById("cancelUploadBtn");
-  if (cancelUploadBtn) {
-    cancelUploadBtn.addEventListener("click", () => {
-      this.closeUploadModal();
+    searchFilter.addEventListener("change", () => {
+      this.filterApplicants();
     });
+
+    // Modal close buttons
+    const closeUploadModal = document.getElementById("closeUploadModal");
+    if (closeUploadModal) {
+      closeUploadModal.addEventListener("click", () => {
+        this.closeUploadModal();
+      });
+    }
+
+    const cancelUploadBtn = document.getElementById("cancelUploadBtn");
+    if (cancelUploadBtn) {
+      cancelUploadBtn.addEventListener("click", () => {
+        this.closeUploadModal();
+      });
+    }
   }
-}
   // Add checkbox selection tracking
   toggleApplicantSelection(userCode, checked) {
     if (checked) {
@@ -241,7 +249,7 @@ class ApplicantsManager {
       const result = await response.json();
       const uploadEndTime = new Date();
       const uploadDuration = ((uploadEndTime - uploadStartTime) / 1000).toFixed(
-        2
+        2,
       );
 
       if (result.success) {
@@ -264,17 +272,35 @@ class ApplicantsManager {
         this.loadApplicants();
         document.getElementById("fileInput").value = "";
         this.selectedFile = null;
+      } else if (
+        result.unmatched_sessions &&
+        result.unmatched_sessions.length > 0
+      ) {
+        const sessionList = result.unmatched_sessions
+          .map(
+            (s) =>
+              `<li><strong>${s.program_code}</strong> — ${s.session_abbrev}${s.program ? ` (${s.program})` : ""}</li>`,
+          )
+          .join("");
+        const msg = document.getElementById("message");
+        msg.innerHTML = `
+          <p class="font-semibold mb-2">${result.message}:</p>
+          <ul class="list-disc list-inside mb-2">${sessionList}</ul>
+          <p class="text-sm">Please <a href="/create-session" class="underline font-medium">create the missing session(s)</a> first, then re-import.</p>
+        `;
+        msg.className = "message error";
+        msg.style.display = "block";
       } else {
         this.showMessage(result.message, "error");
       }
     } catch (error) {
       const uploadEndTime = new Date();
       const uploadDuration = ((uploadEndTime - uploadStartTime) / 1000).toFixed(
-        2
+        2,
       );
       this.showMessage(
         `Upload failed after ${uploadDuration}s: ${error.message}`,
-        "error"
+        "error",
       );
     } finally {
       uploadBtn.disabled = false;
@@ -292,8 +318,12 @@ class ApplicantsManager {
 
     try {
       // Get current session ID from SessionStore
-      const sessionId = window.SessionStore ? SessionStore.getCurrentSessionId() : null;
-      const url = sessionId ? `/api/applicants?session_id=${sessionId}` : "/api/applicants";
+      const sessionId = window.SessionStore
+        ? SessionStore.getCurrentSessionId()
+        : null;
+      const url = sessionId
+        ? `/api/applicants?session_id=${sessionId}`
+        : "/api/applicants";
       const response = await fetch(url);
       const result = await response.json();
 
@@ -311,10 +341,10 @@ class ApplicantsManager {
   sortApplicants(column) {
     // Toggle sort direction if clicking the same column
     if (this.sortColumn === column) {
-      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+      this.sortDirection = this.sortDirection === "asc" ? "desc" : "asc";
     } else {
       this.sortColumn = column;
-      this.sortDirection = 'asc';
+      this.sortDirection = "asc";
     }
 
     // Sort the filtered applicants (or all if no filter)
@@ -323,27 +353,27 @@ class ApplicantsManager {
       let aValue, bValue;
 
       switch (column) {
-        case 'applicant':
+        case "applicant":
           aValue = `${a.family_name} ${a.given_name}`.toLowerCase();
           bValue = `${b.family_name} ${b.given_name}`.toLowerCase();
           break;
-        case 'status':
-          aValue = (a.status || '').toLowerCase();
-          bValue = (b.status || '').toLowerCase();
+        case "status":
+          aValue = (a.status || "").toLowerCase();
+          bValue = (b.status || "").toLowerCase();
           break;
-        case 'submit_date':
+        case "submit_date":
           aValue = a.submit_date ? new Date(a.submit_date).getTime() : 0;
           bValue = b.submit_date ? new Date(b.submit_date).getTime() : 0;
           break;
-         case 'review_status':
-          aValue = (a.review_status || '').toLowerCase();
-          bValue = (b.review_status || '').toLowerCase();
+        case "review_status":
+          aValue = (a.review_status || "").toLowerCase();
+          bValue = (b.review_status || "").toLowerCase();
           break;
-        case 'overall_rating':
+        case "overall_rating":
           aValue = parseFloat(a.overall_rating) || 0;
           bValue = parseFloat(b.overall_rating) || 0;
           break;
-        case 'last_updated':
+        case "last_updated":
           aValue = a.seconds_since_update || 0;
           bValue = b.seconds_since_update || 0;
           break;
@@ -351,8 +381,8 @@ class ApplicantsManager {
           return 0;
       }
 
-      if (aValue < bValue) return this.sortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return this.sortDirection === 'asc' ? 1 : -1;
+      if (aValue < bValue) return this.sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return this.sortDirection === "asc" ? 1 : -1;
       return 0;
     });
 
@@ -412,20 +442,23 @@ class ApplicantsManager {
   }
 
   getReviewStatusBadge(status) {
-    const badge = document.createElement('span');
-    const dot = document.createElement('span');
-    
-    badge.className = "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium";
-    
+    const badge = document.createElement("span");
+    const dot = document.createElement("span");
+
+    badge.className =
+      "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium";
+
     // Get color from cached status options
-    const statusConfig = this.statusOptions.find(s => s.status_name === status);
-    const color = statusConfig ? statusConfig.badge_color : 'gray';
-    
+    const statusConfig = this.statusOptions.find(
+      (s) => s.status_name === status,
+    );
+    const color = statusConfig ? statusConfig.badge_color : "gray";
+
     // Apply dynamic color classes
     badge.classList.add(`bg-${color}-100`, `text-${color}-800`);
-    
+
     badge.appendChild(document.createTextNode(status));
-    
+
     return badge.outerHTML;
   }
 
@@ -451,8 +484,8 @@ class ApplicantsManager {
     return `
       <div class="text-center">
         <div class="text-lg font-semibold ${colorClass}">${ratingValue.toFixed(
-      2
-    )}</div>
+          2,
+        )}</div>
         <div class="text-xs text-gray-500">/10.0</div>
       </div>
     `;
@@ -486,38 +519,38 @@ class ApplicantsManager {
 
   filterApplicants() {
     const filtered = this.getFilteredApplicants();
-    
+
     // If there's an active sort apply That thang
     if (this.sortColumn) {
       const sorted = [...filtered].sort((a, b) => {
         let aValue, bValue;
 
         switch (this.sortColumn) {
-          case 'applicant':
+          case "applicant":
             aValue = `${a.family_name} ${a.given_name}`.toLowerCase();
             bValue = `${b.family_name} ${b.given_name}`.toLowerCase();
             break;
-          case 'student_number':
+          case "student_number":
             aValue = parseFloat(a.student_number) || 0;
             bValue = parseFloat(b.student_number) || 0;
             break;
-          case 'status':
-            aValue = (a.status || '').toLowerCase();
-            bValue = (b.status || '').toLowerCase();
+          case "status":
+            aValue = (a.status || "").toLowerCase();
+            bValue = (b.status || "").toLowerCase();
             break;
-          case 'submit_date':
+          case "submit_date":
             aValue = a.submit_date ? new Date(a.submit_date).getTime() : 0;
             bValue = b.submit_date ? new Date(b.submit_date).getTime() : 0;
             break;
-          case 'review_status':
-            aValue = (a.review_status || '').toLowerCase();
-            bValue = (b.review_status || '').toLowerCase();
-          break;
-          case 'overall_rating':
+          case "review_status":
+            aValue = (a.review_status || "").toLowerCase();
+            bValue = (b.review_status || "").toLowerCase();
+            break;
+          case "overall_rating":
             aValue = parseFloat(a.overall_rating) || 0;
             bValue = parseFloat(b.overall_rating) || 0;
             break;
-          case 'last_updated':
+          case "last_updated":
             aValue = a.seconds_since_update || 0;
             bValue = b.seconds_since_update || 0;
             break;
@@ -525,8 +558,8 @@ class ApplicantsManager {
             return 0;
         }
 
-        if (aValue < bValue) return this.sortDirection === 'asc' ? -1 : 1;
-        if (aValue > bValue) return this.sortDirection === 'asc' ? 1 : -1;
+        if (aValue < bValue) return this.sortDirection === "asc" ? -1 : 1;
+        if (aValue > bValue) return this.sortDirection === "asc" ? 1 : -1;
         return 0;
       });
       this.displayApplicants(sorted);
@@ -535,15 +568,17 @@ class ApplicantsManager {
     }
   }
   getFilteredApplicants() {
-    const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+    const searchTerm = document
+      .getElementById("searchInput")
+      .value.toLowerCase();
     const filter = document.getElementById("searchFilter").value;
 
     let filtered = this.allApplicants;
 
     // Apply review status filter first
     if (this.reviewStatusFilter) {
-      filtered = filtered.filter((applicant) =>
-        applicant.review_status === this.reviewStatusFilter
+      filtered = filtered.filter(
+        (applicant) => applicant.review_status === this.reviewStatusFilter,
       );
     }
 
@@ -567,7 +602,7 @@ class ApplicantsManager {
   }
 
   getSortIcon(column) {
-    if (this.sortColumn == 'review_status'){
+    if (this.sortColumn == "review_status") {
       //Sort the applicants of review Status by review status.
     }
     if (this.sortColumn !== column) {
@@ -576,7 +611,7 @@ class ApplicantsManager {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
               </svg>`;
     }
-    if (this.sortDirection === 'asc') {
+    if (this.sortDirection === "asc") {
       // Active ascending - white
       return `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
@@ -635,10 +670,10 @@ class ApplicantsManager {
       document.body.appendChild(modal);
     }
     //Close the existing dropdown menu if open
-    const existingMenu = document.querySelector('.actions-dropdown');
+    const existingMenu = document.querySelector(".actions-dropdown");
     if (existingMenu) {
       if (existingMenu._closeListener) {
-        document.removeEventListener('click', existingMenu._closeListener);
+        document.removeEventListener("click", existingMenu._closeListener);
       }
       existingMenu.remove();
     }
@@ -646,12 +681,12 @@ class ApplicantsManager {
     // Update modal content
     document.getElementById("modalApplicantName").textContent = userName;
     document.getElementById("modalUserCode").textContent = Math.floor(
-      parseFloat(userCode)
+      parseFloat(userCode),
     );
 
     // Find the student number from the applicant data
     const applicant = this.allApplicants.find(
-      (app) => app.user_code === userCode
+      (app) => app.user_code === userCode,
     );
     const studentNumber =
       applicant &&
@@ -686,7 +721,7 @@ class ApplicantsManager {
     this.loadMyRating(userCode);
 
     // Load documents and update Open PDF section
-    if (typeof documentsManager !== 'undefined') {
+    if (typeof documentsManager !== "undefined") {
       documentsManager.loadDocuments(userCode).then(() => {
         this.updateOpenPdfSection();
       });
@@ -707,7 +742,6 @@ class ApplicantsManager {
 
     this.loadStatusHistory(userCode);
   }
-  
 
   createApplicantModal() {
     const modal = document.createElement("div");
@@ -1243,7 +1277,7 @@ class ApplicantsManager {
         modal.classList.remove("flex");
       }
     });
-    
+
     const savePrereqBtn = modal.querySelector("#saveAllPrerequisitesBtn");
     const clearPrereqBtn = modal.querySelector("#clearPrerequisitesBtn");
 
@@ -1300,21 +1334,23 @@ class ApplicantsManager {
    * Shows button(s) to open applicant's PDF documents
    */
   updateOpenPdfSection() {
-    const container = document.getElementById('openPdfButtonContainer');
-    const badge = document.getElementById('openPdfBadge');
+    const container = document.getElementById("openPdfButtonContainer");
+    const badge = document.getElementById("openPdfBadge");
 
     if (!container || !badge) return;
 
     // Get documents from documentsManager
-    const documents = (typeof documentsManager !== 'undefined' && documentsManager.documents)
-      ? documentsManager.documents
-      : [];
+    const documents =
+      typeof documentsManager !== "undefined" && documentsManager.documents
+        ? documentsManager.documents
+        : [];
 
     // Update badge count
     badge.textContent = documents.length;
 
     if (documents.length === 0) {
-      container.innerHTML = '<span class="text-sm text-gray-500">No documents</span>';
+      container.innerHTML =
+        '<span class="text-sm text-gray-500">No documents</span>';
     } else if (documents.length === 1) {
       // Single document - show direct open button
       const doc = documents[0];
@@ -1329,13 +1365,17 @@ class ApplicantsManager {
       `;
     } else {
       // Multiple documents - show dropdown
-      const dropdownItems = documents.map(doc => `
+      const dropdownItems = documents
+        .map(
+          (doc) => `
         <button onclick="documentsManager.openInNewTab(${doc.id}); document.getElementById('pdfDropdownMenu').classList.add('hidden');"
                 class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 truncate"
                 title="${doc.original_filename}">
           ${doc.original_filename}
         </button>
-      `).join('');
+      `,
+        )
+        .join("");
 
       container.innerHTML = `
         <div class="relative">
@@ -1363,7 +1403,7 @@ class ApplicantsManager {
 
       // Check if data is in cache and ready
       const cached = this.applicantCache.get(userCode);
-      if (cached && cached.status === 'ready' && cached.ratings) {
+      if (cached && cached.status === "ready" && cached.ratings) {
         result = cached.ratings;
       } else {
         // Fetch fresh data if not cached
@@ -1386,13 +1426,13 @@ class ApplicantsManager {
               </div>
               <div class="rating-user-details">
                 <p class="font-medium text-gray-900">${rating.first_name} ${
-              rating.last_name
-            }</p>
+                  rating.last_name
+                }</p>
                 <p class="text-sm text-gray-500">${rating.email}</p>
               </div>
               <div class="rating-score">
                 <span class="text-lg font-bold text-ubc-blue">${parseFloat(
-                  rating.rating
+                  rating.rating,
                 ).toFixed(2)}</span>
                 <span class="text-sm text-gray-500">/10.0</span>
               </div>
@@ -1409,7 +1449,7 @@ class ApplicantsManager {
                 : ""
             }
           </div>
-        `
+        `,
           )
           .join("");
       } else {
@@ -1431,31 +1471,39 @@ class ApplicantsManager {
   async loadPrerequisitesSummary(userCode) {
     try {
       let result;
-      
+
       // Check if data is in cache and ready
       const cached = this.applicantCache.get(userCode);
-      if (cached && cached.status === 'ready' && cached.applicationInfo) {
+      if (cached && cached.status === "ready" && cached.applicationInfo) {
         result = cached.applicationInfo;
       } else {
         // Fetch fresh data if not cached
-        const response = await fetch(`/api/applicant-application-info/${userCode}`);
+        const response = await fetch(
+          `/api/applicant-application-info/${userCode}`,
+        );
         result = await response.json();
       }
 
       if (result.success && result.application_info) {
         const appInfo = result.application_info;
-        document.getElementById("summaryGpa").textContent = appInfo.gpa || "Not Provided";
-        document.getElementById("summaryCs").textContent = appInfo.cs || "Not Provided";
-        document.getElementById("summaryStat").textContent = appInfo.stat || "Not Provided";
-        document.getElementById("summaryMath").textContent = appInfo.math || "Not Provided";
-        document.getElementById("summaryAdditionalComments").textContent = appInfo.additional_comments || "Not Provided";
+        document.getElementById("summaryGpa").textContent =
+          appInfo.gpa || "Not Provided";
+        document.getElementById("summaryCs").textContent =
+          appInfo.cs || "Not Provided";
+        document.getElementById("summaryStat").textContent =
+          appInfo.stat || "Not Provided";
+        document.getElementById("summaryMath").textContent =
+          appInfo.math || "Not Provided";
+        document.getElementById("summaryAdditionalComments").textContent =
+          appInfo.additional_comments || "Not Provided";
       } else {
         // Set all to "Not Provided" if no data
         document.getElementById("summaryGpa").textContent = "Not Provided";
         document.getElementById("summaryCs").textContent = "Not Provided";
         document.getElementById("summaryStat").textContent = "Not Provided";
         document.getElementById("summaryMath").textContent = "Not Provided";
-        document.getElementById("summaryAdditionalComments").textContent = "Not Provided";
+        document.getElementById("summaryAdditionalComments").textContent =
+          "Not Provided";
       }
     } catch (error) {
       console.error("Error loading prerequisites summary:", error);
@@ -1465,10 +1513,10 @@ class ApplicantsManager {
   async loadMyRating(userCode) {
     try {
       let result;
-      
+
       // Check if data is in cache and ready
       const cached = this.applicantCache.get(userCode);
-      if (cached && cached.status === 'ready' && cached.myRating) {
+      if (cached && cached.status === "ready" && cached.myRating) {
         result = cached.myRating;
       } else {
         // Fetch fresh data if not cached
@@ -1501,7 +1549,9 @@ class ApplicantsManager {
 
     const rating = document.getElementById("ratingInput").value.trim();
     const comment = document.getElementById("commentTextarea").value.trim();
-    const scholarship = document.querySelector('input[name="scholarship"]:checked').value;
+    const scholarship = document.querySelector(
+      'input[name="scholarship"]:checked',
+    ).value;
     const status = document.getElementById("ratingsStatusSelect").value;
 
     // Validate rating if provided
@@ -1514,7 +1564,10 @@ class ApplicantsManager {
 
       // Check decimal places
       if (Math.round(ratingFloat * 100) / 100 !== ratingFloat) {
-        this.showMessage("Rating can only have up to two decimal places", "error");
+        this.showMessage(
+          "Rating can only have up to two decimal places",
+          "error",
+        );
         return;
       }
     }
@@ -1540,34 +1593,46 @@ class ApplicantsManager {
 
         const ratingResult = await ratingResponse.json();
         if (!ratingResult.success) {
-          this.showMessage(ratingResult.message || "Failed to save rating/comment", "error");
+          this.showMessage(
+            ratingResult.message || "Failed to save rating/comment",
+            "error",
+          );
           return;
         }
       }
 
       // Save scholarship
-      const scholarshipResponse = await fetch(`/api/applicant-application-info/${userCode}/scholarship`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+      const scholarshipResponse = await fetch(
+        `/api/applicant-application-info/${userCode}/scholarship`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ scholarship }),
         },
-        body: JSON.stringify({ scholarship }),
-      });
+      );
 
       const scholarshipResult = await scholarshipResponse.json();
       if (!scholarshipResult.success) {
-        this.showMessage(scholarshipResult.message || "Failed to save scholarship", "error");
+        this.showMessage(
+          scholarshipResult.message || "Failed to save scholarship",
+          "error",
+        );
         return;
       }
 
       // Update status
-      const statusResponse = await fetch(`/api/applicant-application-info/${userCode}/status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+      const statusResponse = await fetch(
+        `/api/applicant-application-info/${userCode}/status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status }),
         },
-        body: JSON.stringify({ status }),
-      });
+      );
 
       const statusResult = await statusResponse.json();
 
@@ -1591,7 +1656,11 @@ class ApplicantsManager {
         await this.loadStatusHistory(userCode);
         await this.loadApplicants();
       } else {
-        this.showMessage("Rating and scholarship saved but failed to update status: " + (statusResult.message || "Unknown error"), "error");
+        this.showMessage(
+          "Rating and scholarship saved but failed to update status: " +
+            (statusResult.message || "Unknown error"),
+          "error",
+        );
       }
     } catch (error) {
       console.error("Error saving ratings information:", error);
@@ -1601,7 +1670,6 @@ class ApplicantsManager {
       saveBtn.textContent = originalText;
     }
   }
-
 
   clearRatingForm() {
     document.getElementById("ratingInput").value = "";
@@ -1616,7 +1684,7 @@ class ApplicantsManager {
     }
 
     // Mark as fetching to prevent duplicate requests
-    this.applicantCache.set(userCode, { status: 'fetching' });
+    this.applicantCache.set(userCode, { status: "fetching" });
 
     try {
       // Fetch all modal data in parallel for maximum speed
@@ -1626,14 +1694,14 @@ class ApplicantsManager {
         ratingsResponse,
         myRatingResponse,
         testScoresResponse,
-        institutionsResponse
+        institutionsResponse,
       ] = await Promise.all([
         fetch(`/api/applicant-info/${userCode}`),
         fetch(`/api/applicant-application-info/${userCode}`),
         fetch(`/api/ratings/${userCode}`),
         fetch(`/api/ratings/${userCode}/my-rating`),
         fetch(`/api/applicant-test-scores/${userCode}`),
-        fetch(`/api/applicant-institutions/${userCode}`)
+        fetch(`/api/applicant-institutions/${userCode}`),
       ]);
 
       const [
@@ -1642,30 +1710,30 @@ class ApplicantsManager {
         ratingsResult,
         myRatingResult,
         testScoresResult,
-        institutionsResult
+        institutionsResult,
       ] = await Promise.all([
         applicantResponse.json(),
         applicationInfoResponse.json(),
         ratingsResponse.json(),
         myRatingResponse.json(),
         testScoresResponse.json(),
-        institutionsResponse.json()
+        institutionsResponse.json(),
       ]);
 
       // Store all fetched data in cache
       this.applicantCache.set(userCode, {
-        status: 'ready',
+        status: "ready",
         applicantInfo: applicantResult,
         applicationInfo: applicationInfoResult,
         ratings: ratingsResult,
         myRating: myRatingResult,
         testScores: testScoresResult,
-        institutions: institutionsResult
+        institutions: institutionsResult,
       });
     } catch (error) {
       // Remove from cache on error so it can be retried
       this.applicantCache.delete(userCode);
-      console.error('Prefetch failed for applicant:', userCode, error);
+      console.error("Prefetch failed for applicant:", userCode, error);
     }
   }
 
@@ -1676,15 +1744,15 @@ class ApplicantsManager {
 
       // Check if data is in cache and ready
       const cached = this.applicantCache.get(userCode);
-      if (cached && cached.status === 'ready') {
+      if (cached && cached.status === "ready") {
         result = cached.applicantInfo;
         applicationInfoResult = cached.applicationInfo;
       } else {
         // Fetch fresh data if not cached
         const [applicantResponse, applicationInfoResponse] = await Promise.all([
           fetch(`/api/applicant-info/${userCode}`),
-          fetch(`/api/applicant-application-info/${userCode}`)
-        ]); 
+          fetch(`/api/applicant-application-info/${userCode}`),
+        ]);
         result = await applicantResponse.json();
         applicationInfoResult = await applicationInfoResponse.json();
       }
@@ -1717,24 +1785,26 @@ class ApplicantsManager {
                   ${this.renderInfoField("Middle Name", applicant.middle_name)}
                   ${this.renderInfoField(
                     "Preferred Name",
-                    applicant.preferred_name
+                    applicant.preferred_name,
                   )}
                   ${this.renderInfoField(
                     "Former Family Name",
-                    applicant.former_family_name
+                    applicant.former_family_name,
                   )}
                   ${this.renderInfoField(
                     "Date of Birth",
-                    applicant.date_birth ? this.formatDate(applicant.date_birth) : null
+                    applicant.date_birth
+                      ? this.formatDate(applicant.date_birth)
+                      : null,
                   )}
                   ${this.renderInfoField("Gender", applicant.gender)}
                   ${this.renderInfoField(
                     "Age",
-                    applicant.age ? `${applicant.age} years old` : null
+                    applicant.age ? `${applicant.age} years old` : null,
                   )}
                   ${this.renderInfoField(
                     "Racialized",
-                    this.formatYesNo(applicant.racialized)
+                    this.formatYesNo(applicant.racialized),
                   )}
                   ${this.renderInfoField("Email", applicant.email, "email")}
                 </div>
@@ -1752,28 +1822,28 @@ class ApplicantsManager {
                 <div class="space-y-3">
                   ${this.renderInfoField(
                     "Address Line 1",
-                    applicant.address_line1
+                    applicant.address_line1,
                   )}
                   ${this.renderInfoField(
                     "Address Line 2",
-                    applicant.address_line2
+                    applicant.address_line2,
                   )}
                   ${this.renderInfoField("City", applicant.city)}
                   ${this.renderInfoField(
                     "Province/State/Region",
-                    applicant.province_state_region
+                    applicant.province_state_region,
                   )}
                   ${this.renderInfoField("Postal Code", applicant.postal_code)}
                   ${this.renderInfoField("Country", applicant.country)}
                   ${this.renderInfoField(
                     "Primary Telephone",
                     applicant.primary_telephone,
-                    "phone"
+                    "phone",
                   )}
                   ${this.renderInfoField(
                     "Secondary Telephone",
                     applicant.secondary_telephone,
-                    "phone"
+                    "phone",
                   )}
                 </div>
               </div>
@@ -1789,15 +1859,15 @@ class ApplicantsManager {
                 <div class="space-y-3">
                   ${this.renderInfoField(
                     "Country of Birth",
-                    applicant.country_birth
+                    applicant.country_birth,
                   )}
                   ${this.renderInfoField(
                     "Country of Citizenship",
-                    applicant.country_citizenship
+                    applicant.country_citizenship,
                   )}
                   ${this.renderInfoField(
                     "Dual Citizenship",
-                    applicant.dual_citizenship
+                    applicant.dual_citizenship,
                   )}
                   ${this.renderInfoField(
                     "Canadian Citizen/Resident",
@@ -1805,15 +1875,15 @@ class ApplicantsManager {
                       ? applicationInfo.canadian
                         ? "Yes"
                         : "No"
-                      : "Not determined"
+                      : "Not determined",
                   )}
                   ${this.renderInfoField(
                     "Primary Spoken Language",
-                    applicant.primary_spoken_lang
+                    applicant.primary_spoken_lang,
                   )}
                   ${this.renderInfoField(
                     "Other Spoken Language",
-                    applicant.other_spoken_lang
+                    applicant.other_spoken_lang,
                   )}
                   ${this.renderInfoField("Visa Type", applicant.visa_type)}
                 </div>
@@ -1831,11 +1901,11 @@ class ApplicantsManager {
                   ${this.renderInfoField("Interest", applicant.interest)}
                   ${this.renderInfoField(
                     "Academic History",
-                    applicant.academic_history
+                    applicant.academic_history,
                   )}
                   ${this.renderInfoField(
                     "UBC Academic History",
-                    applicant.ubc_academic_history
+                    applicant.ubc_academic_history,
                   )}
                 </div>
               </div>
@@ -1854,23 +1924,23 @@ class ApplicantsManager {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   ${this.renderInfoField(
                     "Aboriginal",
-                    this.formatYesNo(applicant.aboriginal)
+                    this.formatYesNo(applicant.aboriginal),
                   )}
                   ${this.renderInfoField(
                     "First Nation",
-                    this.formatYesNo(applicant.first_nation)
+                    this.formatYesNo(applicant.first_nation),
                   )}
                   ${this.renderInfoField(
                     "Inuit",
-                    this.formatYesNo(applicant.inuit)
+                    this.formatYesNo(applicant.inuit),
                   )}
                   ${this.renderInfoField(
                     "Métis",
-                    this.formatYesNo(applicant.metis)
+                    this.formatYesNo(applicant.metis),
                   )}
                   ${this.renderInfoField(
                     "Aboriginal Not Specified",
-                    this.formatYesNo(applicant.aboriginal_not_specified)
+                    this.formatYesNo(applicant.aboriginal_not_specified),
                   )}
                   ${
                     applicant.aboriginal_info
@@ -1878,7 +1948,7 @@ class ApplicantsManager {
                   <div class="md:col-span-2">
                     ${this.renderInfoField(
                       "Aboriginal Info",
-                      applicant.aboriginal_info
+                      applicant.aboriginal_info,
                     )}
                   </div>
                   `
@@ -1920,21 +1990,30 @@ class ApplicantsManager {
     try {
       let result;
       let applicationInfo = null;
-      
+
       // Check if data is in cache and ready
       const cached = this.applicantCache.get(userCode);
-      if (cached && cached.status === 'ready' && cached.testScores && cached.applicationInfo) {
+      if (
+        cached &&
+        cached.status === "ready" &&
+        cached.testScores &&
+        cached.applicationInfo
+      ) {
         result = cached.testScores;
-        applicationInfo = cached.applicationInfo.success ? cached.applicationInfo.application_info : null;
+        applicationInfo = cached.applicationInfo.success
+          ? cached.applicationInfo.application_info
+          : null;
       } else {
         // Fetch fresh data if not cached
         const [testScoresResponse, englishStatusResponse] = await Promise.all([
           fetch(`/api/applicant-test-scores/${userCode}`),
-          fetch(`/api/applicant-application-info/${userCode}`)
+          fetch(`/api/applicant-application-info/${userCode}`),
         ]);
         result = await testScoresResponse.json();
         const englishStatusResult = await englishStatusResponse.json();
-        applicationInfo = englishStatusResult.success ? englishStatusResult.application_info : null;
+        applicationInfo = englishStatusResult.success
+          ? englishStatusResult.application_info
+          : null;
       }
 
       const container = document.getElementById("testScoresContainer");
@@ -2135,7 +2214,7 @@ class ApplicantsManager {
 
         //Setup English status preview and event handlers
         this.setupEnglishStatusPreview(
-          applicationInfo?.english_status || "Not Set"
+          applicationInfo?.english_status || "Not Set",
         );
         this.updateEnglishStatusFormPermissions();
         this.setupEnglishCommentHandlers();
@@ -2182,7 +2261,7 @@ class ApplicantsManager {
           ${this.renderScoreField("Registration #", score.registration_num)}
           ${this.renderScoreField(
             "Date Written",
-            this.formatDate(score.date_written)
+            this.formatDate(score.date_written),
           )}
           ${this.renderScoreField("Total Score", score.total_score, true)}
           <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
@@ -2199,7 +2278,7 @@ class ApplicantsManager {
               ${this.renderScoreField("MyBest Total", score.mybest_total, true)}
               ${this.renderScoreField(
                 "MyBest Date",
-                this.formatDate(score.mybest_date)
+                this.formatDate(score.mybest_date),
               )}
             </div>
           `
@@ -2207,7 +2286,7 @@ class ApplicantsManager {
           }
         </div>
       </div>
-    `
+    `,
       )
       .join("");
   }
@@ -2231,12 +2310,12 @@ class ApplicantsManager {
           ${this.renderScoreField("Candidate #", score.candidate_num)}
           ${this.renderScoreField(
             "Date Written",
-            this.formatDate(score.date_written)
+            this.formatDate(score.date_written),
           )}
           ${this.renderScoreField(
             "Total Band Score",
             score.total_band_score,
-            true
+            true,
           )}
           <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
             ${this.renderScoreField("Listening", score.listening)}
@@ -2246,7 +2325,7 @@ class ApplicantsManager {
           </div>
         </div>
       </div>
-    `
+    `,
       )
       .join("");
   }
@@ -2291,7 +2370,7 @@ class ApplicantsManager {
           ${this.renderScoreField("Reference #", score.ref_num)}
           ${this.renderScoreField(
             "Date Written",
-            this.formatDate(score.date_written)
+            this.formatDate(score.date_written),
           )}
           <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
             ${this.renderScoreField("Reading", score.reading)}
@@ -2316,7 +2395,7 @@ class ApplicantsManager {
           ${this.renderScoreField("Reference #", score.ref_num)}
           ${this.renderScoreField(
             "Date Written",
-            this.formatDate(score.date_written)
+            this.formatDate(score.date_written),
           )}
           <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
             ${this.renderScoreField("Listening", score.listening)}
@@ -2340,7 +2419,7 @@ class ApplicantsManager {
           ${this.renderScoreField("Reference #", score.ref_num)}
           ${this.renderScoreField(
             "Date Written",
-            this.formatDate(score.date_written)
+            this.formatDate(score.date_written),
           )}
           ${this.renderScoreField("Total Score", score.total, true)}
           ${this.renderScoreField("Test Type", score.test_type)}
@@ -2391,7 +2470,7 @@ class ApplicantsManager {
               score.date_written
                 ? this.renderScoreField(
                     "Date Written",
-                    this.formatDate(score.date_written)
+                    this.formatDate(score.date_written),
                   )
                 : ""
             }
@@ -2498,7 +2577,7 @@ class ApplicantsManager {
       const inputSection = document.getElementById("duolingoInputSection");
       const scoreInput = document.getElementById("duolingoScoreInput");
       const descriptionInput = document.getElementById(
-        "duolingoDescriptionInput"
+        "duolingoDescriptionInput",
       );
       const dateInput = document.getElementById("duolingoDateInput");
       const saveBtn = document.getElementById("saveDuolingoBtn");
@@ -2537,7 +2616,7 @@ class ApplicantsManager {
 
     const scoreInput = document.getElementById("duolingoScoreInput");
     const descriptionInput = document.getElementById(
-      "duolingoDescriptionInput"
+      "duolingoDescriptionInput",
     );
     const dateInput = document.getElementById("duolingoDateInput");
     const saveBtn = document.getElementById("saveDuolingoBtn");
@@ -2610,13 +2689,13 @@ class ApplicantsManager {
       } else {
         this.showMessage(
           result.message || "Failed to save Duolingo score",
-          "error"
+          "error",
         );
       }
     } catch (error) {
       this.showMessage(
         `Error saving Duolingo score: ${error.message}`,
-        "error"
+        "error",
       );
     } finally {
       saveBtn.disabled = false;
@@ -2636,13 +2715,13 @@ class ApplicantsManager {
           ${this.renderScoreField("Registration #", score.reg_num)}
           ${this.renderScoreField(
             "Date Written",
-            this.formatDate(score.date_written)
+            this.formatDate(score.date_written),
           )}
           <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
             ${this.renderScoreField("Verbal Reasoning", score.verbal)}
             ${this.renderScoreField(
               "Quantitative Reasoning",
-              score.quantitative
+              score.quantitative,
             )}
             ${this.renderScoreField("Analytical Writing", score.writing)}
           </div>
@@ -2656,7 +2735,7 @@ class ApplicantsManager {
                 score.verbal_below
                   ? this.renderScoreField(
                       "Verbal Reasoning % Below",
-                      score.verbal_below
+                      score.verbal_below,
                     )
                   : ""
               }
@@ -2664,7 +2743,7 @@ class ApplicantsManager {
                 score.quantitative_below
                   ? this.renderScoreField(
                       "Quantitative Reasoning % Below",
-                      score.quantitative_below
+                      score.quantitative_below,
                     )
                   : ""
               }
@@ -2672,7 +2751,7 @@ class ApplicantsManager {
                 score.writing_below
                   ? this.renderScoreField(
                       "Analytical Writing % Below",
-                      score.writing_below
+                      score.writing_below,
                     )
                   : ""
               }
@@ -2690,7 +2769,7 @@ class ApplicantsManager {
                 score.subject_scaled_score
                   ? this.renderScoreField(
                       "Subject Scaled Score",
-                      score.subject_scaled_score
+                      score.subject_scaled_score,
                     )
                   : ""
               }
@@ -2698,7 +2777,7 @@ class ApplicantsManager {
                 score.subject_below
                   ? this.renderScoreField(
                       "Subject % Below",
-                      score.subject_below
+                      score.subject_below,
                     )
                   : ""
               }
@@ -2723,7 +2802,7 @@ class ApplicantsManager {
           ${this.renderScoreField("Reference #", score.ref_num)}
           ${this.renderScoreField(
             "Date Written",
-            this.formatDate(score.date_written)
+            this.formatDate(score.date_written),
           )}
           ${this.renderScoreField("Total Score", score.total, true)}
           <div class="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
@@ -2731,7 +2810,7 @@ class ApplicantsManager {
             ${this.renderScoreField("Verbal", score.verbal)}
             ${this.renderScoreField(
               "Integrated Reasoning",
-              score.integrated_reasoning
+              score.integrated_reasoning,
             )}
             ${this.renderScoreField("Writing", score.writing)}
           </div>
@@ -2848,7 +2927,7 @@ class ApplicantsManager {
     // ymd is "yyyy-MM-dd"
     const today = new Date();
     const todayYMD = new Date(
-      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
     )
       .toISOString()
       .slice(0, 10);
@@ -2959,47 +3038,53 @@ class ApplicantsManager {
   }
 
   hasInstitutionData(institution) {
-  // Helper to check if a value is meaningful (not null, undefined, empty string, or placeholder)
-  const hasValue = (val) => {
-    if (val === null || val === undefined || val === '') return false;
-    // Treat "UNKNOWN" and similar placeholders as empty
-    if (typeof val === 'string' && val.toUpperCase() === 'UNKNOWN') return false;
-    return true;
-  };
-  
-  // Check if institution has any meaningful data besides institution_number
-  return (
-    hasValue(institution.full_name) ||
-    hasValue(institution.country) ||
-    hasValue(institution.start_date) ||
-    hasValue(institution.end_date) ||
-    hasValue(institution.program_study) ||
-    hasValue(institution.degree_confer) ||
-    hasValue(institution.credential_receive) ||
-    hasValue(institution.date_confer) ||
-    hasValue(institution.expected_confer_date) ||
-    hasValue(institution.honours) ||
-    hasValue(institution.gpa) ||
-    hasValue(institution.fail_withdraw) ||
-    hasValue(institution.reason)
-  );
-}
+    // Helper to check if a value is meaningful (not null, undefined, empty string, or placeholder)
+    const hasValue = (val) => {
+      if (val === null || val === undefined || val === "") return false;
+      // Treat "UNKNOWN" and similar placeholders as empty
+      if (typeof val === "string" && val.toUpperCase() === "UNKNOWN")
+        return false;
+      return true;
+    };
+
+    // Check if institution has any meaningful data besides institution_number
+    return (
+      hasValue(institution.full_name) ||
+      hasValue(institution.country) ||
+      hasValue(institution.start_date) ||
+      hasValue(institution.end_date) ||
+      hasValue(institution.program_study) ||
+      hasValue(institution.degree_confer) ||
+      hasValue(institution.credential_receive) ||
+      hasValue(institution.date_confer) ||
+      hasValue(institution.expected_confer_date) ||
+      hasValue(institution.honours) ||
+      hasValue(institution.gpa) ||
+      hasValue(institution.fail_withdraw) ||
+      hasValue(institution.reason)
+    );
+  }
 
   async loadInstitutionInfo(userCode) {
     try {
       let result;
       let applicantResult;
-      
+
       // Check if data is in cache and ready
       const cached = this.applicantCache.get(userCode);
-      if (cached && cached.status === 'ready' && cached.institutions && cached.applicantInfo) {
+      if (
+        cached &&
+        cached.status === "ready" &&
+        cached.institutions &&
+        cached.applicantInfo
+      ) {
         result = cached.institutions;
         applicantResult = cached.applicantInfo;
       } else {
         // Fetch fresh data if not cached
         const [institutionsResponse, applicantResponse] = await Promise.all([
           fetch(`/api/applicant-institutions/${userCode}`),
-          fetch(`/api/applicant-info/${userCode}`)
+          fetch(`/api/applicant-info/${userCode}`),
         ]);
         result = await institutionsResponse.json();
         applicantResult = await applicantResponse.json();
@@ -3012,7 +3097,6 @@ class ApplicantsManager {
         result.institutions &&
         result.institutions.length > 0
       ) {
-
         let ubcSection = "";
         if (applicantResult.success && applicantResult.applicant) {
           const applicant = applicantResult.applicant;
@@ -3047,8 +3131,8 @@ class ApplicantsManager {
                           ? `
                         <span class="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                           ${ubcRecords.length} record${
-                              ubcRecords.length !== 1 ? "s" : ""
-                            }
+                            ubcRecords.length !== 1 ? "s" : ""
+                          }
                         </span>
                       `
                           : ""
@@ -3105,7 +3189,7 @@ class ApplicantsManager {
             
             <div class="space-y-6">
               ${result.institutions
-                .filter(institution => this.hasInstitutionData(institution))
+                .filter((institution) => this.hasInstitutionData(institution))
                 .map(
                   (institution, index) => `
                 <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -3193,7 +3277,7 @@ class ApplicantsManager {
                       : ""
                   }
                 </div>
-              `
+              `,
                 )
                 .join("")}
             </div>
@@ -3203,7 +3287,7 @@ class ApplicantsManager {
       } else {
         // Even if no institution info, still show UBC section
         const applicantResponse = await fetch(
-          `/api/applicant-info/${userCode}`
+          `/api/applicant-info/${userCode}`,
         );
         const applicantResult = await applicantResponse.json();
 
@@ -3384,7 +3468,7 @@ class ApplicantsManager {
       if (result.success && result.institutions) {
         // Calculate highest degree from institutions data
         const academicSummary = this.calculateHighestDegreeFromInstitutions(
-          result.institutions
+          result.institutions,
         );
 
         // Update academic summary displays
@@ -3414,18 +3498,24 @@ class ApplicantsManager {
       // FIRST: Populate all status dropdowns with options from API
       await this.ensureStatusesLoaded();
       this.populateStatusDropdown(document.getElementById("statusSelect"));
-      this.populateStatusDropdown(document.getElementById("prereqStatusSelect"));
-      this.populateStatusDropdown(document.getElementById("ratingsStatusSelect"));
+      this.populateStatusDropdown(
+        document.getElementById("prereqStatusSelect"),
+      );
+      this.populateStatusDropdown(
+        document.getElementById("ratingsStatusSelect"),
+      );
 
       let result;
-      
+
       // Check if data is in cache and ready
       const cached = this.applicantCache.get(userCode);
-      if (cached && cached.status === 'ready' && cached.applicationInfo) {
+      if (cached && cached.status === "ready" && cached.applicationInfo) {
         result = cached.applicationInfo;
       } else {
         // Fetch fresh data if not cached
-        const response = await fetch(`/api/applicant-application-info/${userCode}`);
+        const response = await fetch(
+          `/api/applicant-application-info/${userCode}`,
+        );
         result = await response.json();
       }
 
@@ -3458,7 +3548,7 @@ class ApplicantsManager {
         // Add change listener for preview
         this.setupStatusPreview(currentStatus);
       }
-            // Also update the prerequisites tab status dropdown
+      // Also update the prerequisites tab status dropdown
       const prereqStatusSelect = document.getElementById("prereqStatusSelect");
       if (prereqStatusSelect && result.status) {
         prereqStatusSelect.value = result.status;
@@ -3472,10 +3562,14 @@ class ApplicantsManager {
     const statusButtons = document.getElementById("statusUpdateButtons");
     const statusSelect = document.getElementById("statusSelect");
     const statusChangeSection = document.getElementById("statusChangeSection");
-    
+
     // Also get the new status sections in prereq and ratings tabs
-    const prereqStatusSection = document.getElementById("prereqStatusChangeSection");
-    const ratingsStatusSection = document.getElementById("ratingsStatusChangeSection");
+    const prereqStatusSection = document.getElementById(
+      "prereqStatusChangeSection",
+    );
+    const ratingsStatusSection = document.getElementById(
+      "ratingsStatusChangeSection",
+    );
 
     // Check user role from auth
     fetch("/api/auth/check-session")
@@ -3564,7 +3658,7 @@ class ApplicantsManager {
           body: JSON.stringify({
             status: newStatus,
           }),
-        }
+        },
       );
 
       const result = await response.json();
@@ -3600,7 +3694,7 @@ class ApplicantsManager {
     const statusSelect = document.getElementById("statusSelect");
     const prereqStatusSelect = document.getElementById("prereqStatusSelect");
     const ratingsStatusSelect = document.getElementById("ratingsStatusSelect");
-    
+
     if (statusSelect) statusSelect.value = status;
     if (prereqStatusSelect) prereqStatusSelect.value = status;
     if (ratingsStatusSelect) ratingsStatusSelect.value = status;
@@ -3637,7 +3731,7 @@ class ApplicantsManager {
 
       // Admins: fetch status change logs for this specific applicant - limit to 5
       const response = await fetch(
-        `/api/logs?action_type=status_change&target_id=${userCode}&limit=5`
+        `/api/logs?action_type=status_change&target_id=${userCode}&limit=5`,
       );
       const result = await response.json();
 
@@ -3773,7 +3867,7 @@ class ApplicantsManager {
       case "Deferred":
         badge.classList.add("bg-red-100", "text-red-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-red-400";
-        break;  
+        break;
       default:
         badge.classList.add("bg-gray-100", "text-gray-800");
         dot.className = "w-2 h-2 rounded-full mr-2 bg-gray-400";
@@ -3783,14 +3877,16 @@ class ApplicantsManager {
   async loadPrerequisites(userCode) {
     try {
       let result;
-      
+
       // Check if data is in cache and ready
       const cached = this.applicantCache.get(userCode);
-      if (cached && cached.status === 'ready' && cached.applicationInfo) {
+      if (cached && cached.status === "ready" && cached.applicationInfo) {
         result = cached.applicationInfo;
       } else {
         // Fetch fresh data if not cached
-        const response = await fetch(`/api/applicant-application-info/${userCode}`);
+        const response = await fetch(
+          `/api/applicant-application-info/${userCode}`,
+        );
         result = await response.json();
       }
 
@@ -3799,7 +3895,8 @@ class ApplicantsManager {
         document.getElementById("prerequisiteCs").value = appInfo.cs || "";
         document.getElementById("prerequisiteStat").value = appInfo.stat || "";
         document.getElementById("prerequisiteMath").value = appInfo.math || "";
-        document.getElementById("additionalComments").value = appInfo.additional_comments || "";
+        document.getElementById("additionalComments").value =
+          appInfo.additional_comments || "";
         document.getElementById("overallGpa").value = appInfo.gpa || "";
 
         // Load MDS radio button values
@@ -3809,19 +3906,19 @@ class ApplicantsManager {
 
         // Set UBC-V radio buttons
         const mdsVRadios = document.querySelectorAll('input[name="mdsV"]');
-        mdsVRadios.forEach(radio => {
+        mdsVRadios.forEach((radio) => {
           radio.checked = radio.value === mdsV;
         });
 
         // Set UBC-O radio buttons
         const mdsORadios = document.querySelectorAll('input[name="mdsO"]');
-        mdsORadios.forEach(radio => {
+        mdsORadios.forEach((radio) => {
           radio.checked = radio.value === mdsO;
         });
 
         // Set UBC-CL radio buttons
         const mdsCLRadios = document.querySelectorAll('input[name="mdsCL"]');
-        mdsCLRadios.forEach(radio => {
+        mdsCLRadios.forEach((radio) => {
           radio.checked = radio.value === mdsCL;
         });
       }
@@ -3835,26 +3932,32 @@ class ApplicantsManager {
   async loadScholarship(userCode) {
     try {
       let result;
-      
+
       // Check if data is in cache and ready
       const cached = this.applicantCache.get(userCode);
-      if (cached && cached.status === 'ready' && cached.applicationInfo) {
+      if (cached && cached.status === "ready" && cached.applicationInfo) {
         result = cached.applicationInfo;
       } else {
         // Fetch fresh data if not cached
-        const response = await fetch(`/api/applicant-application-info/${userCode}`);
+        const response = await fetch(
+          `/api/applicant-application-info/${userCode}`,
+        );
         result = await response.json();
       }
 
       if (result.success && result.application_info) {
         const scholarship = result.application_info.scholarship || "Undecided";
-        const radioButton = document.querySelector(`input[name="scholarship"][value="${scholarship}"]`);
+        const radioButton = document.querySelector(
+          `input[name="scholarship"][value="${scholarship}"]`,
+        );
         if (radioButton) {
           radioButton.checked = true;
         }
       } else {
         // Default to Undecided
-        const undecidedRadio = document.querySelector('input[name="scholarship"][value="Undecided"]');
+        const undecidedRadio = document.querySelector(
+          'input[name="scholarship"][value="Undecided"]',
+        );
         if (undecidedRadio) {
           undecidedRadio.checked = true;
         }
@@ -3872,17 +3975,20 @@ class ApplicantsManager {
       const response = await fetch("/api/auth/check-session");
       const result = await response.json();
 
-      const scholarshipRadios = document.querySelectorAll('input[name="scholarship"]');
+      const scholarshipRadios = document.querySelectorAll(
+        'input[name="scholarship"]',
+      );
       const saveScholarshipBtn = document.getElementById("saveScholarshipBtn");
 
       if (result.authenticated && result.user) {
         if (result.user.role === "Admin") {
           // Admin can edit - enable all controls
-          scholarshipRadios.forEach(radio => radio.disabled = false);
-          if (saveScholarshipBtn) saveScholarshipBtn.style.display = "inline-block";
+          scholarshipRadios.forEach((radio) => (radio.disabled = false));
+          if (saveScholarshipBtn)
+            saveScholarshipBtn.style.display = "inline-block";
         } else {
           // Faculty and Viewer can only view - disable all controls
-          scholarshipRadios.forEach(radio => radio.disabled = true);
+          scholarshipRadios.forEach((radio) => (radio.disabled = true));
           if (saveScholarshipBtn) saveScholarshipBtn.style.display = "none";
         }
       }
@@ -3898,16 +4004,17 @@ class ApplicantsManager {
 
       // Get all the elements we need to control
       const savePrerequisitesBtn = document.getElementById(
-        "savePrerequisitesBtn"
+        "savePrerequisitesBtn",
       );
       const clearPrerequisitesBtn = document.getElementById(
-        "clearPrerequisitesBtn"
+        "clearPrerequisitesBtn",
       );
       const saveGpaBtn = document.getElementById("saveGpaBtn");
       const csInput = document.getElementById("prerequisiteCs");
       const statInput = document.getElementById("prerequisiteStat");
       const mathInput = document.getElementById("prerequisiteMath");
-      const additionalCommentsInput = document.getElementById("additionalComments");
+      const additionalCommentsInput =
+        document.getElementById("additionalComments");
       const gpaInput = document.getElementById("overallGpa");
 
       if (result.authenticated && result.user?.role === "Admin") {
@@ -3954,7 +4061,10 @@ class ApplicantsManager {
         }
         if (additionalCommentsInput) {
           additionalCommentsInput.disabled = true;
-          if (!additionalCommentsInput.value || additionalCommentsInput.value.trim() === "") {
+          if (
+            !additionalCommentsInput.value ||
+            additionalCommentsInput.value.trim() === ""
+          ) {
             additionalCommentsInput.placeholder = "Not Provided";
           }
         }
@@ -3983,7 +4093,7 @@ class ApplicantsManager {
         "bg-green-100",
         "text-green-800",
         "bg-red-100",
-        "text-red-800"
+        "text-red-800",
       );
 
       // Add appropriate classes based on success/error
@@ -4008,14 +4118,18 @@ class ApplicantsManager {
     const cs = document.getElementById("prerequisiteCs").value;
     const stat = document.getElementById("prerequisiteStat").value;
     const math = document.getElementById("prerequisiteMath").value;
-    const additionalComments = document.getElementById("additionalComments").value;
+    const additionalComments =
+      document.getElementById("additionalComments").value;
     const gpa = document.getElementById("overallGpa").value;
     const status = document.getElementById("prereqStatusSelect").value;
 
     // Get MDS radio button values
-    const mdsV = document.querySelector('input[name="mdsV"]:checked')?.value || "No";
-    const mdsO = document.querySelector('input[name="mdsO"]:checked')?.value || "Yes";
-    const mdsCL = document.querySelector('input[name="mdsCL"]:checked')?.value || "No";
+    const mdsV =
+      document.querySelector('input[name="mdsV"]:checked')?.value || "No";
+    const mdsO =
+      document.querySelector('input[name="mdsO"]:checked')?.value || "Yes";
+    const mdsCL =
+      document.querySelector('input[name="mdsCL"]:checked')?.value || "No";
 
     const saveBtn = document.getElementById("saveAllPrerequisitesBtn");
     const originalText = saveBtn.textContent;
@@ -4031,8 +4145,17 @@ class ApplicantsManager {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ cs, stat, math, gpa, additional_comments: additionalComments, mds_v: mdsV, mds_cl: mdsCL, mds_o: mdsO }),
-        }
+          body: JSON.stringify({
+            cs,
+            stat,
+            math,
+            gpa,
+            additional_comments: additionalComments,
+            mds_v: mdsV,
+            mds_cl: mdsCL,
+            mds_o: mdsO,
+          }),
+        },
       );
 
       const prereqResult = await prereqResponse.json();
@@ -4040,31 +4163,34 @@ class ApplicantsManager {
       if (!prereqResult.success) {
         this.showPrerequisitesFeedback(
           prereqResult.message || "Failed to save prerequisites",
-          false
+          false,
         );
         return;
       }
 
       // Update status
-      const statusResponse = await fetch(`/api/applicant-application-info/${userCode}/status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+      const statusResponse = await fetch(
+        `/api/applicant-application-info/${userCode}/status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status }),
         },
-        body: JSON.stringify({ status }),
-      });
+      );
 
       const statusResult = await statusResponse.json();
 
       if (statusResult.success) {
         this.showPrerequisitesFeedback(
           "All prerequisites and status saved successfully",
-          true
+          true,
         );
-        
+
         // Clear cache to force fresh data
         this.applicantCache.delete(userCode);
-        
+
         // Update the status tab label
         const statusTabLabel = document.getElementById("statusTabLabel");
         if (statusTabLabel) {
@@ -4083,16 +4209,14 @@ class ApplicantsManager {
         await this.loadApplicants();
       } else {
         this.showPrerequisitesFeedback(
-          "Prerequisites saved but failed to update status: " + (statusResult.message || "Unknown error"),
-          false
+          "Prerequisites saved but failed to update status: " +
+            (statusResult.message || "Unknown error"),
+          false,
         );
       }
     } catch (error) {
       console.error("Error saving prerequisites:", error);
-      this.showPrerequisitesFeedback(
-        "Error saving prerequisites",
-        false
-      );
+      this.showPrerequisitesFeedback("Error saving prerequisites", false);
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
@@ -4117,9 +4241,8 @@ class ApplicantsManager {
         document.getElementById("overallGpa").value = "";
       }
       // Faculty and Viewers: don't clear GPA field
-      
+
       // Don't touch the status dropdown - it should remain as selected
-      
     } catch (error) {
       console.error("Error checking user permissions:", error);
       // If error checking permissions, don't clear GPA to be safe
@@ -4130,7 +4253,7 @@ class ApplicantsManager {
     const statusSelect = document.getElementById("statusSelect");
     const statusPreview = document.getElementById("statusPreview");
     const currentStatusPreview = document.getElementById(
-      "currentStatusPreview"
+      "currentStatusPreview",
     );
     const newStatusPreview = document.getElementById("newStatusPreview");
     const updateBtn = document.getElementById("updateStatusBtn");
@@ -4138,7 +4261,7 @@ class ApplicantsManager {
     // Clear any existing event listeners without cloning
     statusSelect.removeEventListener(
       "change",
-      statusSelect._statusChangeHandler
+      statusSelect._statusChangeHandler,
     );
 
     // Create new handler and store reference
@@ -4263,7 +4386,7 @@ class ApplicantsManager {
 
       // Sort by record number
       return records.sort(
-        (a, b) => (a.recordNumber || 0) - (b.recordNumber || 0)
+        (a, b) => (a.recordNumber || 0) - (b.recordNumber || 0),
       );
     } catch (error) {
       console.error("Error parsing UBC academic history:", error);
@@ -4401,7 +4524,7 @@ class ApplicantsManager {
             : ""
         }
       </div>
-    `
+    `,
       )
       .join("");
   }
@@ -4446,7 +4569,7 @@ class ApplicantsManager {
     const statusSelect = document.getElementById("englishStatusSelect");
     const statusPreview = document.getElementById("englishStatusPreview");
     const currentStatusPreview = document.getElementById(
-      "currentEnglishStatusPreview"
+      "currentEnglishStatusPreview",
     );
     const newStatusPreview = document.getElementById("newEnglishStatusPreview");
     const updateBtn = document.getElementById("updateEnglishStatusBtn");
@@ -4464,7 +4587,7 @@ class ApplicantsManager {
     // Clear any existing event listeners
     statusSelect.removeEventListener(
       "change",
-      statusSelect._englishStatusChangeHandler
+      statusSelect._englishStatusChangeHandler,
     );
 
     // Create new handler and store reference
@@ -4501,7 +4624,7 @@ class ApplicantsManager {
       const cancelBtn = document.getElementById("cancelEnglishStatusBtn");
       const statusSelect = document.getElementById("englishStatusSelect");
       const englishStatusChangeSection = document.getElementById(
-        "englishStatusChangeSection"
+        "englishStatusChangeSection",
       );
 
       if (result.authenticated && result.user?.role === "Admin") {
@@ -4524,7 +4647,7 @@ class ApplicantsManager {
     } catch (error) {
       console.error(
         "Error checking user permissions for English status:",
-        error
+        error,
       );
     }
   }
@@ -4551,8 +4674,7 @@ class ApplicantsManager {
         // Faculty and Viewers can only view English comments
         if (textarea) {
           textarea.disabled = true;
-          textarea.placeholder =
-            "N/A";
+          textarea.placeholder = "N/A";
         }
         if (saveBtn) saveBtn.style.display = "none";
         if (clearBtn) clearBtn.style.display = "none";
@@ -4560,7 +4682,7 @@ class ApplicantsManager {
     } catch (error) {
       console.error(
         "Error checking user permissions for English comments:",
-        error
+        error,
       );
     }
   }
@@ -4640,7 +4762,7 @@ class ApplicantsManager {
           body: JSON.stringify({
             english_comment: comment,
           }),
-        }
+        },
       );
 
       const result = await response.json();
@@ -4650,13 +4772,13 @@ class ApplicantsManager {
       } else {
         this.showMessage(
           result.message || "Failed to save English comment",
-          "error"
+          "error",
         );
       }
     } catch (error) {
       this.showMessage(
         `Error saving English comment: ${error.message}`,
-        "error"
+        "error",
       );
     } finally {
       saveBtn.disabled = false;
@@ -4693,7 +4815,7 @@ class ApplicantsManager {
           body: JSON.stringify({
             english_status: newStatus,
           }),
-        }
+        },
       );
 
       const result = await response.json();
@@ -4719,13 +4841,13 @@ class ApplicantsManager {
       } else {
         this.showMessage(
           result.message || "Failed to update English status",
-          "error"
+          "error",
         );
       }
     } catch (error) {
       this.showMessage(
         `Error updating English status: ${error.message}`,
-        "error"
+        "error",
       );
     } finally {
       updateBtn.disabled = false;
@@ -4733,14 +4855,14 @@ class ApplicantsManager {
     }
   }
 
-async initializeExportButton() {
+  async initializeExportButton() {
     try {
       const response = await fetch("/api/auth/check-session");
       const result = await response.json();
 
       if (result.authenticated && result.user) {
         //Verify the user, assingmnet aswell
-        this.currentUser = result.user;        
+        this.currentUser = result.user;
       }
     } catch (error) {
       console.error("Error checking user permissions:", error);
@@ -4748,21 +4870,21 @@ async initializeExportButton() {
   }
 
   toggleAllApplicants(checked) {
-    const checkboxes = document.querySelectorAll('.applicant-checkbox');
-    checkboxes.forEach(cb => {
+    const checkboxes = document.querySelectorAll(".applicant-checkbox");
+    checkboxes.forEach((cb) => {
       cb.checked = checked;
       this.toggleApplicantSelection(cb.dataset.userCode, checked);
     });
   }
 
   updateBulkExportButton() {
-    const bulkExportBtn = document.getElementById('bulkExportBtn');
+    const bulkExportBtn = document.getElementById("bulkExportBtn");
     const count = this.selectedApplicants.size;
 
     if (bulkExportBtn) {
       if (count > 0) {
-        bulkExportBtn.classList.remove('hidden');
-        bulkExportBtn.classList.add('flex');
+        bulkExportBtn.classList.remove("hidden");
+        bulkExportBtn.classList.add("flex");
         bulkExportBtn.innerHTML = `
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -4771,15 +4893,15 @@ async initializeExportButton() {
           Export Selected (${count})
         `;
       } else {
-        bulkExportBtn.classList.add('hidden');
-        bulkExportBtn.classList.remove('flex');
+        bulkExportBtn.classList.add("hidden");
+        bulkExportBtn.classList.remove("flex");
       }
     }
   }
 
   async exportSelectedApplicants() {
     if (this.selectedApplicants.size === 0) {
-      this.showMessage('No applicants selected', 'error');
+      this.showMessage("No applicants selected", "error");
       return;
     }
 
@@ -4788,35 +4910,37 @@ async initializeExportButton() {
   }
 
   showBulkExportOptionsModal() {
-    let modal = document.getElementById('sharedExportOptionsModal');
+    let modal = document.getElementById("sharedExportOptionsModal");
     if (!modal) {
       modal = this.createSharedExportOptionsModal();
       document.body.appendChild(modal);
     }
 
     // Update modal text
-    document.getElementById('exportModalTitle').textContent = 'Export Selected Applicants';
-    document.getElementById('exportModalDescription').textContent = 
+    document.getElementById("exportModalTitle").textContent =
+      "Export Selected Applicants";
+    document.getElementById("exportModalDescription").textContent =
       `Exporting ${this.selectedApplicants.size} applicants. Select data columns to include:`;
 
     // Remove old click handler and add new one
-    const confirmBtn = modal.querySelector('#confirmExportBtn');
+    const confirmBtn = modal.querySelector("#confirmExportBtn");
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-    
-    newConfirmBtn.addEventListener('click', () => {
+
+    newConfirmBtn.addEventListener("click", () => {
       this.executeBulkExport();
     });
 
     // Show modal
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
   }
 
   createSharedExportOptionsModal() {
-    const modal = document.createElement('div');
-    modal.id = 'sharedExportOptionsModal';
-    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50';
+    const modal = document.createElement("div");
+    modal.id = "sharedExportOptionsModal";
+    modal.className =
+      "fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50";
 
     modal.innerHTML = `
       <div class="mx-auto p-6 border w-11/12 max-w-md shadow-lg rounded-lg bg-white">
@@ -4864,8 +4988,8 @@ async initializeExportButton() {
     `;
 
     // Add event listeners
-    modal.querySelectorAll('.export-modal-close').forEach(btn => {
-      btn.addEventListener('click', () => this.closeExportModal());
+    modal.querySelectorAll(".export-modal-close").forEach((btn) => {
+      btn.addEventListener("click", () => this.closeExportModal());
     });
 
     return modal;
@@ -4873,58 +4997,61 @@ async initializeExportButton() {
 
   showExportOptionsModal(userCode, userName) {
     // Close the actions dropdown first
-    const existingActionsMenu = document.querySelector('.actions-dropdown');
+    const existingActionsMenu = document.querySelector(".actions-dropdown");
     if (existingActionsMenu) {
       existingActionsMenu.remove();
     }
 
     // Rest of your existing code...
-    let modal = document.getElementById('sharedExportOptionsModal');
+    let modal = document.getElementById("sharedExportOptionsModal");
     if (!modal) {
       modal = this.createSharedExportOptionsModal();
       document.body.appendChild(modal);
     }
 
     modal.dataset.userCode = userCode;
-    document.getElementById('exportModalTitle').textContent = 'Export Options';
-    document.getElementById('exportModalDescription').textContent = `Exporting data for: ${userName}`;
+    document.getElementById("exportModalTitle").textContent = "Export Options";
+    document.getElementById("exportModalDescription").textContent =
+      `Exporting data for: ${userName}`;
 
-    const confirmBtn = modal.querySelector('#confirmExportBtn');
+    const confirmBtn = modal.querySelector("#confirmExportBtn");
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-    
-    newConfirmBtn.addEventListener('click', () => {
+
+    newConfirmBtn.addEventListener("click", () => {
       this.exportSingleApplicant();
     });
 
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
   }
 
   closeExportModal() {
-    const modal = document.getElementById('sharedExportOptionsModal');
+    const modal = document.getElementById("sharedExportOptionsModal");
     if (modal) {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
     }
   }
 
   getSelectedExportSections() {
-    const checkboxes = document.querySelectorAll('.export-section-checkbox:checked');
-    return Array.from(checkboxes).map(cb => cb.value);
+    const checkboxes = document.querySelectorAll(
+      ".export-section-checkbox:checked",
+    );
+    return Array.from(checkboxes).map((cb) => cb.value);
   }
 
   async executeBulkExport() {
     const sections = this.getSelectedExportSections();
 
     if (sections.length === 0) {
-      this.showMessage('Please select at least one section to export', 'error');
+      this.showMessage("Please select at least one section to export", "error");
       return;
     }
 
-    const confirmBtn = document.querySelector('#confirmExportBtn');
+    const confirmBtn = document.querySelector("#confirmExportBtn");
     const originalHTML = confirmBtn.innerHTML;
-    
+
     confirmBtn.disabled = true;
     confirmBtn.innerHTML = `
       <svg class="w-5 h-5 animate-spin mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4934,24 +5061,24 @@ async initializeExportButton() {
     `;
 
     try {
-      const response = await fetch('/api/export/selected', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const response = await fetch("/api/export/selected", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           user_codes: Array.from(this.selectedApplicants),
-          sections: sections
-        })
+          sections: sections,
+        }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Export failed');
+        throw new Error(error.message || "Export failed");
       }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       const dateStr = new Date().toISOString().slice(0, 10);
       a.download = `selected_applicants_${this.selectedApplicants.size}_${dateStr}.xlsx`;
@@ -4960,34 +5087,38 @@ async initializeExportButton() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      this.showMessage(`Successfully exported ${this.selectedApplicants.size} applicants`, 'success');
-      
+      this.showMessage(
+        `Successfully exported ${this.selectedApplicants.size} applicants`,
+        "success",
+      );
+
       this.closeExportModal();
       this.selectedApplicants.clear();
-      document.querySelectorAll('.applicant-checkbox').forEach(cb => cb.checked = false);
-      const selectAllCb = document.getElementById('selectAllCheckbox');
-      if(selectAllCb) selectAllCb.checked = false;
+      document
+        .querySelectorAll(".applicant-checkbox")
+        .forEach((cb) => (cb.checked = false));
+      const selectAllCb = document.getElementById("selectAllCheckbox");
+      if (selectAllCb) selectAllCb.checked = false;
       this.updateBulkExportButton();
-
     } catch (error) {
-      console.error('Export error:', error);
-      this.showMessage(`Failed to export: ${error.message}`, 'error');
+      console.error("Export error:", error);
+      this.showMessage(`Failed to export: ${error.message}`, "error");
     } finally {
       confirmBtn.disabled = false;
       confirmBtn.innerHTML = originalHTML;
     }
   }
   async exportSingleApplicant() {
-    const modal = document.getElementById('sharedExportOptionsModal');
+    const modal = document.getElementById("sharedExportOptionsModal");
     const userCode = modal.dataset.userCode;
     const sections = this.getSelectedExportSections();
 
     if (sections.length === 0) {
-      this.showMessage('Please select at least one section to export', 'error');
+      this.showMessage("Please select at least one section to export", "error");
       return;
     }
 
-    const confirmBtn = modal.querySelector('#confirmExportBtn');
+    const confirmBtn = modal.querySelector("#confirmExportBtn");
     const originalHTML = confirmBtn.innerHTML;
 
     confirmBtn.disabled = true;
@@ -5000,34 +5131,33 @@ async initializeExportButton() {
 
     try {
       const response = await fetch(`/api/export/single/${userCode}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ sections })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ sections }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Export failed');
+        throw new Error(error.message || "Export failed");
       }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       const dateStr = new Date().toISOString().slice(0, 10);
-      a.download = `applicant_${userCode}_${sections.join('_')}_${dateStr}.csv`;
+      a.download = `applicant_${userCode}_${sections.join("_")}_${dateStr}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      this.showMessage('Successfully exported applicant data', 'success');
+      this.showMessage("Successfully exported applicant data", "success");
       this.closeExportModal();
-
     } catch (error) {
-      console.error('Export error:', error);
-      this.showMessage(`Failed to export: ${error.message}`, 'error');
+      console.error("Export error:", error);
+      this.showMessage(`Failed to export: ${error.message}`, "error");
     } finally {
       confirmBtn.disabled = false;
       confirmBtn.innerHTML = originalHTML;
@@ -5059,12 +5189,13 @@ async initializeExportButton() {
     const searchInput = document.getElementById("searchInput");
     const isSearching = searchInput && searchInput.value.trim() !== "";
     const isFiltering = this.reviewStatusFilter !== "";
-    const resultText = (isSearching || isFiltering)
-      ? `<div class="mb-4 text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg">
+    const resultText =
+      isSearching || isFiltering
+        ? `<div class="mb-4 text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg">
          Showing <span class="font-semibold">${applicants.length}</span> of <span class="font-semibold">${this.allApplicants.length}</span> applicants
          ${isFiltering ? `<span class="ml-2">(filtered by: <strong>${this.reviewStatusFilter}</strong>)</span>` : ""}
        </div>`
-      : "";
+        : "";
 
     const table = `
     ${resultText}
@@ -5075,19 +5206,19 @@ async initializeExportButton() {
             <th style="width: 20%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('applicant')">
               <div class="flex items-center justify-between">
                 <span>Applicant</span>
-                ${this.getSortIcon('applicant')}
+                ${this.getSortIcon("applicant")}
               </div>
             </th>
             <th style="width: 13%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('status')">
               <div class="flex items-center justify-center gap-2">
                 <span>Application Status</span>
-                ${this.getSortIcon('status')}
+                ${this.getSortIcon("status")}
               </div>
             </th>
             <th style="width: 11%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('submit_date')">
               <div class="flex items-center justify-center gap-2">
                 <span>Submit Date</span>
-                ${this.getSortIcon('submit_date')}
+                ${this.getSortIcon("submit_date")}
               </div>
             </th>
             <th style="width: 12%; position: relative;">
@@ -5099,30 +5230,34 @@ async initializeExportButton() {
                   style="max-width: 140px;" 
                 >
                   <option value="" ${this.reviewStatusFilter === "" ? "selected" : ""}>All Statuses</option>
-                  ${(this.statusOptions || []).map(status => 
-                    `<option value="${status.status_name}" ${this.reviewStatusFilter === status.status_name ? "selected" : ""}>${status.status_name}</option>`
-                  ).join('')}
+                  ${(this.statusOptions || [])
+                    .map(
+                      (status) =>
+                        `<option value="${status.status_name}" ${this.reviewStatusFilter === status.status_name ? "selected" : ""}>${status.status_name}</option>`,
+                    )
+                    .join("")}
                 </select>
               </div>
             </th>
             <th style="width: 10%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('overall_rating')">
               <div class="flex items-center justify-center gap-2">
                 <span>Overall Rating</span>
-                ${this.getSortIcon('overall_rating')}
+                ${this.getSortIcon("overall_rating")}
               </div>
             </th>
             <th style="width: 10%; cursor: pointer;" onclick="window.applicantsManager.sortApplicants('last_updated')">
               <div class="flex items-center justify-center gap-2">
                 <span>Last Updated</span>
-                ${this.getSortIcon('last_updated')}
+                ${this.getSortIcon("last_updated")}
               </div>
             </th>
             <th style="width: 6%;">View</th>
           </tr>
         </thead>
         <tbody>
-          ${applicants.length === 0
-            ? `<tr>
+          ${
+            applicants.length === 0
+              ? `<tr>
                 <td colspan="7" class="text-center py-8">
                   <div class="text-gray-500">
                     <h3 class="text-lg font-medium text-gray-900 mb-2">No results found</h3>
@@ -5130,12 +5265,12 @@ async initializeExportButton() {
                   </div>
                 </td>
               </tr>`
-            : applicants
-            .map(
-              (applicant) => `
+              : applicants
+                  .map(
+                    (applicant) => `
               <tr class="applicant-row-clickable" style="cursor: pointer;"
                   onmouseenter="window.applicantsManager.prefetchApplicantInfo('${applicant.user_code}')"
-                  onclick="window.applicantsManager.showApplicantModal('${applicant.user_code}', '${(applicant.given_name + ' ' + applicant.family_name).replace(/'/g, "\\'")}')">
+                  onclick="window.applicantsManager.showApplicantModal('${applicant.user_code}', '${(applicant.given_name + " " + applicant.family_name).replace(/'/g, "\\'")}')">
                 <td>
                   <div class="applicant-card">
                     <div class="applicant-avatar">
@@ -5145,7 +5280,8 @@ async initializeExportButton() {
                       <h3>${applicant.given_name} ${applicant.family_name}</h3>
                       <p>User Code: ${Math.floor(parseFloat(applicant.user_code))}</p>
                       <p>Student #: ${
-                        applicant.student_number && applicant.student_number !== "NaN"
+                        applicant.student_number &&
+                        applicant.student_number !== "NaN"
                           ? Math.floor(parseFloat(applicant.student_number))
                           : "N/A"
                       }</p>
@@ -5158,7 +5294,9 @@ async initializeExportButton() {
                 <td>
                   ${
                     applicant.submit_date
-                      ? `<div class="date-display">${new Date(applicant.submit_date).toLocaleDateString("en-US", {
+                      ? `<div class="date-display">${new Date(
+                          applicant.submit_date,
+                        ).toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
@@ -5172,7 +5310,7 @@ async initializeExportButton() {
                     ${
                       applicant.review_status_updated_at
                         ? `<span class="text-xs text-gray-500">Updated: ${new Date(
-                            applicant.review_status_updated_at
+                            applicant.review_status_updated_at,
                           ).toLocaleDateString()}</span>`
                         : ""
                     }
@@ -5198,9 +5336,9 @@ async initializeExportButton() {
                   </div>
                 </td>
               </tr>
-            `
-            )
-            .join("")
+            `,
+                  )
+                  .join("")
           }
         </tbody>
       </table>
@@ -5215,14 +5353,15 @@ async initializeExportButton() {
     event.stopPropagation();
 
     // Remove any existing menu
-    const existingMenu = document.querySelector('.actions-dropdown');
+    const existingMenu = document.querySelector(".actions-dropdown");
     if (existingMenu) {
       existingMenu.remove();
     }
-  
+
     // Create dropdown menu
-    const menu = document.createElement('div');
-    menu.className = 'actions-dropdown absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50';
+    const menu = document.createElement("div");
+    menu.className =
+      "actions-dropdown absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50";
     menu.innerHTML = `
     <button class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150 flex items-center gap-2 rounded-lg"
             onclick="window.applicantsManager.showApplicantModal('${userCode}', '${userName.replace(/'/g, "\\'")}')">
@@ -5237,7 +5376,7 @@ async initializeExportButton() {
     // Position menu relative to button
     const button = event.currentTarget;
     const rect = button.getBoundingClientRect();
-    menu.style.position = 'fixed';
+    menu.style.position = "fixed";
     menu.style.top = `${rect.bottom + 5}px`;
     menu.style.left = `${rect.left - 150}px`; // Offset to the left
 
@@ -5247,184 +5386,188 @@ async initializeExportButton() {
     const closeMenu = (e) => {
       if (!menu.contains(e.target) && e.target !== button) {
         menu.remove();
-        document.removeEventListener('click', closeMenu);
+        document.removeEventListener("click", closeMenu);
       }
     };
     //document.getElementById('applicantsContainer').classList.toggle("showing-dropdown");
-    setTimeout(() => document.addEventListener('click', closeMenu), 10);
+    setTimeout(() => document.addEventListener("click", closeMenu), 10);
   }
-  
+
   initializeClearDataButton() {
-  const clearBtn = document.getElementById('clearAllDataBtn');
-  if (clearBtn) {
-    clearBtn.addEventListener('click', () => this.confirmClearAllData());
-  }
-
-  const cancelBtn = document.getElementById('cancelClearBtn');
-  if (cancelBtn) {
-    cancelBtn.addEventListener('click', () => this.closeConfirmModal());
-  }
-
-  const confirmBtn = document.getElementById('confirmClearBtn');
-  if (confirmBtn) {
-    confirmBtn.addEventListener('click', () => this.executeClearAllData());
-  }
-}
-
-confirmClearAllData() {
-  document.getElementById('confirmModal').classList.remove('hidden');
-}
-
-closeConfirmModal() {
-  document.getElementById('confirmModal').classList.add('hidden');
-}
-
-async executeClearAllData() {
-  const confirmBtn = document.getElementById('confirmClearBtn');
-  const originalText = confirmBtn.textContent;
-  
-  confirmBtn.disabled = true;
-  confirmBtn.textContent = 'Deleting...';
-  
-  try {
-    const response = await fetch('/api/clear-all-data', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      this.closeConfirmModal();
-      this.showClearDataMessage(result.message, 'success');
-      
-      // Reload the applicants list to show empty state
-      setTimeout(() => {
-        this.loadApplicants();
-      }, 1000);
-    } else {
-      this.closeConfirmModal();
-      this.showClearDataMessage(result.message, 'error');
+    const clearBtn = document.getElementById("clearAllDataBtn");
+    if (clearBtn) {
+      clearBtn.addEventListener("click", () => this.confirmClearAllData());
     }
-  } catch (error) {
-    this.closeConfirmModal();
-    this.showClearDataMessage(`Error: ${error.message}`, 'error');
-  } finally {
-    confirmBtn.disabled = false;
-    confirmBtn.textContent = originalText;
+
+    const cancelBtn = document.getElementById("cancelClearBtn");
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", () => this.closeConfirmModal());
+    }
+
+    const confirmBtn = document.getElementById("confirmClearBtn");
+    if (confirmBtn) {
+      confirmBtn.addEventListener("click", () => this.executeClearAllData());
+    }
   }
-}
 
-showClearDataMessage(text, type) {
-  const messageDiv = document.getElementById('clearDataMessage');
-  if (!messageDiv) return;
-  
-  messageDiv.textContent = text;
-  messageDiv.className = `mt-4 p-4 rounded-md ${
-    type === 'success' 
-      ? 'bg-green-100 text-green-700' 
-      : 'bg-red-100 text-red-700'
-  }`;
-  messageDiv.classList.remove('hidden');
-  
-  setTimeout(() => {
-    messageDiv.classList.add('hidden');
-  }, 5000);
-}
-
-openUploadModal() {
-  document.getElementById('uploadModal').classList.remove('hidden');
-}
-
-closeUploadModal() {
-  document.getElementById('uploadModal').classList.add('hidden');
-  // Reset file input
-  const fileInput = document.getElementById('fileInput');
-  const fileStatus = document.getElementById('fileStatus');
-  const uploadBtn = document.getElementById('uploadBtn');
-  const message = document.getElementById('message');
-  
-  if (fileInput) fileInput.value = '';
-  if (fileStatus) fileStatus.textContent = 'No file chosen';
-  if (uploadBtn) uploadBtn.disabled = true;
-  if (message) message.classList.add('hidden');
-}
-
-checkExportModalFlag() {
-  // Check if we should open the export modal (e.g., redirected from another page)
-  const shouldOpenExport = localStorage.getItem('openExportModal');
-  if (shouldOpenExport === 'true') {
-    localStorage.removeItem('openExportModal');
-    // Wait a bit for data to load before opening modal
-    setTimeout(() => {
-      this.showGlobalExportModal();
-    }, 500);
+  confirmClearAllData() {
+    document.getElementById("confirmModal").classList.remove("hidden");
   }
-}
 
-showGlobalExportModal() {
-  // Create a temporary set to track selected applicants for this modal
-  const tempSelectedApplicants = new Set();
-  // Store applicants for search/sort functionality
-  this.currentExportApplicants = [];
-  this.currentExportSortBy = 'name'; // 'name' or 'status'
+  closeConfirmModal() {
+    document.getElementById("confirmModal").classList.add("hidden");
+  }
 
-  // Call the existing backend API with selected applicants
-  const exportFunction = async (selectedCodes, sections) => {
+  async executeClearAllData() {
+    const confirmBtn = document.getElementById("confirmClearBtn");
+    const originalText = confirmBtn.textContent;
+
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = "Deleting...";
+
     try {
-      const response = await fetch('/api/export/selected', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          user_codes: selectedCodes,
-          sections: sections
-        })
+      const response = await fetch("/api/clear-all-data", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Export failed');
+      const result = await response.json();
+
+      if (result.success) {
+        this.closeConfirmModal();
+        this.showClearDataMessage(result.message, "success");
+
+        // Reload the applicants list to show empty state
+        setTimeout(() => {
+          this.loadApplicants();
+        }, 1000);
+      } else {
+        this.closeConfirmModal();
+        this.showClearDataMessage(result.message, "error");
       }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const dateStr = new Date().toISOString().slice(0, 10);
-      a.download = `applicants_export_${selectedCodes.length}_${dateStr}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-
-      this.showMessage(`Successfully exported ${selectedCodes.length} applicant(s)`, 'success');
-      return true;
     } catch (error) {
-      console.error('Export error:', error);
-      this.showMessage(`Failed to export: ${error.message}`, 'error');
-      return false;
+      this.closeConfirmModal();
+      this.showClearDataMessage(`Error: ${error.message}`, "error");
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = originalText;
     }
-  };
-
-  // Reuse the existing modal structure but add applicant selection
-  this.createGlobalExportModal(tempSelectedApplicants, exportFunction);
-}
-
-createGlobalExportModal(tempSelectedApplicants, exportFunction) {
-  // Remove existing modal if present
-  const existingModal = document.getElementById('globalExportModal');
-  if (existingModal) {
-    existingModal.remove();
   }
 
-  const modal = document.createElement('div');
-  modal.id = 'globalExportModal';
-  modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50';
+  showClearDataMessage(text, type) {
+    const messageDiv = document.getElementById("clearDataMessage");
+    if (!messageDiv) return;
 
-  modal.innerHTML = `
+    messageDiv.textContent = text;
+    messageDiv.className = `mt-4 p-4 rounded-md ${
+      type === "success"
+        ? "bg-green-100 text-green-700"
+        : "bg-red-100 text-red-700"
+    }`;
+    messageDiv.classList.remove("hidden");
+
+    setTimeout(() => {
+      messageDiv.classList.add("hidden");
+    }, 5000);
+  }
+
+  openUploadModal() {
+    document.getElementById("uploadModal").classList.remove("hidden");
+  }
+
+  closeUploadModal() {
+    document.getElementById("uploadModal").classList.add("hidden");
+    // Reset file input
+    const fileInput = document.getElementById("fileInput");
+    const fileStatus = document.getElementById("fileStatus");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const message = document.getElementById("message");
+
+    if (fileInput) fileInput.value = "";
+    if (fileStatus) fileStatus.textContent = "No file chosen";
+    if (uploadBtn) uploadBtn.disabled = true;
+    if (message) message.classList.add("hidden");
+  }
+
+  checkExportModalFlag() {
+    // Check if we should open the export modal (e.g., redirected from another page)
+    const shouldOpenExport = localStorage.getItem("openExportModal");
+    if (shouldOpenExport === "true") {
+      localStorage.removeItem("openExportModal");
+      // Wait a bit for data to load before opening modal
+      setTimeout(() => {
+        this.showGlobalExportModal();
+      }, 500);
+    }
+  }
+
+  showGlobalExportModal() {
+    // Create a temporary set to track selected applicants for this modal
+    const tempSelectedApplicants = new Set();
+    // Store applicants for search/sort functionality
+    this.currentExportApplicants = [];
+    this.currentExportSortBy = "name"; // 'name' or 'status'
+
+    // Call the existing backend API with selected applicants
+    const exportFunction = async (selectedCodes, sections) => {
+      try {
+        const response = await fetch("/api/export/selected", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            user_codes: selectedCodes,
+            sections: sections,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Export failed");
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const dateStr = new Date().toISOString().slice(0, 10);
+        a.download = `applicants_export_${selectedCodes.length}_${dateStr}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        this.showMessage(
+          `Successfully exported ${selectedCodes.length} applicant(s)`,
+          "success",
+        );
+        return true;
+      } catch (error) {
+        console.error("Export error:", error);
+        this.showMessage(`Failed to export: ${error.message}`, "error");
+        return false;
+      }
+    };
+
+    // Reuse the existing modal structure but add applicant selection
+    this.createGlobalExportModal(tempSelectedApplicants, exportFunction);
+  }
+
+  createGlobalExportModal(tempSelectedApplicants, exportFunction) {
+    // Remove existing modal if present
+    const existingModal = document.getElementById("globalExportModal");
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    const modal = document.createElement("div");
+    modal.id = "globalExportModal";
+    modal.className =
+      "fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50";
+
+    modal.innerHTML = `
     <div class="mx-auto p-6 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between pb-4 border-b border-gray-200">
         <h3 class="text-xl font-semibold text-gray-900">Export Applicant Data</h3>
@@ -5499,280 +5642,322 @@ createGlobalExportModal(tempSelectedApplicants, exportFunction) {
     </div>
   `;
 
-  document.body.appendChild(modal);
+    document.body.appendChild(modal);
 
-  // Setup event listeners
-  const closeButtons = modal.querySelectorAll('.global-export-modal-close');
-  closeButtons.forEach(btn => {
-    btn.addEventListener('click', () => modal.remove());
-  });
+    // Setup event listeners
+    const closeButtons = modal.querySelectorAll(".global-export-modal-close");
+    closeButtons.forEach((btn) => {
+      btn.addEventListener("click", () => modal.remove());
+    });
 
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.remove();
-  });
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) modal.remove();
+    });
 
-  // Load and render applicants
-  // Show loading state
-  const container = document.getElementById('globalExportApplicantsList');
-  if (container) {
-    container.innerHTML = '<div class="p-4 text-center text-gray-500">Loading applicants...</div>';
+    // Load and render applicants
+    // Show loading state
+    const container = document.getElementById("globalExportApplicantsList");
+    if (container) {
+      container.innerHTML =
+        '<div class="p-4 text-center text-gray-500">Loading applicants...</div>';
+    }
+
+    // Load applicants from API if needed
+    this.loadApplicantsForGlobalExport(tempSelectedApplicants);
+
+    // Export All button
+    document
+      .getElementById("exportAllBtn")
+      .addEventListener("click", async () => {
+        await this.exportAllApplicantsAllData();
+      });
+
+    // Search functionality
+    document
+      .getElementById("globalExportSearch")
+      .addEventListener("input", (e) => {
+        this.filterAndSortExportApplicants(tempSelectedApplicants);
+      });
+
+    // Sort functionality
+    document
+      .getElementById("globalExportSort")
+      .addEventListener("change", (e) => {
+        this.currentExportSortBy = e.target.value;
+        this.filterAndSortExportApplicants(tempSelectedApplicants);
+      });
+
+    // Select all / Clear all
+    document.getElementById("globalSelectAll").addEventListener("click", () => {
+      document.querySelectorAll(".global-applicant-checkbox").forEach((cb) => {
+        cb.checked = true;
+        tempSelectedApplicants.add(cb.value);
+      });
+      this.updateGlobalExportCount(tempSelectedApplicants);
+    });
+
+    document.getElementById("globalClearAll").addEventListener("click", () => {
+      document.querySelectorAll(".global-applicant-checkbox").forEach((cb) => {
+        cb.checked = false;
+      });
+      tempSelectedApplicants.clear();
+      this.updateGlobalExportCount(tempSelectedApplicants);
+    });
+
+    // Export for Marketing button
+    document
+      .getElementById("globalConfirmExport")
+      .addEventListener("click", async () => {
+        if (tempSelectedApplicants.size === 0) {
+          this.showMessage("Please select at least one applicant", "error");
+          return;
+        }
+
+        const success = await exportFunction(
+          Array.from(tempSelectedApplicants),
+          ["personal", "application", "education"],
+        );
+        if (success) {
+          modal.remove();
+        }
+      });
   }
 
-  // Load applicants from API if needed
-  this.loadApplicantsForGlobalExport(tempSelectedApplicants);
+  renderGlobalExportApplicants(applicants, tempSelectedApplicants) {
+    const container = document.getElementById("globalExportApplicantsList");
+    if (!container) return;
 
-  // Export All button
-  document.getElementById('exportAllBtn').addEventListener('click', async () => {
-    await this.exportAllApplicantsAllData();
-  });
-
-  // Search functionality
-  document.getElementById('globalExportSearch').addEventListener('input', (e) => {
-    this.filterAndSortExportApplicants(tempSelectedApplicants);
-  });
-
-  // Sort functionality
-  document.getElementById('globalExportSort').addEventListener('change', (e) => {
-    this.currentExportSortBy = e.target.value;
-    this.filterAndSortExportApplicants(tempSelectedApplicants);
-  });
-
-  // Select all / Clear all
-  document.getElementById('globalSelectAll').addEventListener('click', () => {
-    document.querySelectorAll('.global-applicant-checkbox').forEach(cb => {
-      cb.checked = true;
-      tempSelectedApplicants.add(cb.value);
-    });
-    this.updateGlobalExportCount(tempSelectedApplicants);
-  });
-
-  document.getElementById('globalClearAll').addEventListener('click', () => {
-    document.querySelectorAll('.global-applicant-checkbox').forEach(cb => {
-      cb.checked = false;
-    });
-    tempSelectedApplicants.clear();
-    this.updateGlobalExportCount(tempSelectedApplicants);
-  });
-
-  // Export for Marketing button
-  document.getElementById('globalConfirmExport').addEventListener('click', async () => {
-    if (tempSelectedApplicants.size === 0) {
-      this.showMessage('Please select at least one applicant', 'error');
+    if (applicants.length === 0) {
+      container.innerHTML =
+        '<div class="p-4 text-center text-gray-500">No applicants found</div>';
       return;
     }
 
-    const success = await exportFunction(Array.from(tempSelectedApplicants), ['personal', 'application', 'education']);
-    if (success) {
-      modal.remove();
-    }
-  });
-}
+    container.innerHTML = applicants
+      .map((applicant) => {
+        const isChecked = tempSelectedApplicants.has(applicant.user_code);
+        // Capitalize names properly
+        const capitalizeName = (name) => {
+          if (!name) return "";
+          return name
+            .split(" ")
+            .map(
+              (word) =>
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+            )
+            .join(" ");
+        };
+        const givenName = capitalizeName(applicant.given_name);
+        const familyName = capitalizeName(applicant.family_name);
+        const fullName = `${givenName} ${familyName}`.trim() || "N/A";
 
-renderGlobalExportApplicants(applicants, tempSelectedApplicants) {
-  const container = document.getElementById('globalExportApplicantsList');
-  if (!container) return;
-
-  if (applicants.length === 0) {
-    container.innerHTML = '<div class="p-4 text-center text-gray-500">No applicants found</div>';
-    return;
-  }
-
-  container.innerHTML = applicants.map(applicant => {
-    const isChecked = tempSelectedApplicants.has(applicant.user_code);
-    // Capitalize names properly
-    const capitalizeName = (name) => {
-      if (!name) return '';
-      return name.split(' ').map(word =>
-        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-      ).join(' ');
-    };
-    const givenName = capitalizeName(applicant.given_name);
-    const familyName = capitalizeName(applicant.family_name);
-    const fullName = `${givenName} ${familyName}`.trim() || 'N/A';
-
-    return `
+        return `
       <label class="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-200 last:border-b-0">
         <input
           type="checkbox"
           class="global-applicant-checkbox w-4 h-4 text-blue-600 mr-3"
           value="${applicant.user_code}"
-          ${isChecked ? 'checked' : ''}
+          ${isChecked ? "checked" : ""}
         />
         <div class="flex-1">
           <div class="font-medium text-gray-900">${fullName}</div>
           <div class="text-sm text-gray-500">${applicant.user_code}</div>
         </div>
         <div class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
-          ${applicant.review_status || 'Not Reviewed'}
+          ${applicant.review_status || "Not Reviewed"}
         </div>
       </label>
     `;
-  }).join('');
+      })
+      .join("");
 
-  // Add change listeners
-  container.querySelectorAll('.global-applicant-checkbox').forEach(checkbox => {
-    checkbox.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        tempSelectedApplicants.add(e.target.value);
-      } else {
-        tempSelectedApplicants.delete(e.target.value);
-      }
-      this.updateGlobalExportCount(tempSelectedApplicants);
-    });
-  });
+    // Add change listeners
+    container
+      .querySelectorAll(".global-applicant-checkbox")
+      .forEach((checkbox) => {
+        checkbox.addEventListener("change", (e) => {
+          if (e.target.checked) {
+            tempSelectedApplicants.add(e.target.value);
+          } else {
+            tempSelectedApplicants.delete(e.target.value);
+          }
+          this.updateGlobalExportCount(tempSelectedApplicants);
+        });
+      });
 
-  this.updateGlobalExportCount(tempSelectedApplicants);
-}
-
-updateGlobalExportCount(tempSelectedApplicants) {
-  const countElement = document.getElementById('globalSelectedCount');
-  if (countElement) {
-    countElement.textContent = tempSelectedApplicants.size;
+    this.updateGlobalExportCount(tempSelectedApplicants);
   }
-}
 
-async loadApplicantsForGlobalExport(tempSelectedApplicants) {
-  try {
-    // Use existing allApplicants if available, otherwise fetch
-    if (this.allApplicants && this.allApplicants.length > 0) {
-      this.currentExportApplicants = this.allApplicants;
-      this.filterAndSortExportApplicants(tempSelectedApplicants);
-    } else {
-      // Fetch applicants from API with session filter
-      const sessionId = window.SessionStore ? SessionStore.getCurrentSessionId() : null;
-      const url = sessionId ? `/api/applicants?session_id=${sessionId}` : '/api/applicants';
-      const response = await fetch(url);
-      const result = await response.json();
+  updateGlobalExportCount(tempSelectedApplicants) {
+    const countElement = document.getElementById("globalSelectedCount");
+    if (countElement) {
+      countElement.textContent = tempSelectedApplicants.size;
+    }
+  }
 
-      if (result.success && result.applicants) {
-        this.currentExportApplicants = result.applicants;
+  async loadApplicantsForGlobalExport(tempSelectedApplicants) {
+    try {
+      // Use existing allApplicants if available, otherwise fetch
+      if (this.allApplicants && this.allApplicants.length > 0) {
+        this.currentExportApplicants = this.allApplicants;
         this.filterAndSortExportApplicants(tempSelectedApplicants);
       } else {
-        const container = document.getElementById('globalExportApplicantsList');
-        if (container) {
-          container.innerHTML = '<div class="p-4 text-center text-gray-500">No applicants found</div>';
+        // Fetch applicants from API with session filter
+        const sessionId = window.SessionStore
+          ? SessionStore.getCurrentSessionId()
+          : null;
+        const url = sessionId
+          ? `/api/applicants?session_id=${sessionId}`
+          : "/api/applicants";
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (result.success && result.applicants) {
+          this.currentExportApplicants = result.applicants;
+          this.filterAndSortExportApplicants(tempSelectedApplicants);
+        } else {
+          const container = document.getElementById(
+            "globalExportApplicantsList",
+          );
+          if (container) {
+            container.innerHTML =
+              '<div class="p-4 text-center text-gray-500">No applicants found</div>';
+          }
         }
       }
-    }
-  } catch (error) {
-    console.error('Error loading applicants:', error);
-    const container = document.getElementById('globalExportApplicantsList');
-    if (container) {
-      container.innerHTML = '<div class="p-4 text-center text-red-500">Error loading applicants</div>';
+    } catch (error) {
+      console.error("Error loading applicants:", error);
+      const container = document.getElementById("globalExportApplicantsList");
+      if (container) {
+        container.innerHTML =
+          '<div class="p-4 text-center text-red-500">Error loading applicants</div>';
+      }
     }
   }
-}
 
-filterAndSortExportApplicants(tempSelectedApplicants) {
-  if (!this.currentExportApplicants || this.currentExportApplicants.length === 0) return;
+  filterAndSortExportApplicants(tempSelectedApplicants) {
+    if (
+      !this.currentExportApplicants ||
+      this.currentExportApplicants.length === 0
+    )
+      return;
 
-  const searchTerm = document.getElementById('globalExportSearch')?.value.toLowerCase() || '';
+    const searchTerm =
+      document.getElementById("globalExportSearch")?.value.toLowerCase() || "";
 
-  // Filter applicants
-  let filtered = this.currentExportApplicants.filter(app => {
-    const fullName = `${app.given_name || ''} ${app.family_name || ''}`.toLowerCase();
-    return fullName.includes(searchTerm) ||
-           (app.user_code || '').toLowerCase().includes(searchTerm);
-  });
+    // Filter applicants
+    let filtered = this.currentExportApplicants.filter((app) => {
+      const fullName =
+        `${app.given_name || ""} ${app.family_name || ""}`.toLowerCase();
+      return (
+        fullName.includes(searchTerm) ||
+        (app.user_code || "").toLowerCase().includes(searchTerm)
+      );
+    });
 
-  // Sort applicants
-  const sortBy = this.currentExportSortBy || 'name';
-  filtered.sort((a, b) => {
-    if (sortBy === 'name') {
-      const nameA = `${a.family_name || ''} ${a.given_name || ''}`.trim().toLowerCase();
-      const nameB = `${b.family_name || ''} ${b.given_name || ''}`.trim().toLowerCase();
-      return nameA.localeCompare(nameB);
-    } else if (sortBy === 'status') {
-      const statusA = (a.review_status || 'Not Reviewed').toLowerCase();
-      const statusB = (b.review_status || 'Not Reviewed').toLowerCase();
-      return statusA.localeCompare(statusB);
-    } else if (sortBy === 'code') {
-      const codeA = a.user_code || '';
-      const codeB = b.user_code || '';
-      return codeA.localeCompare(codeB);
-    }
-    return 0;
-  });
+    // Sort applicants
+    const sortBy = this.currentExportSortBy || "name";
+    filtered.sort((a, b) => {
+      if (sortBy === "name") {
+        const nameA = `${a.family_name || ""} ${a.given_name || ""}`
+          .trim()
+          .toLowerCase();
+        const nameB = `${b.family_name || ""} ${b.given_name || ""}`
+          .trim()
+          .toLowerCase();
+        return nameA.localeCompare(nameB);
+      } else if (sortBy === "status") {
+        const statusA = (a.review_status || "Not Reviewed").toLowerCase();
+        const statusB = (b.review_status || "Not Reviewed").toLowerCase();
+        return statusA.localeCompare(statusB);
+      } else if (sortBy === "code") {
+        const codeA = a.user_code || "";
+        const codeB = b.user_code || "";
+        return codeA.localeCompare(codeB);
+      }
+      return 0;
+    });
 
-  this.renderGlobalExportApplicants(filtered, tempSelectedApplicants);
-}
+    this.renderGlobalExportApplicants(filtered, tempSelectedApplicants);
+  }
 
-async exportAllApplicantsAllData() {
-  const btn = document.getElementById('exportAllBtn');
-  const originalHTML = btn ? btn.innerHTML : '';
+  async exportAllApplicantsAllData() {
+    const btn = document.getElementById("exportAllBtn");
+    const originalHTML = btn ? btn.innerHTML : "";
 
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = `
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `
       <svg class="w-5 h-5 animate-spin mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
       </svg>
     `;
-  }
+    }
 
-  try {
-    // Call the dedicated export all endpoint (GET request - no body needed)
-    const response = await fetch('/api/export/all', {
-      method: 'GET',
-      credentials: 'include'
-    });
+    try {
+      // Call the dedicated export all endpoint (GET request - no body needed)
+      const response = await fetch("/api/export/all", {
+        method: "GET",
+        credentials: "include",
+      });
 
-    if (!response.ok) {
-      // Try to parse error message
-      let errorMessage = 'Export failed';
-      try {
-        const error = await response.json();
-        errorMessage = error.message || errorMessage;
-      } catch (e) {
-        // Response might not be JSON
-        errorMessage = response.statusText || errorMessage;
+      if (!response.ok) {
+        // Try to parse error message
+        let errorMessage = "Export failed";
+        try {
+          const error = await response.json();
+          errorMessage = error.message || errorMessage;
+        } catch (e) {
+          // Response might not be JSON
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
-      throw new Error(errorMessage);
-    }
 
-    // Get the CSV blob from response
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
+      // Get the CSV blob from response
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
 
-    // Extract filename from Content-Disposition header if available
-    const contentDisposition = response.headers.get('Content-Disposition');
-    let filename = `complete_database_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      // Extract filename from Content-Disposition header if available
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = `complete_database_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
-    if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
-      if (filenameMatch) {
-        filename = filenameMatch[1];
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      // Close the modal after successful export
+      const modal = document.getElementById("globalExportModal");
+      if (modal) {
+        modal.remove();
+      }
+
+      this.showMessage(
+        "Successfully exported complete database with all applicant data",
+        "success",
+      );
+    } catch (error) {
+      console.error("Export error:", error);
+      this.showMessage(`Failed to export: ${error.message}`, "error");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
       }
     }
-
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-
-    // Close the modal after successful export
-    const modal = document.getElementById('globalExportModal');
-    if (modal) {
-      modal.remove();
-    }
-
-    this.showMessage('Successfully exported complete database with all applicant data', 'success');
-
-  } catch (error) {
-    console.error('Export error:', error);
-    this.showMessage(`Failed to export: ${error.message}`, 'error');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = originalHTML;
-    }
   }
-}
-
 }
 
 new ApplicantsManager();

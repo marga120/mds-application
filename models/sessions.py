@@ -9,6 +9,43 @@ session archival, and applicant count aggregation. Supports multi-campus deploym
 from utils.db_helpers import db_connection, db_transaction
 
 
+def find_session_by_abbrev(program_code: str, session_abbrev: str, campus: str | None = None):
+    """
+    Find a non-archived session by program_code and session_abbrev.
+
+    @param program_code: Program code to match (case-insensitive, whitespace-trimmed)
+    @param session_abbrev: Session abbreviation to match (case-insensitive, whitespace-trimmed)
+    @param campus: If provided, restrict to this campus (case-insensitive). None = no restriction.
+
+    @return: Tuple of (session_dict, None) or (None, error_message)
+
+    @db_tables: sessions
+    """
+    try:
+        with db_connection() as (conn, cursor):
+            query = """
+                SELECT id, program_code, program, session_abbrev, year, name, campus
+                FROM sessions
+                WHERE UPPER(TRIM(program_code)) = %s
+                  AND UPPER(TRIM(session_abbrev)) = %s
+                  AND is_archived = FALSE
+            """
+            params = [program_code.strip().upper(), session_abbrev.strip().upper()]
+
+            if campus is not None:
+                query += " AND UPPER(TRIM(campus)) = %s"
+                params.append(campus.strip().upper())
+
+            cursor.execute(query, params)
+            result = cursor.fetchone()
+
+        if result:
+            return dict(result), None
+        return None, "Session not found"
+    except Exception as e:
+        return None, f"Database error: {str(e)}"
+
+
 def get_session_name():
     """
     Get the session name from the single session record.
