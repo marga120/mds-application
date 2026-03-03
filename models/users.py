@@ -6,7 +6,7 @@ from flask_login import UserMixin
 class User(UserMixin):
     """Flask-Login user model. Keep this class — required by Flask-Login."""
 
-    def __init__(self, id, first_name, last_name, email, password_hash, role_user_id, role_name=None):
+    def __init__(self, id, first_name, last_name, email, password_hash, role_user_id, role_name=None, campus=None, program=None):
         self.id = id
         self.first_name = first_name
         self.last_name = last_name
@@ -14,14 +14,20 @@ class User(UserMixin):
         self.password_hash = password_hash
         self.role_user_id = role_user_id
         self.role_name = role_name
+        self.campus = campus
+        self.program = program
 
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
 
     @property
+    def is_super_admin(self):
+        return self.role_name == "Super Admin"
+
+    @property
     def is_admin(self):
-        return self.role_name == "Admin"
+        return self.role_name in ("Admin", "Super Admin")
 
     @property
     def is_faculty(self):
@@ -47,7 +53,8 @@ def hash_password(password):
 
 _USER_SELECT = """
     SELECT u.id, u.first_name, u.last_name, u.email, u.password,
-           u.role_user_id, r.name AS role_name, u.created_at, u.updated_at
+           u.role_user_id, r.name AS role_name, u.campus, u.program,
+           u.created_at, u.updated_at
     FROM "user" u
     JOIN role_user r ON u.role_user_id = r.id
 """
@@ -64,6 +71,8 @@ def _to_user(row):
         password_hash=row["password"],
         role_user_id=row["role_user_id"],
         role_name=row["role_name"],
+        campus=row.get("campus"),
+        program=row.get("program"),
     )
 
 
@@ -79,6 +88,8 @@ def _to_dict(row):
         "role_id": row["role_user_id"],
         "role_user_id": row["role_user_id"],
         "role_name": row.get("role_name"),
+        "campus": row.get("campus"),
+        "program": row.get("program"),
         "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
         "updated_at": row["updated_at"].isoformat() if row.get("updated_at") else None,
     }
@@ -87,6 +98,17 @@ def _to_dict(row):
 # ---------------------------------------------------------------------------
 # SQL functions — data access only
 # ---------------------------------------------------------------------------
+
+def get_role_by_id(role_id):
+    """Return {id, name} dict for a role, or None."""
+    try:
+        with db_connection() as (conn, cursor):
+            cursor.execute("SELECT id, name FROM role_user WHERE id = %s", (role_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+    except Exception:
+        return None
+
 
 def authenticate_user(email, password):
     """Return User object if credentials valid, else None."""
@@ -148,7 +170,7 @@ def get_all_users(search_query=None):
         with db_connection() as (conn, cursor):
             sql = """
                 SELECT u.id, u.first_name, u.last_name, u.email, u.role_user_id,
-                       r.name AS role_name, u.created_at, u.updated_at
+                       r.name AS role_name, u.campus, u.program, u.created_at, u.updated_at
                 FROM "user" u
                 JOIN role_user r ON u.role_user_id = r.id
             """
@@ -164,17 +186,18 @@ def get_all_users(search_query=None):
         return []
 
 
-def create_user(email, password_hash, first_name, last_name, role_id):
+def create_user(email, password_hash, first_name, last_name, role_id, campus=None, program=None):
     """INSERT new user. Returns created user dict."""
     with db_transaction() as (conn, cursor):
         cursor.execute(
             """
             INSERT INTO "user" (first_name, last_name, email, password, role_user_id,
-                                created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-            RETURNING id, first_name, last_name, email, role_user_id, created_at, updated_at
+                                campus, program, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            RETURNING id, first_name, last_name, email, role_user_id, campus, program,
+                      created_at, updated_at
             """,
-            (first_name, last_name, email, password_hash, role_id),
+            (first_name, last_name, email, password_hash, role_id, campus, program),
         )
         row = cursor.fetchone()
         return {
@@ -185,24 +208,26 @@ def create_user(email, password_hash, first_name, last_name, role_id):
             "email": row["email"],
             "role_id": row["role_user_id"],
             "role_user_id": row["role_user_id"],
+            "campus": row.get("campus"),
+            "program": row.get("program"),
             "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
         }
 
 
-def update_user(user_id, email, first_name, last_name, role_id, password_hash=None):
+def update_user(user_id, email, first_name, last_name, role_id, password_hash=None, campus=None, program=None):
     """UPDATE user fields. Returns updated user dict."""
     with db_transaction() as (conn, cursor):
         if password_hash:
             cursor.execute(
                 'UPDATE "user" SET first_name=%s, last_name=%s, email=%s, role_user_id=%s, '
-                "password=%s, updated_at=CURRENT_TIMESTAMP WHERE id=%s",
-                (first_name, last_name, email, role_id, password_hash, user_id),
+                "password=%s, campus=%s, program=%s, updated_at=CURRENT_TIMESTAMP WHERE id=%s",
+                (first_name, last_name, email, role_id, password_hash, campus, program, user_id),
             )
         else:
             cursor.execute(
                 'UPDATE "user" SET first_name=%s, last_name=%s, email=%s, role_user_id=%s, '
-                "updated_at=CURRENT_TIMESTAMP WHERE id=%s",
-                (first_name, last_name, email, role_id, user_id),
+                "campus=%s, program=%s, updated_at=CURRENT_TIMESTAMP WHERE id=%s",
+                (first_name, last_name, email, role_id, campus, program, user_id),
             )
     return get_user_by_id_dict(user_id)
 

@@ -608,8 +608,26 @@ CREATE INDEX IF NOT EXISTS idx_sessions_campus ON sessions(campus);
 CREATE INDEX IF NOT EXISTS idx_sessions_is_archived ON sessions(is_archived);
 CREATE INDEX IF NOT EXISTS idx_sessions_campus_year ON sessions(campus, year DESC);
 
+-- Add campus and program columns to user table (idempotent)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'user' AND column_name = 'campus'
+    ) THEN
+        ALTER TABLE "user" ADD COLUMN campus VARCHAR(20);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'user' AND column_name = 'program'
+    ) THEN
+        ALTER TABLE "user" ADD COLUMN program VARCHAR(100);
+    END IF;
+END $$;
+
 -- Insert default roles
-INSERT INTO role_user (name) VALUES ('Admin'), ('Faculty'), ('Viewer') 
+INSERT INTO role_user (name) VALUES ('Admin'), ('Faculty'), ('Viewer'), ('Super Admin')
 ON CONFLICT (name) DO NOTHING;
 
 -- Insert default admin user
