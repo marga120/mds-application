@@ -626,6 +626,12 @@ BEGIN
     END IF;
 END $$;
 
+-- Default existing users without a campus to UBC-O (Super Admins remain unrestricted)
+UPDATE "user"
+SET campus = 'UBC-O'
+WHERE campus IS NULL
+  AND role_user_id != (SELECT id FROM role_user WHERE name = 'Super Admin');
+
 -- Insert default roles
 INSERT INTO role_user (name) VALUES ('Admin'), ('Faculty'), ('Viewer'), ('Super Admin')
 ON CONFLICT (name) DO NOTHING;
