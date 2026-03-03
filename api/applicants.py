@@ -8,7 +8,7 @@ from flask import Blueprint, make_response, request, jsonify
 from flask_login import current_user, login_required
 from utils.permissions import require_admin, require_faculty_or_admin
 from services.applicant_service import ApplicantService
-from services.csv_import_service import CSVImportService
+from services.csv_import_service import CSVImportService, SessionValidationError
 from services.export_service import ExportService
 
 applicants_api = Blueprint("applicants_api", __name__)
@@ -36,7 +36,7 @@ def upload_csv():
         return jsonify({"success": False, "message": "Please upload a CSV file"})
 
     try:
-        result = _csv_svc.import_file(file.read(), current_user.email)
+        result = _csv_svc.import_file(file.read(), current_user.email, current_user)
         from datetime import datetime
         return jsonify({
             "success": True,
@@ -44,6 +44,15 @@ def upload_csv():
             "records_processed": result["records_processed"],
             "processed_at": datetime.now().isoformat(),
         })
+    except SessionValidationError as e:
+        return jsonify({
+            "success": False,
+            "message": (
+                "Import failed: the following sessions do not exist in the system "
+                "and must be created before importing"
+            ),
+            "unmatched_sessions": e.unmatched_sessions,
+        }), 400
     except ValueError as e:
         return jsonify({"success": False, "message": str(e)})
     except Exception as e:

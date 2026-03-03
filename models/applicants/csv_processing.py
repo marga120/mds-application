@@ -208,59 +208,32 @@ def process_application_info(user_code, row, cursor, current_time):
         print(f"Error processing application_info for user {user_code}: {str(e)}")
 
 
-def process_csv_data(df):
+def process_csv_data(df, session_id_map: dict):
     """
     Process uploaded CSV data and insert into database tables.
 
     @param df: Pandas DataFrame containing CSV data
+    @param session_id_map: Mapping of (program_code_upper, session_abbrev_upper) → session_id,
+                           pre-validated by CSVImportService before calling this function.
     @return: Tuple of (success, message, records_processed)
     """
+    if df.empty:
+        return False, "CSV file is empty", 0
+
     touched_user_codes = set()
 
     try:
         with db_transaction() as (conn, cursor):
             records_processed = 0
-            session_id = None
-
-            if not df.empty:
-                first_row = df.iloc[0]
-                program_code = str(first_row.get("Program CODE", "")).strip()
-                program = str(first_row.get("Program", "")).strip()
-                session_abbrev = str(first_row.get("Session", "")).strip()
-
-                campus = str(first_row.get("Campus", first_row.get("campus", ""))).strip()
-
-                if campus and campus.upper() in ['UBC-O', 'UBCO', 'O', 'OKANAGAN']:
-                    campus = 'UBC-O'
-                elif campus and campus.upper() in ['UBC-V', 'UBCV', 'V', 'VANCOUVER']:
-                    campus = 'UBC-V'
-                else:
-                    if program_code.upper().startswith('OG'):
-                        campus = 'UBC-O'
-                    elif program_code.upper().startswith('VG'):
-                        campus = 'UBC-V'
-                    else:
-                        campus = 'UBC-V'
-
-                if not program_code or program_code == "nan":
-                    return False, "Invalid Program CODE", 0
-                if not program or program == "nan":
-                    return False, "Invalid Program", 0
-                if not session_abbrev or session_abbrev == "nan":
-                    return False, "Invalid Session", 0
-
-                sessions_result, message = create_or_get_sessions(cursor, program_code, program, session_abbrev, campus)
-                if sessions_result is None:
-                    return False, f"Session creation failed: {message}", 0
-
-                session_id = sessions_result
-            else:
-                return False, "CSV file is empty", 0
 
             for _, row in df.iterrows():
                 user_code = str(row.get("User Code", "")).strip()
                 if not user_code or user_code == "nan":
                     continue
+
+                program_code = str(row.get("Program CODE", "")).strip().upper()
+                session_abbrev = str(row.get("Session", "")).strip().upper()
+                session_id = session_id_map.get((program_code, session_abbrev))
 
                 data_changed = False
 
