@@ -52,15 +52,7 @@ class SessionManager {
       .getElementById("sessionTerm")
       ?.addEventListener("change", updatePreview);
 
-    document
-      .querySelectorAll('input[name="campus"]')
-      .forEach((r) => r.addEventListener("change", updatePreview));
-  }
-
-  _getSelectedCampus() {
-    return (
-      document.querySelector('input[name="campus"]:checked')?.value || "UBC-V"
-    );
+    document.getElementById("campus")?.addEventListener("input", updatePreview);
   }
 
   updateSessionNamePreview() {
@@ -72,11 +64,10 @@ class SessionManager {
       "OGMMDS";
     const year = document.getElementById("sessionYear")?.value || "2025";
     const term = document.getElementById("sessionTerm")?.value || "W1";
-    const campus = this._getSelectedCampus();
-    const campusShort = campus === "UBC-O" ? "O" : "V";
+    const campus = document.getElementById("campus")?.value.trim() || "";
     const sessionAbbrev = `${year}${term}`;
 
-    preview.textContent = `${code}-${campusShort} ${sessionAbbrev}`;
+    preview.textContent = `${code}-${campus} ${sessionAbbrev}`;
 
     const abbrevWarning = document.getElementById("sessionAbbrevWarning");
     if (abbrevWarning) abbrevWarning.textContent = sessionAbbrev;
@@ -88,7 +79,7 @@ class SessionManager {
     const name = document.getElementById("programName")?.value.trim() || "";
     const year = document.getElementById("sessionYear")?.value || "";
     const term = document.getElementById("sessionTerm")?.value || "";
-    const campus = this._getSelectedCampus();
+    const campus = document.getElementById("campus")?.value.trim() || "";
 
     if (!code) errors.push("Program code is required");
     else if (code.length < 2 || code.length > 10)
@@ -111,8 +102,9 @@ class SessionManager {
     else if (!["W1", "W2", "S"].includes(term))
       errors.push("Invalid term selection");
 
-    if (!campus || !["UBC-V", "UBC-O"].includes(campus))
-      errors.push("Please select a campus");
+    if (!campus) errors.push("Campus is required");
+    else if (campus.length > 20)
+      errors.push("Campus must be 20 characters or less");
 
     return { isValid: errors.length === 0, errors };
   }
@@ -137,7 +129,7 @@ class SessionManager {
       const name = document.getElementById("programName").value.trim();
       const year = parseInt(document.getElementById("sessionYear").value, 10);
       const term = document.getElementById("sessionTerm").value;
-      const campus = this._getSelectedCampus();
+      const campus = document.getElementById("campus").value.trim();
       const description =
         document.getElementById("sessionDescription")?.value.trim() || "";
 

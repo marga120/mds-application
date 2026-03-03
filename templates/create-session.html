@@ -30,32 +30,26 @@
           </h3>
 
           <div class="space-y-6">
-            <!-- Campus Selection -->
+            <!-- Campus -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-3">
+              <label
+                for="campus"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Campus <span class="text-red-500">*</span>
               </label>
-              <div class="flex space-x-6">
-                <label class="flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    name="campus"
-                    value="UBC-V"
-                    class="w-4 h-4 text-ubc-blue border-gray-300 focus:ring-ubc-blue"
-                    checked
-                  />
-                  <span class="ml-2 text-gray-700">UBC Vancouver</span>
-                </label>
-                <label class="flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    name="campus"
-                    value="UBC-O"
-                    class="w-4 h-4 text-ubc-blue border-gray-300 focus:ring-ubc-blue"
-                  />
-                  <span class="ml-2 text-gray-700">UBC Okanagan</span>
-                </label>
-              </div>
+              <input
+                type="text"
+                id="campus"
+                placeholder="e.g., UBC-V, UBC-O, SFU"
+                class="input-ubc w-full"
+                maxlength="20"
+                required
+                aria-label="Campus code"
+              />
+              <p class="mt-1 text-sm text-gray-500">
+                Enter the campus code for this session
+              </p>
             </div>
 
             <!-- Program Name -->

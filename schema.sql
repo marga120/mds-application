@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS sessions(
     year INTEGER,
     name VARCHAR(30),
     description VARCHAR(100),
-    campus VARCHAR(10) NOT NULL CHECK (campus IN ('UBC-V', 'UBC-O')),
+    campus VARCHAR(20) NOT NULL,
     is_archived BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -623,6 +623,25 @@ BEGIN
         WHERE table_name = 'user' AND column_name = 'program'
     ) THEN
         ALTER TABLE "user" ADD COLUMN program VARCHAR(100);
+    END IF;
+END $$;
+
+-- Migrate sessions.campus: drop old CHECK constraint and widen column to VARCHAR(20)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE constraint_name = 'sessions_campus_check' AND table_name = 'sessions'
+    ) THEN
+        ALTER TABLE sessions DROP CONSTRAINT sessions_campus_check;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'sessions' AND column_name = 'campus'
+          AND character_maximum_length < 20
+    ) THEN
+        ALTER TABLE sessions ALTER COLUMN campus TYPE VARCHAR(20);
     END IF;
 END $$;
 

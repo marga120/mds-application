@@ -18,11 +18,11 @@ from utils.activity_logger import log_activity
 class SessionService:
 
     def get_all_sessions(self, include_archived: bool = False) -> dict:
-        """Return sessions grouped by campus {UBC-V: [...], UBC-O: [...]}."""
+        """Return sessions grouped by campus."""
         sessions, error = _get_all_sessions(include_archived)
         if error:
             raise ValueError(error)
-        return sessions or {"UBC-V": [], "UBC-O": []}
+        return sessions or {}
 
     def get_session_by_id(self, session_id: int) -> dict:
         """Return a single session dict or raise ValueError."""
@@ -74,8 +74,11 @@ class SessionService:
         year = int(year)
         if year < 2024 or year > 2035:
             raise ValueError("Year must be between 2024 and 2035")
-        if campus not in ("UBC-V", "UBC-O"):
-            raise ValueError("Campus must be 'UBC-V' or 'UBC-O'")
+        campus = campus.strip()
+        if not campus:
+            raise ValueError("Campus is required")
+        if len(campus) > 20:
+            raise ValueError("Campus must be 20 characters or less")
 
         session_id, error = _create_session(
             program_code=program_code,
@@ -88,8 +91,7 @@ class SessionService:
         if error:
             raise ValueError(error)
 
-        campus_short = campus.split("-")[1]
-        session_name = f"{program_code}-{campus_short} {session_abbrev}"
+        session_name = f"{program_code}-{campus} {session_abbrev}"
 
         log_activity(
             action_type="create_session",
@@ -106,6 +108,7 @@ class SessionService:
             "year": year,
             "program_code": program_code,
         }
+
 
     def archive_session(self, session_id: int, user) -> str:
         """Archive a session. Returns success message."""
