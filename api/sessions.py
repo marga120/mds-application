@@ -55,14 +55,13 @@ def create_session_route():
 @sessions_api.route("/sessions/current", methods=["GET"])
 @login_required
 def get_current_session_route():
-    """Get all sessions (used as the 'current' endpoint)."""
-    include_archived = request.args.get("include_archived", "false").lower() == "true"
-    campus_filter = request.args.get("campus")
+    """Get the most recent non-archived session for the current user's campus."""
+    campus = getattr(current_user, "campus", None)
     try:
-        sessions = _service.get_all_sessions(include_archived)
-        if campus_filter and campus_filter in sessions:
-            sessions = {campus_filter: sessions[campus_filter]}
-        return jsonify({"success": True, "sessions": sessions}), 200
+        session = _service.get_most_recent_session(campus=campus)
+        if session:
+            return jsonify({"success": True, "session": session}), 200
+        return jsonify({"success": False, "message": "No sessions found for your campus", "session": None}), 200
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
