@@ -75,10 +75,10 @@ def get_all_sessions(include_archived=False):
             cursor.execute(query)
             result = cursor.fetchall()
 
-        sessions_by_campus = {"UBC-V": [], "UBC-O": []}
+        sessions_by_campus = {}
         for session in result:
             session_dict = dict(session)
-            campus = session_dict.get("campus", "UBC-V")
+            campus = session_dict.get("campus", "")
             if campus not in sessions_by_campus:
                 sessions_by_campus[campus] = []
             sessions_by_campus[campus].append(session_dict)
@@ -143,7 +143,7 @@ def create_session(program_code, program, session_abbrev, year, campus, name=Non
     @param program: Full program name (e.g., 'Master of Data Science')
     @param session_abbrev: Session abbreviation (e.g., '2027W')
     @param year: Academic year (e.g., 2027)
-    @param campus: Campus code ('UBC-V' or 'UBC-O')
+    @param campus: Campus code (free-text, e.g. 'UBC-V', 'UBC-O', 'SFU')
     @param name: Optional display name (auto-generated if not provided)
     @param description: Optional description
 
@@ -152,12 +152,8 @@ def create_session(program_code, program, session_abbrev, year, campus, name=Non
 
     @db_tables: sessions
     """
-    if campus not in ["UBC-V", "UBC-O"]:
-        return None, "Campus must be 'UBC-V' or 'UBC-O'"
-
     if not name:
-        campus_short = campus.split("-")[1]
-        name = f"{program_code}-{campus_short} {session_abbrev}"
+        name = f"{program_code}-{campus} {session_abbrev}"
 
     try:
         with db_transaction() as (conn, cursor):
@@ -191,9 +187,6 @@ def update_session(session_id, **kwargs):
     """
     if not kwargs:
         return False, "No fields provided to update"
-
-    if "campus" in kwargs and kwargs["campus"] not in ["UBC-V", "UBC-O"]:
-        return False, "Campus must be 'UBC-V' or 'UBC-O'"
 
     allowed_fields = ["program_code", "program", "session_abbrev", "year", "campus", "name", "description"]
     updates = []
@@ -281,7 +274,7 @@ def get_sessions_by_campus(campus, include_archived=False):
     """
     Get all sessions for a specific campus.
 
-    @param campus: Campus code ('UBC-V' or 'UBC-O')
+    @param campus: Campus code (free-text)
     @param include_archived: Whether to include archived sessions
 
     @return: Tuple of (sessions_list, error_message)
@@ -289,9 +282,6 @@ def get_sessions_by_campus(campus, include_archived=False):
 
     @db_tables: sessions, applicant_info
     """
-    if campus not in ["UBC-V", "UBC-O"]:
-        return None, "Campus must be 'UBC-V' or 'UBC-O'"
-
     try:
         with db_connection() as (conn, cursor):
             query = """
@@ -331,7 +321,7 @@ def get_most_recent_session(campus=None):
     """
     Get the most recent (by year) non-archived session.
 
-    @param campus: Optional campus filter ('UBC-V' or 'UBC-O')
+    @param campus: Optional campus filter (free-text)
     @return: Tuple of (session_dict, error_message)
 
     @db_tables: sessions
