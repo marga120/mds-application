@@ -65,9 +65,10 @@ def seed_roles():
 
         # Insert roles in specific order to ensure consistent IDs
         roles = [
-            ("Admin",),  # Will get ID = 1
-            ("Faculty",),  # Will get ID = 2
-            ("Viewer",),  # Will get ID = 3
+            ("Admin",),       # Will get ID = 1
+            ("Faculty",),     # Will get ID = 2
+            ("Viewer",),      # Will get ID = 3
+            ("Super Admin",), # Will get ID = 4
         ]
 
         cursor.executemany("INSERT INTO role_user (name) VALUES (%s)", roles)
@@ -114,15 +115,27 @@ def seed_users():
         # Hash the password
         hashed_password = hash_password("password")
 
-        # Test users using actual role IDs
+        # Test users: (first_name, last_name, email, password, role_id, campus, program)
         users = [
-            # Admin users
+            # Super Admin — unrestricted access
+            (
+                "Super",
+                "Admin",
+                "superadmin@example.com",
+                hashed_password,
+                role_mapping["Super Admin"],
+                None,
+                None,
+            ),
+            # Campus-scoped Admin users
             (
                 "Test1",
                 "User1",
                 "testuser1@example.com",
                 hashed_password,
                 role_mapping["Admin"],
+                "UBC-V",
+                "MDS-V",
             ),
             (
                 "Test2",
@@ -130,6 +143,8 @@ def seed_users():
                 "testuser2@gmail.com",
                 hashed_password,
                 role_mapping["Admin"],
+                "UBC-O",
+                "MDS-O",
             ),
             # Faculty users
             (
@@ -138,6 +153,8 @@ def seed_users():
                 "testuser3@gmail.com",
                 hashed_password,
                 role_mapping["Faculty"],
+                None,
+                None,
             ),
             # Viewer users
             (
@@ -146,6 +163,8 @@ def seed_users():
                 "testuser4@gmail.com",
                 hashed_password,
                 role_mapping["Viewer"],
+                None,
+                None,
             ),
         ]
 
@@ -154,8 +173,9 @@ def seed_users():
         for user in users:
             cursor.execute(
                 """
-                INSERT INTO "user" (first_name, last_name, email, password, role_user_id, created_at, updated_at) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO "user" (first_name, last_name, email, password, role_user_id,
+                                    campus, program, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
                 (*user, current_time, current_time),
             )
@@ -240,12 +260,11 @@ def main():
 
     print("\n✅ Database seeding completed successfully!")
     print("\n🔑 Test Login Credentials:")
-    print("Admin: testuser1@example.com / password")
-    print("Admin: testuser2@gmail.com / password")
+    print("Super Admin: superadmin@example.com / password")
+    print("Admin (UBC-V): testuser1@example.com / password")
+    print("Admin (UBC-O): testuser2@gmail.com / password")
     print("Faculty: testuser3@gmail.com / password")
-    print("Faculty: michael.johnson@university.edu / password")
     print("Viewer: testuser4@gmail.com / password")
-    print("Viewer: alice.viewer@example.com / password")
 
 
 if __name__ == "__main__":

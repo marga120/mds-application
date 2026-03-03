@@ -5,7 +5,7 @@ No SQL. No bcrypt. No business logic.
 """
 from flask import Blueprint, request, jsonify, url_for
 from flask_login import login_user, logout_user, login_required, current_user
-from utils.permissions import require_admin
+from utils.permissions import require_admin, require_super_admin
 from services.auth_service import AuthService
 
 auth_api = Blueprint("auth_api", __name__)
@@ -92,11 +92,17 @@ def register_user():
     email = (data.get("email") or "").strip()
     password = data.get("password") or ""
     role_id = data.get("role_user_id", 3)
+    campus = (data.get("campus") or "").strip() or None
+    program = (data.get("program") or "").strip() or None
 
     if not all([first_name, last_name, email, password]):
         return jsonify({"success": False, "message": "All fields are required."}), 400
     try:
-        user = _service.create_user(email, password, first_name, last_name, role_id)
+        user = _service.create_user(
+            email, password, first_name, last_name, role_id,
+            campus=campus, program=program,
+            caller_is_super_admin=current_user.is_super_admin,
+        )
         return jsonify({"success": True, "message": "User created successfully.", "user": user})
     except ValueError as e:
         return jsonify({"success": False, "message": str(e)}), 400
@@ -117,11 +123,17 @@ def update_user(user_id):
     email = (data.get("email") or "").strip()
     role_id = data.get("role_user_id")
     password = data.get("password") or ""
+    campus = (data.get("campus") or "").strip() or None
+    program = (data.get("program") or "").strip() or None
 
     if not all([first_name, last_name, email, role_id]):
         return jsonify({"success": False, "message": "First name, last name, email, and role are required."}), 400
     try:
-        user = _service.update_user(user_id, email, first_name, last_name, role_id, password or None)
+        user = _service.update_user(
+            user_id, email, first_name, last_name, role_id, password or None,
+            campus=campus, program=program,
+            caller_is_super_admin=current_user.is_super_admin,
+        )
         return jsonify({"success": True, "message": "User updated successfully.", "user": user})
     except ValueError as e:
         return jsonify({"success": False, "message": str(e)}), 400
@@ -134,7 +146,7 @@ def update_user(user_id):
 @require_admin
 def delete_user(user_id):
     try:
-        _service.delete_user(user_id, current_user.id)
+        _service.delete_user(user_id, current_user.id, caller_is_super_admin=current_user.is_super_admin)
         return jsonify({"success": True, "message": "User deleted successfully."})
     except ValueError as e:
         return jsonify({"success": False, "message": str(e)}), 400
@@ -151,7 +163,7 @@ def delete_users():
     if not user_ids or not isinstance(user_ids, list):
         return jsonify({"success": False, "message": "Invalid user_ids."}), 400
     try:
-        count = _service.delete_users_bulk(user_ids, current_user.id)
+        count = _service.delete_users_bulk(user_ids, current_user.id, caller_is_super_admin=current_user.is_super_admin)
         return jsonify({
             "success": True,
             "message": f'Deleted {count} user{"s" if count != 1 else ""}.',

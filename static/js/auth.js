@@ -35,45 +35,57 @@ class AuthManager {
   }
 
   updateUserInfo(user) {
+    const isAdminOrSuperAdmin =
+      user.role === "Admin" || user.role === "Super Admin";
+    const isSuperAdmin = user.role === "Super Admin";
+
     // Add Session Badge with dropdown to the left
     const sessionsDropdownArea = document.getElementById(
       "sessionsDropdownArea",
     );
     if (sessionsDropdownArea) {
-      const createSessionOption =
-        user.role === "Admin"
-          ? `
-        <a href="/create-new-session" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-md">
-          Create Session
-        </a>
-      `
-          : "";
-
-      sessionsDropdownArea.innerHTML = `
-        <div class="relative">
-          <button id="sessionBadge" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-            </svg>
-            <span id="sessionBadgeText">Loading...</span>
-            <svg class="w-3 h-3 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
-          </button>
-          <div id="sessionsDropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-            <button id="switchSessionBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ${user.role === "Admin" ? "rounded-t-md" : "rounded-md"}">
-              Switch Session
+      if (isSuperAdmin) {
+        // Super Admin: full dropdown with switch + create session options
+        sessionsDropdownArea.innerHTML = `
+          <div class="relative">
+            <button id="sessionBadge" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              <span id="sessionBadgeText">Loading...</span>
+              <svg class="w-3 h-3 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
             </button>
-            ${createSessionOption}
+            <div id="sessionsDropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+              <button id="switchSessionBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-md">
+                Switch Session
+              </button>
+              <a href="/create-new-session" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-md">
+                Create Session
+              </a>
+            </div>
           </div>
-        </div>
-      `;
+        `;
+      } else {
+        // Non-Super Admin: static badge only (no dropdown)
+        sessionsDropdownArea.innerHTML = `
+          <div class="relative">
+            <div id="sessionBadge" class="bg-white/10 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-medium border border-white/20 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              <span id="sessionBadgeText">Loading...</span>
+            </div>
+          </div>
+        `;
+      }
     }
 
     // Add Users dropdown (Admin only)
     const usersDropdownArea = document.getElementById("usersDropdownArea");
     if (usersDropdownArea) {
-      if (user.role === "Admin") {
+      if (isAdminOrSuperAdmin) {
         usersDropdownArea.innerHTML = `
           <div class="relative">
             <button id="usersDropdownBtn" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20">
@@ -100,7 +112,7 @@ class AuthManager {
     // Add Data dropdown (only for Admin users)
     const logsDropdownArea = document.getElementById("logsDropdownArea");
     if (logsDropdownArea) {
-      if (user.role === "Admin") {
+      if (isAdminOrSuperAdmin) {
         logsDropdownArea.innerHTML = `
           <div class="relative">
             <button id="dataDropdownBtn" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20">
@@ -180,7 +192,7 @@ class AuthManager {
     this.currentUser = user;
 
     // Create modals for upload and clear data (if admin)
-    if (user.role === "Admin") {
+    if (isAdminOrSuperAdmin) {
       this.createDataModals();
     }
   }
@@ -192,7 +204,7 @@ class AuthManager {
     if (user.role === "Viewer" || user.role === "Faculty") {
       if (uploadSection) uploadSection.style.display = "none";
       if (clearDataSection) clearDataSection.style.display = "none";
-    } else if (user.role === "Admin") {
+    } else if (user.role === "Admin" || user.role === "Super Admin") {
       if (uploadSection) uploadSection.style.display = "block";
       if (clearDataSection) clearDataSection.style.display = "block";
     }
@@ -410,7 +422,7 @@ class AuthManager {
             </svg>
           </button>
         </div>
-        
+
         <div class="mb-6">
           <p class="text-gray-600 mb-4">Drag and drop your CSV file here or click to select</p>
           <div id="dropZoneModal" class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-400 transition-colors cursor-pointer">
@@ -424,7 +436,7 @@ class AuthManager {
           </div>
           <input type="file" id="csvFileInputModal" accept=".csv" class="hidden">
         </div>
-        
+
        <div class="flex justify-end gap-3">
           <button class="close-upload-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
             Cancel
@@ -433,9 +445,9 @@ class AuthManager {
             Upload CSV
           </button>
         </div>
-        
+
         <div id="uploadStatusModal" class="mt-4 hidden"></div>
-        
+
         <div id="uploadTimestampModal" class="mt-4 p-3 bg-gray-50 rounded-md text-sm text-gray-600" style="display: none;">
           <strong>Last Upload:</strong> <span id="lastUploadTime">--</span><br>
           <strong>Records:</strong> <span id="lastUploadRecords">--</span>
@@ -461,20 +473,20 @@ class AuthManager {
             </svg>
           </button>
         </div>
-        
+
         <div class="mb-6">
           <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
             <p class="text-red-800 font-semibold mb-2">This action cannot be undone!</p>
             <p class="text-red-700 text-sm">This will permanently delete ALL applicant data from the database.</p>
           </div>
-          
+
           <p class="text-gray-700 mb-4">Are you absolutely sure you want to clear all data?</p>
-          
+
           <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
             <p class="text-yellow-800 text-sm">This will delete data from all applicant-related tables.</p>
           </div>
         </div>
-        
+
         <div class="flex justify-end gap-3">
           <button class="close-clear-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
             Cancel
@@ -483,7 +495,7 @@ class AuthManager {
             Yes, Delete All Data
           </button>
         </div>
-        
+
         <div id="clearStatusModal" class="mt-4 hidden"></div>
       </div>
     </div>
