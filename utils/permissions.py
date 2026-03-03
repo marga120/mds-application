@@ -44,9 +44,9 @@ def require_authenticated(f):
 
 def require_admin(f):
     """
-    Decorator that ensures only Admin users can access the route.
+    Decorator that ensures only Admin or Super Admin users can access the route.
 
-    Returns 403 JSON response if user is not authenticated or not an Admin.
+    Returns 403 JSON response if user is not authenticated or not an Admin/Super Admin.
 
     @example:
         @app.route('/admin/users')
@@ -66,6 +66,39 @@ def require_admin(f):
             return jsonify({
                 "success": False,
                 "message": "Admin access required"
+            }), 403
+
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def require_super_admin(f):
+    """
+    Decorator that ensures only Super Admin users can access the route.
+
+    Super Admins have unrestricted access across all campuses and programs,
+    and are the only role that can manage user accounts.
+
+    Returns 403 JSON response if user is not authenticated or not a Super Admin.
+
+    @example:
+        @app.route('/admin/users')
+        @require_super_admin
+        def manage_users():
+            return jsonify({"users": get_all_users()})
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return jsonify({
+                "success": False,
+                "message": "Authentication required"
+            }), 401
+
+        if not current_user.is_super_admin:
+            return jsonify({
+                "success": False,
+                "message": "Super Admin access required"
             }), 403
 
         return f(*args, **kwargs)
@@ -140,15 +173,17 @@ def check_permission(required_role):
                 }), 401
 
             user_role = None
-            if current_user.is_admin:
+            if current_user.is_super_admin:
+                user_role = 'Super Admin'
+            elif current_user.is_admin:
                 user_role = 'Admin'
             elif current_user.is_faculty:
                 user_role = 'Faculty'
             elif current_user.is_viewer:
                 user_role = 'Viewer'
 
-            # Admin can access everything
-            if user_role == 'Admin':
+            # Super Admin and Admin can access everything
+            if user_role in ('Super Admin', 'Admin'):
                 return f(*args, **kwargs)
 
             # Check if user has required role

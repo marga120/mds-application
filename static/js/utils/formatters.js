@@ -63,7 +63,7 @@ export function formatDateTime(dateString) {
  * @returns {string}
  */
 export function getRoleName(roleId) {
-  const names = { 1: "Admin", 2: "Faculty", 3: "Viewer" };
+  const names = { 1: "Admin", 2: "Faculty", 3: "Viewer", 4: "Super Admin" };
   return names[roleId] ?? "Unknown";
 }
 
@@ -77,6 +77,7 @@ export function getRoleBadgeClass(roleId) {
     1: "bg-red-100 text-red-800",
     2: "bg-blue-100 text-blue-800",
     3: "bg-gray-100 text-gray-800",
+    4: "bg-purple-100 text-purple-800",
   };
   return classes[roleId] ?? "bg-gray-100 text-gray-800";
 }
