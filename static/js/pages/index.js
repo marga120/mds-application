@@ -2582,7 +2582,10 @@ class ApplicantsManager {
       const dateInput = document.getElementById("duolingoDateInput");
       const saveBtn = document.getElementById("saveDuolingoBtn");
 
-      if (result.authenticated && result.user?.role === "Admin") {
+      if (
+        result.authenticated &&
+        ["Admin", "Super Admin"].includes(result.user?.role)
+      ) {
         // Admin can edit everything
         if (inputSection) inputSection.style.display = "block";
         if (scoreInput) scoreInput.disabled = false;
@@ -3575,7 +3578,10 @@ class ApplicantsManager {
     fetch("/api/auth/check-session")
       .then((response) => response.json())
       .then((result) => {
-        if (result.authenticated && result.user?.role === "Admin") {
+        if (
+          result.authenticated &&
+          ["Admin", "Super Admin"].includes(result.user?.role)
+        ) {
           // Only Admin can update status - show everything
           if (statusChangeSection) {
             statusChangeSection.style.display = "block";
@@ -3713,7 +3719,7 @@ class ApplicantsManager {
         auth &&
         auth.authenticated &&
         auth.user &&
-        auth.user.role === "Admin"
+        ["Admin", "Super Admin"].includes(auth.user.role)
       );
 
       if (!isAdmin) {
@@ -3981,7 +3987,7 @@ class ApplicantsManager {
       const saveScholarshipBtn = document.getElementById("saveScholarshipBtn");
 
       if (result.authenticated && result.user) {
-        if (result.user.role === "Admin") {
+        if (["Admin", "Super Admin"].includes(result.user.role)) {
           // Admin can edit - enable all controls
           scholarshipRadios.forEach((radio) => (radio.disabled = false));
           if (saveScholarshipBtn)
@@ -4017,7 +4023,10 @@ class ApplicantsManager {
         document.getElementById("additionalComments");
       const gpaInput = document.getElementById("overallGpa");
 
-      if (result.authenticated && result.user?.role === "Admin") {
+      if (
+        result.authenticated &&
+        ["Admin", "Super Admin"].includes(result.user?.role)
+      ) {
         // Only Admin can edit everything including GPA
         if (savePrerequisitesBtn)
           savePrerequisitesBtn.style.display = "inline-block";
@@ -4236,7 +4245,10 @@ class ApplicantsManager {
       const response = await fetch("/api/auth/check-session");
       const result = await response.json();
 
-      if (result.authenticated && result.user?.role === "Admin") {
+      if (
+        result.authenticated &&
+        ["Admin", "Super Admin"].includes(result.user?.role)
+      ) {
         // Admin can clear GPA
         document.getElementById("overallGpa").value = "";
       }
@@ -4627,7 +4639,10 @@ class ApplicantsManager {
         "englishStatusChangeSection",
       );
 
-      if (result.authenticated && result.user?.role === "Admin") {
+      if (
+        result.authenticated &&
+        ["Admin", "Super Admin"].includes(result.user?.role)
+      ) {
         // Only Admin can update English status
         if (englishStatusChangeSection) {
           englishStatusChangeSection.style.display = "block";
@@ -4661,7 +4676,10 @@ class ApplicantsManager {
       const saveBtn = document.getElementById("saveEnglishCommentBtn");
       const clearBtn = document.getElementById("clearEnglishCommentBtn");
 
-      if (result.authenticated && result.user?.role === "Admin") {
+      if (
+        result.authenticated &&
+        ["Admin", "Super Admin"].includes(result.user?.role)
+      ) {
         // Only Admin can edit English comments
         if (textarea) {
           textarea.disabled = false;
@@ -4699,7 +4717,10 @@ class ApplicantsManager {
         const response = await fetch("/api/auth/check-session");
         const result = await response.json();
 
-        if (!result.authenticated || result.user?.role !== "Admin") {
+        if (
+          !result.authenticated ||
+          !["Admin", "Super Admin"].includes(result.user?.role)
+        ) {
           alert("You don't have permission to edit English comments.");
           return;
         }
@@ -4714,7 +4735,10 @@ class ApplicantsManager {
         const response = await fetch("/api/auth/check-session");
         const result = await response.json();
 
-        if (!result.authenticated || result.user?.role !== "Admin") {
+        if (
+          !result.authenticated ||
+          !["Admin", "Super Admin"].includes(result.user?.role)
+        ) {
           alert("You don't have permission to edit English comments.");
           return;
         }
