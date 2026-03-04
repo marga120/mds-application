@@ -125,7 +125,7 @@ class DocumentsManager {
       return;
     }
 
-    const isAdmin = this.userRole === "Admin";
+    const isAdmin = ["Admin", "Super Admin"].includes(this.userRole);
     const isFaculty = this.userRole === "Faculty";
     const canUpload = isAdmin || isFaculty;
 
@@ -197,7 +197,7 @@ class DocumentsManager {
       `;
     }
 
-    const isAdmin = this.userRole === "Admin";
+    const isAdmin = ["Admin", "Super Admin"].includes(this.userRole);
 
     return `
       <div class="space-y-2">

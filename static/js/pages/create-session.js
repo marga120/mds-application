@@ -176,3 +176,4 @@ class SessionManager {
 }
 
 new SessionManager();
+if (typeof AuthManager !== "undefined") new AuthManager();
