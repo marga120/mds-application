@@ -11,6 +11,7 @@ class StatisticsManager {
   constructor() {
     this.applicants = [];
     this.statusOptions = [];
+    this.historyData = [];
     this.init();
   }
 
@@ -22,6 +23,11 @@ class StatisticsManager {
     this.displayOverallStatistics();
     this.displayStatusBreakdown();
     this.displayStatusStatistics("");
+
+    const userResult = await api.get("/api/auth/user");
+    if (userResult?.user?.is_admin) {
+      this.initStatusHistory();
+    }
   }
 
   async loadStatuses() {
@@ -475,6 +481,162 @@ class StatisticsManager {
       .join("");
 
     countriesChart.innerHTML = html;
+  }
+
+  initStatusHistory() {
+    const section = document.getElementById("statusHistorySection");
+    if (section) section.classList.remove("hidden");
+
+    const statusSelect = document.getElementById("historyStatusFilter");
+    if (statusSelect) {
+      this.statusOptions.forEach((status) => {
+        const option = document.createElement("option");
+        option.value = status.status_name;
+        option.textContent = status.status_name;
+        statusSelect.appendChild(option);
+      });
+    }
+
+    const statusFilter = document.getElementById("historyStatusFilter");
+    const acceptedFilter = document.getElementById("historyAcceptedFilter");
+    const searchInput = document.getElementById("historySearch");
+    if (statusFilter)
+      statusFilter.addEventListener("change", () => this.loadStatusHistory());
+    if (acceptedFilter)
+      acceptedFilter.addEventListener("change", () => this.loadStatusHistory());
+    if (searchInput)
+      searchInput.addEventListener("input", () => this._applySearchAndRender());
+
+    if (window.SessionStore) {
+      SessionStore.onSessionChange(() => this.loadStatusHistory());
+    }
+
+    this.loadStatusHistory();
+  }
+
+  async loadStatusHistory() {
+    const sessionId = window.SessionStore
+      ? SessionStore.getCurrentSessionId()
+      : null;
+    if (!sessionId) {
+      this._showHistoryState("empty");
+      return;
+    }
+
+    const statusFilter =
+      document.getElementById("historyStatusFilter")?.value || "";
+    const acceptedFilter =
+      document.getElementById("historyAcceptedFilter")?.value || "";
+
+    // Only show the loading spinner on the very first load to avoid page jumping
+    if (this.historyData.length === 0) {
+      this._showHistoryState("loading");
+    }
+
+    try {
+      const params = { session_id: sessionId };
+      if (statusFilter) params.status = statusFilter;
+      if (acceptedFilter) params.accepted_filter = acceptedFilter;
+
+      const result = await api.get("/api/logs/status-history", params);
+      this.historyData = result.history || [];
+      this._applySearchAndRender();
+    } catch (error) {
+      console.error("Error loading status history:", error);
+      this._showHistoryState("empty");
+    }
+  }
+
+  _applySearchAndRender() {
+    const search =
+      document.getElementById("historySearch")?.value.toLowerCase().trim() ||
+      "";
+    let filtered = this.historyData;
+
+    if (search) {
+      filtered = filtered.filter((row) => {
+        const name =
+          `${row.given_name || ""} ${row.family_name || ""}`.toLowerCase();
+        const studentNum = (row.student_number || "").toLowerCase();
+        const submitDate = row.submit_date
+          ? new Date(row.submit_date).toLocaleDateString().toLowerCase()
+          : "";
+        const changedAt = row.status_changed_at
+          ? new Date(row.status_changed_at).toLocaleString().toLowerCase()
+          : "";
+        return (
+          name.includes(search) ||
+          studentNum.includes(search) ||
+          submitDate.includes(search) ||
+          changedAt.includes(search)
+        );
+      });
+    }
+
+    // Keep the table wrapper always visible once shown — never toggle it to
+    // avoid layout shifts that cause the page to jump on filter changes.
+    // Instead, render an empty-state row directly inside the tbody.
+    this._showHistoryState("table");
+    this._renderHistoryTable(filtered);
+  }
+
+  _showHistoryState(state) {
+    document
+      .getElementById("statusHistoryLoading")
+      ?.classList.toggle("hidden", state !== "loading");
+    document
+      .getElementById("statusHistoryEmpty")
+      ?.classList.toggle("hidden", state !== "empty");
+    document
+      .getElementById("statusHistoryTableWrapper")
+      ?.classList.toggle("hidden", state !== "table");
+  }
+
+  _renderHistoryTable(rows) {
+    const tbody = document.getElementById("statusHistoryTableBody");
+    if (!tbody) return;
+    if (rows.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" class="px-4 py-8 text-center text-sm text-gray-500">
+            No results found.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+    tbody.innerHTML = rows.map((row) => this._renderHistoryRow(row)).join("");
+  }
+
+  _renderHistoryRow(row) {
+    const name =
+      `${row.given_name || ""} ${row.family_name || ""}`.trim() || "—";
+    const studentNumber = row.student_number || "—";
+    const submitDate = row.submit_date
+      ? new Date(row.submit_date).toLocaleDateString()
+      : "—";
+    const changedAt = row.status_changed_at
+      ? new Date(row.status_changed_at).toLocaleString()
+      : "—";
+    const previousStatus = row.previous_status || "—";
+    const statusReached = row.status_reached || "—";
+    const previousBadgeClass = this.getStatusColor(row.previous_status);
+    const reachedBadgeClass = this.getStatusColor(row.status_reached);
+    return `
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 text-sm text-gray-900">${name}</td>
+        <td class="px-4 py-3 text-sm text-gray-600">${studentNumber}</td>
+        <td class="px-4 py-3 text-sm text-gray-600">${submitDate}</td>
+        <td class="px-4 py-3 text-sm text-gray-600">${changedAt}</td>
+        <td class="px-4 py-3 text-sm">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="px-2 py-1 rounded-full text-xs font-medium ${previousBadgeClass}">${previousStatus}</span>
+            <span class="text-gray-400">→</span>
+            <span class="px-2 py-1 rounded-full text-xs font-medium ${reachedBadgeClass}">${statusReached}</span>
+          </div>
+        </td>
+      </tr>
+    `;
   }
 
   generateCountryBars(applicants) {
