@@ -12,6 +12,8 @@ class StatisticsManager {
     this.applicants = [];
     this.statusOptions = [];
     this.historyData = [];
+    this.isAdmin = false;
+    this.activeTab = "stats";
     this.init();
   }
 
@@ -26,7 +28,51 @@ class StatisticsManager {
 
     const userResult = await api.get("/api/auth/user");
     if (userResult?.user?.is_admin) {
+      this.isAdmin = true;
+      this.initTabs();
       this.initStatusHistory();
+    }
+  }
+
+  initTabs() {
+    const historyTab = document.getElementById("tabChangeHistory");
+    const bothTab = document.getElementById("tabBoth");
+    if (historyTab) historyTab.classList.remove("hidden");
+    if (bothTab) bothTab.classList.remove("hidden");
+
+    document.querySelectorAll(".stats-tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        this.switchTab(btn.dataset.tab);
+      });
+    });
+
+    const saved = localStorage.getItem("mds_stats_tab");
+    this.switchTab(saved || "stats");
+  }
+
+  switchTab(tab) {
+    this.activeTab = tab;
+    localStorage.setItem("mds_stats_tab", tab);
+
+    document.querySelectorAll(".stats-tab").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.tab === tab);
+    });
+
+    const statsSection = document.getElementById("statusStatsSection");
+    const historySection = document.getElementById("statusHistorySection");
+
+    if (tab === "stats") {
+      if (statsSection) statsSection.classList.remove("hidden");
+      if (historySection) historySection.classList.add("hidden");
+    } else if (tab === "history") {
+      if (statsSection) statsSection.classList.add("hidden");
+      if (historySection) historySection.classList.remove("hidden");
+    } else if (tab === "both") {
+      if (statsSection) statsSection.classList.remove("hidden");
+      if (historySection) {
+        historySection.classList.remove("hidden");
+        historySection.classList.add("mt-8");
+      }
     }
   }
 
@@ -484,9 +530,6 @@ class StatisticsManager {
   }
 
   initStatusHistory() {
-    const section = document.getElementById("statusHistorySection");
-    if (section) section.classList.remove("hidden");
-
     const statusSelect = document.getElementById("historyStatusFilter");
     if (statusSelect) {
       this.statusOptions.forEach((status) => {
