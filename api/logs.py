@@ -36,6 +36,26 @@ def get_logs():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+@logs_api.route("/logs/status-history", methods=["GET"])
+@login_required
+def get_status_change_history():
+    """Get status change history for a session (Admin only)."""
+    if not current_user.is_admin:
+        return jsonify({"success": False, "message": "Access denied"}), 403
+    try:
+        session_id = request.args.get("session_id", type=int)
+        if not session_id:
+            return jsonify({"success": False, "message": "session_id is required"}), 400
+        rows = _service.get_status_change_history(
+            session_id=session_id,
+            status_filter=request.args.get("status") or None,
+            accepted_filter=request.args.get("accepted_filter") or None,
+        )
+        return jsonify({"success": True, "history": rows, "count": len(rows)})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @logs_api.route("/logs/export/status-changes", methods=["GET"])
 @login_required
 def export_status_changes():

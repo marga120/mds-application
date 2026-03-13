@@ -268,12 +268,35 @@
         </div>
       </section>
 
-      <!-- Status-wise Statistics Section -->
-      <section>
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4">
-          Statistics by Application Status
-        </h2>
+      <!-- Tab Switcher (admin only tabs shown via JS) -->
+      <div class="mb-6">
+        <div class="flex items-center gap-2 flex-wrap">
+          <button
+            id="tabStatusStats"
+            class="stats-tab px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            data-tab="stats"
+          >
+            Application Status
+          </button>
+          <button
+            id="tabChangeHistory"
+            class="stats-tab px-4 py-2 rounded-lg text-sm font-medium transition-all hidden"
+            data-tab="history"
+          >
+            Change History
+          </button>
+          <button
+            id="tabBoth"
+            class="stats-tab px-4 py-2 rounded-lg text-sm font-medium transition-all hidden"
+            data-tab="both"
+          >
+            Both
+          </button>
+        </div>
+      </div>
 
+      <!-- Status-wise Statistics Section -->
+      <section id="statusStatsSection">
         <!-- Status Selector -->
         <div class="bg-white rounded-lg shadow p-4 mb-6">
           <label class="block text-sm font-medium text-gray-700 mb-2"
@@ -298,6 +321,129 @@
             <p class="text-gray-500 text-center">
               Select a status to view detailed statistics
             </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Status Change History (Admin only, shown via JS) -->
+      <section id="statusHistorySection" class="hidden">
+        <!-- Filter Bar -->
+        <div
+          class="bg-white rounded-lg shadow p-4 mb-4 flex flex-wrap gap-4 items-end"
+        >
+          <div>
+            <label
+              for="historyStatusFilter"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Status</label
+            >
+            <select id="historyStatusFilter" class="input-ubc w-64">
+              <option value="">All Statuses</option>
+            </select>
+          </div>
+          <div>
+            <label
+              for="historyAcceptedFilter"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Acceptance</label
+            >
+            <select id="historyAcceptedFilter" class="input-ubc w-48">
+              <option value="">All</option>
+              <option value="accepted">Accepted</option>
+              <option value="not_accepted">Not Accepted</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div
+          class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-4"
+        >
+          <div class="flex items-center space-x-3 mb-4">
+            <div
+              class="w-10 h-10 bg-gradient-to-br from-ubc-blue to-ubc-light-blue rounded-full flex items-center justify-center"
+            >
+              <svg
+                class="w-5 h-5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                ></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900">Search History</h3>
+          </div>
+          <div class="flex-1">
+            <input
+              type="text"
+              id="historySearch"
+              placeholder="Search by name, student number, or date..."
+              class="input-ubc w-full"
+              aria-label="Search status history"
+            />
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div
+            id="statusHistoryLoading"
+            class="text-center text-gray-500 py-8 hidden"
+          >
+            Loading...
+          </div>
+          <div
+            id="statusHistoryEmpty"
+            class="text-center text-gray-500 py-8 hidden"
+          >
+            No results found.
+          </div>
+          <div
+            id="statusHistoryTableWrapper"
+            class="overflow-x-auto overflow-y-auto hidden"
+            style="max-height: 600px"
+          >
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50 sticky top-0 z-10">
+                <tr>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Student Name
+                  </th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Student Number
+                  </th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Submission Date
+                  </th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Date Changed
+                  </th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Status Change
+                  </th>
+                </tr>
+              </thead>
+              <tbody
+                id="statusHistoryTableBody"
+                class="bg-white divide-y divide-gray-200"
+              ></tbody>
+            </table>
           </div>
         </div>
       </section>
