@@ -541,12 +541,17 @@ class StatisticsManager {
     }
 
     const statusFilter = document.getElementById("historyStatusFilter");
+    const directionFilter = document.getElementById("historyDirectionFilter");
     const acceptedFilter = document.getElementById("historyAcceptedFilter");
-    const searchInput = document.getElementById("historySearch");
     if (statusFilter)
       statusFilter.addEventListener("change", () => this.loadStatusHistory());
+    if (directionFilter)
+      directionFilter.addEventListener("change", () =>
+        this.loadStatusHistory(),
+      );
     if (acceptedFilter)
       acceptedFilter.addEventListener("change", () => this.loadStatusHistory());
+    const searchInput = document.getElementById("historySearch");
     if (searchInput)
       searchInput.addEventListener("input", () => this._applySearchAndRender());
 
@@ -568,6 +573,8 @@ class StatisticsManager {
 
     const statusFilter =
       document.getElementById("historyStatusFilter")?.value || "";
+    const directionFilter =
+      document.getElementById("historyDirectionFilter")?.value || "";
     const acceptedFilter =
       document.getElementById("historyAcceptedFilter")?.value || "";
 
@@ -579,6 +586,7 @@ class StatisticsManager {
     try {
       const params = { session_id: sessionId };
       if (statusFilter) params.status = statusFilter;
+      if (statusFilter && directionFilter) params.direction = directionFilter;
       if (acceptedFilter) params.accepted_filter = acceptedFilter;
 
       const result = await api.get("/api/logs/status-history", params);
