@@ -646,6 +646,25 @@ class StatisticsManager {
   _renderHistoryTable(rows) {
     const tbody = document.getElementById("statusHistoryTableBody");
     if (!tbody) return;
+
+    const countEl = document.getElementById("historyResultCount");
+    const countWrapper = document.getElementById("historyResultCountWrapper");
+    const statusFilter =
+      document.getElementById("historyStatusFilter")?.value || "";
+    const searchVal =
+      document.getElementById("historySearch")?.value.trim() || "";
+    const isFiltering = !!statusFilter || !!searchVal;
+
+    if (countEl && countWrapper) {
+      countWrapper.style.display = isFiltering ? "" : "none";
+      if (isFiltering) {
+        const filterLabel = statusFilter
+          ? ` (filtered by: <strong>${statusFilter}</strong>)`
+          : "";
+        countEl.innerHTML = `Showing <span class="font-semibold">${rows.length}</span> of <span class="font-semibold">${this.historyData.length}</span> results${filterLabel}`;
+      }
+    }
+
     if (rows.length === 0) {
       tbody.innerHTML = `
         <tr>
