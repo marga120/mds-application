@@ -23,10 +23,10 @@ class LogService:
             raise ValueError(error)
         return logs or []
 
-    def get_status_change_history(self, session_id: int, status_filter=None, accepted_filter=None, direction=None) -> list:
+    def get_status_change_history(self, session_id: int, status_from=None, status_to=None, accepted_filter=None) -> list:
         """Return status change history for a session, with optional filters."""
         from models.logs import get_status_change_history as _query
-        rows, error = _query(session_id, status_filter, accepted_filter, direction)
+        rows, error = _query(session_id, status_from, status_to, accepted_filter)
         if error:
             raise ValueError(error)
         return rows or []
