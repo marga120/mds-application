@@ -7,7 +7,7 @@ Database queries for activity log data, joined with applicant information.
 from utils.db_helpers import db_connection
 
 
-def get_status_change_history(session_id, status_filter=None, accepted_filter=None, direction=None):
+def get_status_change_history(session_id, status_from=None, status_to=None, accepted_filter=None):
     """
     Get all instances where an applicant was moved to a given status,
     joined with their current applicant data.
@@ -22,17 +22,12 @@ def get_status_change_history(session_id, status_filter=None, accepted_filter=No
             params = [session_id]
 
             status_clause = ""
-            if status_filter:
-                if direction == "to":
-                    status_clause = "AND al.new_value = %s"
-                    params.append(status_filter)
-                elif direction == "from":
-                    status_clause = "AND al.old_value = %s"
-                    params.append(status_filter)
-                else:
-                    status_clause = "AND (al.new_value = %s OR al.old_value = %s)"
-                    params.append(status_filter)
-                    params.append(status_filter)
+            if status_from:
+                status_clause += " AND al.old_value = %s"
+                params.append(status_from)
+            if status_to:
+                status_clause += " AND al.new_value = %s"
+                params.append(status_to)
 
             accepted_clause = ""
             if accepted_filter == "accepted":

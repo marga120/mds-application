@@ -46,14 +46,11 @@ def get_status_change_history():
         session_id = request.args.get("session_id", type=int)
         if not session_id:
             return jsonify({"success": False, "message": "session_id is required"}), 400
-        direction = request.args.get("direction") or None
-        if direction and direction not in ("to", "from", "both"):
-            direction = None
         rows = _service.get_status_change_history(
             session_id=session_id,
-            status_filter=request.args.get("status") or None,
+            status_from=request.args.get("status_from") or None,
+            status_to=request.args.get("status_to") or None,
             accepted_filter=request.args.get("accepted_filter") or None,
-            direction=direction,
         )
         return jsonify({"success": True, "history": rows, "count": len(rows)})
     except Exception as e:
