@@ -530,25 +530,27 @@ class StatisticsManager {
   }
 
   initStatusHistory() {
-    const statusSelect = document.getElementById("historyStatusFilter");
-    if (statusSelect) {
-      this.statusOptions.forEach((status) => {
-        const option = document.createElement("option");
-        option.value = status.status_name;
-        option.textContent = status.status_name;
-        statusSelect.appendChild(option);
-      });
-    }
+    ["historyStatusFromFilter", "historyStatusToFilter"].forEach((id) => {
+      const select = document.getElementById(id);
+      if (select) {
+        this.statusOptions.forEach((status) => {
+          const option = document.createElement("option");
+          option.value = status.status_name;
+          option.textContent = status.status_name;
+          select.appendChild(option);
+        });
+      }
+    });
 
-    const statusFilter = document.getElementById("historyStatusFilter");
-    const directionFilter = document.getElementById("historyDirectionFilter");
+    const statusFromFilter = document.getElementById("historyStatusFromFilter");
+    const statusToFilter = document.getElementById("historyStatusToFilter");
     const acceptedFilter = document.getElementById("historyAcceptedFilter");
-    if (statusFilter)
-      statusFilter.addEventListener("change", () => this.loadStatusHistory());
-    if (directionFilter)
-      directionFilter.addEventListener("change", () =>
+    if (statusFromFilter)
+      statusFromFilter.addEventListener("change", () =>
         this.loadStatusHistory(),
       );
+    if (statusToFilter)
+      statusToFilter.addEventListener("change", () => this.loadStatusHistory());
     if (acceptedFilter)
       acceptedFilter.addEventListener("change", () => this.loadStatusHistory());
     const searchInput = document.getElementById("historySearch");
@@ -571,10 +573,10 @@ class StatisticsManager {
       return;
     }
 
-    const statusFilter =
-      document.getElementById("historyStatusFilter")?.value || "";
-    const directionFilter =
-      document.getElementById("historyDirectionFilter")?.value || "";
+    const statusFrom =
+      document.getElementById("historyStatusFromFilter")?.value || "";
+    const statusTo =
+      document.getElementById("historyStatusToFilter")?.value || "";
     const acceptedFilter =
       document.getElementById("historyAcceptedFilter")?.value || "";
 
@@ -585,8 +587,8 @@ class StatisticsManager {
 
     try {
       const params = { session_id: sessionId };
-      if (statusFilter) params.status = statusFilter;
-      if (statusFilter && directionFilter) params.direction = directionFilter;
+      if (statusFrom) params.status_from = statusFrom;
+      if (statusTo) params.status_to = statusTo;
       if (acceptedFilter) params.accepted_filter = acceptedFilter;
 
       const result = await api.get("/api/logs/status-history", params);
@@ -649,18 +651,21 @@ class StatisticsManager {
 
     const countEl = document.getElementById("historyResultCount");
     const countWrapper = document.getElementById("historyResultCountWrapper");
-    const statusFilter =
-      document.getElementById("historyStatusFilter")?.value || "";
+    const statusFrom =
+      document.getElementById("historyStatusFromFilter")?.value || "";
+    const statusTo =
+      document.getElementById("historyStatusToFilter")?.value || "";
     const searchVal =
       document.getElementById("historySearch")?.value.trim() || "";
-    const isFiltering = !!statusFilter || !!searchVal;
+    const isFiltering = !!statusFrom || !!statusTo || !!searchVal;
 
     if (countEl && countWrapper) {
       countWrapper.style.display = isFiltering ? "" : "none";
       if (isFiltering) {
-        const filterLabel = statusFilter
-          ? ` (filtered by: <strong>${statusFilter}</strong>)`
-          : "";
+        const parts = [];
+        if (statusFrom) parts.push(`From: <strong>${statusFrom}</strong>`);
+        if (statusTo) parts.push(`To: <strong>${statusTo}</strong>`);
+        const filterLabel = parts.length ? ` (${parts.join(", ")})` : "";
         countEl.innerHTML = `Showing <span class="font-semibold">${rows.length}</span> of <span class="font-semibold">${this.historyData.length}</span> results${filterLabel}`;
       }
     }
