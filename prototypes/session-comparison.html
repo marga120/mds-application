@@ -1,0 +1,2160 @@
+1<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Session Comparison — MDS Statistics</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        background: #f9fafb;
+        color: #111827;
+        min-height: 100vh;
+      }
+
+      /* ---- Header ---- */
+      .header {
+        background: #002145;
+        padding: 0 24px;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .header-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .header-logo {
+        width: 40px;
+        height: 40px;
+        background: #fff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #002145;
+      }
+      .header-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #fff;
+      }
+      .header-subtitle {
+        font-size: 0.72rem;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .header-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .header-pill {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.9);
+      }
+      .header-pill svg {
+        width: 13px;
+        height: 13px;
+        opacity: 0.65;
+      }
+      .header-avatar {
+        width: 34px;
+        height: 34px;
+        background: #1d4ed8;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #fff;
+      }
+
+      /* ---- Page wrapper ---- */
+      .page {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 32px 16px;
+      }
+
+      /* ---- Page heading ---- */
+      .page-heading {
+        margin-bottom: 32px;
+      }
+      .page-heading h1 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #002145;
+      }
+      .page-heading p {
+        color: #4b5563;
+        margin-top: 8px;
+        font-size: 0.95rem;
+      }
+
+      /* ---- Tab strip + Compare button row ---- */
+      .tab-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+      }
+      .stats-tab {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        background: #e5e7eb;
+        color: #374151;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .stats-tab.active {
+        background: #002145;
+        color: #fff;
+      }
+      .spacer {
+        flex: 1;
+      }
+      .compare-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1.5px solid #002145;
+        background: transparent;
+        color: #002145;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .compare-btn.on {
+        background: #002145;
+        color: #fff;
+      }
+      .compare-btn svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ---- Session pickers (compare mode) ---- */
+      .picker-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 14px 20px;
+        margin-bottom: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        flex-wrap: wrap;
+      }
+      .picker-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+      }
+      .picker-label.a {
+        color: #1d4ed8;
+      }
+      .picker-label.b {
+        color: #b45309;
+      }
+      .picker-select {
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        padding: 7px 12px;
+        font-size: 0.85rem;
+        background: #f9fafb;
+        color: #111827;
+        outline: none;
+      }
+      .vs {
+        font-weight: 700;
+        color: #d1d5db;
+        padding: 0 4px;
+      }
+      .reset-btn {
+        margin-left: auto;
+        padding: 7px 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        background: transparent;
+        font-size: 0.78rem;
+        color: #6b7280;
+        cursor: pointer;
+      }
+      .reset-btn:hover {
+        background: #f3f4f6;
+      }
+
+      /* ---- Section heading ---- */
+      .section-heading {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 16px;
+      }
+
+      /* ---- Card ---- */
+      .card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow:
+          0 1px 3px rgba(0, 0, 0, 0.1),
+          0 1px 2px rgba(0, 0, 0, 0.06);
+        padding: 24px;
+      }
+
+      /* ---- Quick stat cards (border-l-4 style matching the actual page) ---- */
+      .stat-cards-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .stat-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .stat-card.green {
+        border-left: 4px solid #22c55e;
+      }
+      .stat-card.yellow {
+        border-left: 4px solid #eab308;
+      }
+      .stat-card.blue {
+        border-left: 4px solid #3b82f6;
+      }
+      .stat-card.purple {
+        border-left: 4px solid #a855f7;
+      }
+      .stat-card-label {
+        font-size: 0.875rem;
+        color: #4b5563;
+        font-weight: 500;
+        margin-bottom: 4px;
+      }
+      .stat-card-value {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #111827;
+      }
+      .stat-card-icon {
+        border-radius: 50%;
+        padding: 12px;
+      }
+      .stat-card-icon.green {
+        background: #dcfce7;
+      }
+      .stat-card-icon.yellow {
+        background: #fef9c3;
+      }
+      .stat-card-icon.blue {
+        background: #dbeafe;
+      }
+      .stat-card-icon.purple {
+        background: #f3e8ff;
+      }
+      .stat-card-icon svg {
+        width: 24px;
+        height: 24px;
+        display: block;
+      }
+      .icon-green {
+        color: #16a34a;
+      }
+      .icon-yellow {
+        color: #ca8a04;
+      }
+      .icon-blue {
+        color: #2563eb;
+      }
+      .icon-purple {
+        color: #9333ea;
+      }
+
+      /* ---- Top row layout (cards left, status breakdown right) ---- */
+      .top-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+      .bottom-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 32px;
+      }
+
+      /* ---- Progress bars (Applications by Status, Gender, Countries) ---- */
+      .card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 16px;
+      }
+      .status-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        max-height: 320px;
+        overflow-y: auto;
+      }
+      .status-row {
+        padding: 6px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .status-row:hover {
+        background: #eff6ff;
+      }
+      .status-row-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.75rem;
+        margin-bottom: 4px;
+      }
+      .status-row-name {
+        color: #374151;
+        font-weight: 500;
+      }
+      .status-row-count {
+        color: #4b5563;
+      }
+      .progress-track {
+        width: 100%;
+        background: #e5e7eb;
+        border-radius: 9999px;
+        height: 6px;
+      }
+      .progress-fill {
+        height: 6px;
+        border-radius: 9999px;
+        transition: width 0.5s;
+      }
+
+      .bar-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .bar-item-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.875rem;
+        margin-bottom: 4px;
+      }
+      .bar-item-label {
+        color: #4b5563;
+      }
+      .bar-item-value {
+        font-weight: 500;
+        color: #111827;
+      }
+      .progress-track-lg {
+        width: 100%;
+        background: #e5e7eb;
+        border-radius: 9999px;
+        height: 12px;
+      }
+      .progress-fill-lg {
+        height: 12px;
+        border-radius: 9999px;
+        transition: width 0.5s;
+      }
+      .bar-item-xs-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        margin-bottom: 4px;
+      }
+      .progress-track-xs {
+        width: 100%;
+        background: #e5e7eb;
+        border-radius: 9999px;
+        height: 8px;
+      }
+      .progress-fill-xs {
+        height: 8px;
+        border-radius: 9999px;
+      }
+
+      /* ---- Compare layout: side-by-side with session column headers ---- */
+      .compare-cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .compare-col-header {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        padding: 5px 12px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+      }
+      .compare-col-header.a {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+      }
+      .compare-col-header.b {
+        background: #fffbeb;
+        color: #b45309;
+        border: 1px solid #fcd34d;
+      }
+
+      /* In compare mode the top-row and bottom-row become compare-cols */
+      .compare-section {
+        margin-bottom: 28px;
+      }
+      .compare-section-title {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #9ca3af;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .compare-section-title::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: #e5e7eb;
+      }
+
+      /* Status breakdown delta in list (compare only) */
+      .delta-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-size: 0.68rem;
+        font-weight: 600;
+        padding: 1px 5px;
+        border-radius: 10px;
+      }
+      .delta-tag.up {
+        background: #f0fdf4;
+        color: #16a34a;
+      }
+      .delta-tag.down {
+        background: #fef2f2;
+        color: #dc2626;
+      }
+      .delta-tag.zero {
+        background: #f3f4f6;
+        color: #6b7280;
+      }
+
+      /* Status breakdown table in compare mode */
+      .compare-status-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .compare-status-table th {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: #6b7280;
+        padding: 8px 10px;
+        border-bottom: 1px solid #e5e7eb;
+        text-align: left;
+        background: #f9fafb;
+      }
+      .compare-status-table td {
+        padding: 8px 10px;
+        font-size: 0.82rem;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+      }
+      .compare-status-table tr:last-child td {
+        border-bottom: none;
+      }
+      .compare-status-table tr:hover td {
+        background: #f9fafb;
+      }
+      .compare-status-table .num {
+        font-weight: 500;
+        color: #111827;
+      }
+      .compare-status-table .delta-col {
+        text-align: center;
+      }
+
+      /* Visibility */
+      .hidden {
+        display: none !important;
+      }
+
+      /* Animations */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(5px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .animate-in {
+        animation: fadeIn 0.2s ease forwards;
+      }
+
+      /* Proto banner */
+      .proto-banner {
+        background: #002145;
+        color: rgba(255, 255, 255, 0.75);
+        text-align: center;
+        padding: 7px 16px;
+        font-size: 0.73rem;
+        letter-spacing: 0.03em;
+      }
+      .proto-banner strong {
+        color: #93c5fd;
+      }
+
+      /* Status filter dropdown */
+      .status-filter-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 16px;
+        margin-bottom: 24px;
+      }
+      .status-filter-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 8px;
+      }
+      .status-filter-select {
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 9px 12px;
+        font-size: 0.875rem;
+        color: #111827;
+        background: #fff;
+        outline: none;
+        max-width: 28rem;
+        width: 100%;
+      }
+
+      /* Status stats detail card */
+      .status-detail-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 24px;
+      }
+      .status-detail-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 24px;
+      }
+      .status-detail-subtitle {
+        color: #6b7280;
+        font-size: 1rem;
+        font-weight: 400;
+      }
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+      .detail-section-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="proto-banner">
+      Prototype &nbsp;·&nbsp; <strong>Session Comparison</strong> &nbsp;·&nbsp;
+      Click "Compare Sessions" to toggle. Switch tabs to see Application Status
+      / Change History views.
+    </div>
+
+    <header class="header">
+      <div class="header-brand">
+        <div class="header-logo">U</div>
+        <div>
+          <div class="header-title">MDS Application</div>
+          <div class="header-subtitle">University of British Columbia</div>
+        </div>
+      </div>
+      <div class="header-controls">
+        <div class="header-pill">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" stroke-width="2" />
+          </svg>
+          OGMMDS-O 2025W1
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </div>
+        <div class="header-pill">
+          Users
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </div>
+        <div class="header-pill">
+          Data
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </div>
+        <div class="header-avatar">BC</div>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="page-heading">
+        <h1>Application Statistics</h1>
+        <p>Overview of application data and trends</p>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- OVERALL STATISTICS (always visible)                          -->
+      <!-- ============================================================ -->
+      <section style="margin-bottom: 32px">
+        <div class="section-heading">Overall Statistics</div>
+
+        <!-- Tab strip + Compare button -->
+        <div class="tab-row">
+          <button class="stats-tab active" onclick="switchTab('stats', this)">
+            Application Status
+          </button>
+          <button class="stats-tab" onclick="switchTab('history', this)">
+            Change History
+          </button>
+          <button class="stats-tab" onclick="switchTab('both', this)">
+            Both
+          </button>
+          <div class="spacer"></div>
+          <button class="compare-btn" id="compareBtn" onclick="toggleCompare()">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"
+              />
+            </svg>
+            Compare Sessions
+          </button>
+        </div>
+
+        <!-- Session pickers (compare mode only) -->
+        <div id="pickerBar" class="picker-bar hidden">
+          <span class="picker-label a">Session A</span>
+          <select class="picker-select">
+            <option selected>2025 Winter — Okanagan</option>
+            <option>2024 Winter — Okanagan</option>
+            <option>2023 Winter — Okanagan</option>
+          </select>
+          <span class="vs">vs</span>
+          <span class="picker-label b">Session B</span>
+          <select class="picker-select">
+            <option>2025 Winter — Okanagan</option>
+            <option selected>2024 Winter — Okanagan</option>
+            <option>2023 Winter — Okanagan</option>
+          </select>
+          <button class="reset-btn" onclick="toggleCompare()">Reset</button>
+        </div>
+
+        <!-- ======================== SINGLE VIEW ======================== -->
+        <div id="singleView" class="animate-in">
+          <!-- Top row: 2x2 stat cards + Applications by Status -->
+          <div class="top-row">
+            <div class="stat-cards-grid">
+              <div class="stat-card green">
+                <div>
+                  <p class="stat-card-label">Submitted</p>
+                  <p class="stat-card-value">142</p>
+                </div>
+                <div class="stat-card-icon green">
+                  <svg
+                    class="icon-green"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <div class="stat-card yellow">
+                <div>
+                  <p class="stat-card-label">Unsubmitted</p>
+                  <p class="stat-card-value">23</p>
+                </div>
+                <div class="stat-card-icon yellow">
+                  <svg
+                    class="icon-yellow"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <div class="stat-card blue">
+                <div>
+                  <p class="stat-card-label">Domestic</p>
+                  <p class="stat-card-value">48</p>
+                </div>
+                <div class="stat-card-icon blue">
+                  <svg
+                    class="icon-blue"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <div class="stat-card purple">
+                <div>
+                  <p class="stat-card-label">International</p>
+                  <p class="stat-card-value">117</p>
+                </div>
+                <div class="stat-card-icon purple">
+                  <svg
+                    class="icon-purple"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">Applications by Status</div>
+              <div class="status-list">
+                <div class="status-row">
+                  <div class="status-row-header">
+                    <span class="status-row-name">Submitted Applications</span
+                    ><span class="status-row-count">142 (86.1%)</span>
+                  </div>
+                  <div class="progress-track">
+                    <div
+                      class="progress-fill"
+                      style="width: 86.1%; background: #22c55e"
+                    ></div>
+                  </div>
+                </div>
+                <div class="status-row">
+                  <div class="status-row-header">
+                    <span class="status-row-name">Unsubmitted Applications</span
+                    ><span class="status-row-count">23 (13.9%)</span>
+                  </div>
+                  <div class="progress-track">
+                    <div
+                      class="progress-fill"
+                      style="width: 13.9%; background: #9ca3af"
+                    ></div>
+                  </div>
+                </div>
+                <div class="status-row">
+                  <div class="status-row-header">
+                    <span class="status-row-name">Offer Accepted</span
+                    ><span class="status-row-count">38 (26.8%)</span>
+                  </div>
+                  <div class="progress-track">
+                    <div
+                      class="progress-fill"
+                      style="width: 26.8%; background: #10b981"
+                    ></div>
+                  </div>
+                </div>
+                <div class="status-row">
+                  <div class="status-row-header">
+                    <span class="status-row-name">Offer Sent to Student</span
+                    ><span class="status-row-count">22 (15.5%)</span>
+                  </div>
+                  <div class="progress-track">
+                    <div
+                      class="progress-fill"
+                      style="width: 15.5%; background: #3b82f6"
+                    ></div>
+                  </div>
+                </div>
+                <div class="status-row">
+                  <div class="status-row-header">
+                    <span class="status-row-name">Waitlisted</span
+                    ><span class="status-row-count">18 (12.7%)</span>
+                  </div>
+                  <div class="progress-track">
+                    <div
+                      class="progress-fill"
+                      style="width: 12.7%; background: #f59e0b"
+                    ></div>
+                  </div>
+                </div>
+                <div class="status-row">
+                  <div class="status-row-header">
+                    <span class="status-row-name">Under Review</span
+                    ><span class="status-row-count">41 (28.9%)</span>
+                  </div>
+                  <div class="progress-track">
+                    <div
+                      class="progress-fill"
+                      style="width: 28.9%; background: #6366f1"
+                    ></div>
+                  </div>
+                </div>
+                <div class="status-row">
+                  <div class="status-row-header">
+                    <span class="status-row-name">Rejected</span
+                    ><span class="status-row-count">23 (16.2%)</span>
+                  </div>
+                  <div class="progress-track">
+                    <div
+                      class="progress-fill"
+                      style="width: 16.2%; background: #ef4444"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom row: Gender + Top Countries -->
+          <div class="bottom-row">
+            <div class="card">
+              <div class="card-title">Gender Distribution</div>
+              <div class="bar-list">
+                <div>
+                  <div class="bar-item-header">
+                    <span class="bar-item-label">Male</span
+                    ><span class="bar-item-value">79 (47.9%)</span>
+                  </div>
+                  <div class="progress-track-lg">
+                    <div
+                      class="progress-fill-lg"
+                      style="width: 47.9%; background: #3b82f6"
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="bar-item-header">
+                    <span class="bar-item-label">Female</span
+                    ><span class="bar-item-value">74 (44.8%)</span>
+                  </div>
+                  <div class="progress-track-lg">
+                    <div
+                      class="progress-fill-lg"
+                      style="width: 44.8%; background: #ec4899"
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="bar-item-header">
+                    <span class="bar-item-label">Not Specified</span
+                    ><span class="bar-item-value">12 (7.3%)</span>
+                  </div>
+                  <div class="progress-track-lg">
+                    <div
+                      class="progress-fill-lg"
+                      style="width: 7.3%; background: #9ca3af"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Top Countries</div>
+              <div class="bar-list">
+                <div>
+                  <div class="bar-item-xs-header">
+                    <span style="color: #374151; font-weight: 500">China</span
+                    ><span style="color: #4b5563">41 (24.8%)</span>
+                  </div>
+                  <div class="progress-track-xs">
+                    <div
+                      class="progress-fill-xs"
+                      style="width: 24.8%; background: #002145"
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="bar-item-xs-header">
+                    <span style="color: #374151; font-weight: 500">India</span
+                    ><span style="color: #4b5563">28 (17.0%)</span>
+                  </div>
+                  <div class="progress-track-xs">
+                    <div
+                      class="progress-fill-xs"
+                      style="width: 17%; background: #002145"
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="bar-item-xs-header">
+                    <span style="color: #374151; font-weight: 500">Canada</span
+                    ><span style="color: #4b5563">24 (14.5%)</span>
+                  </div>
+                  <div class="progress-track-xs">
+                    <div
+                      class="progress-fill-xs"
+                      style="width: 14.5%; background: #002145"
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="bar-item-xs-header">
+                    <span style="color: #374151; font-weight: 500"
+                      >United States</span
+                    ><span style="color: #4b5563">15 (9.1%)</span>
+                  </div>
+                  <div class="progress-track-xs">
+                    <div
+                      class="progress-fill-xs"
+                      style="width: 9.1%; background: #002145"
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="bar-item-xs-header">
+                    <span style="color: #374151; font-weight: 500"
+                      >South Korea</span
+                    ><span style="color: #4b5563">11 (6.7%)</span>
+                  </div>
+                  <div class="progress-track-xs">
+                    <div
+                      class="progress-fill-xs"
+                      style="width: 6.7%; background: #002145"
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="bar-item-xs-header">
+                    <span style="color: #374151; font-weight: 500">Nigeria</span
+                    ><span style="color: #4b5563">8 (4.8%)</span>
+                  </div>
+                  <div class="progress-track-xs">
+                    <div
+                      class="progress-fill-xs"
+                      style="width: 4.8%; background: #002145"
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="bar-item-xs-header">
+                    <span style="color: #374151; font-weight: 500">Iran</span
+                    ><span style="color: #4b5563">7 (4.2%)</span>
+                  </div>
+                  <div class="progress-track-xs">
+                    <div
+                      class="progress-fill-xs"
+                      style="width: 4.2%; background: #002145"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================== COMPARE VIEW ======================== -->
+        <div id="compareView" class="hidden animate-in">
+          <!-- Quick stat cards side by side -->
+          <div class="compare-section">
+            <div class="compare-section-title">Quick Stats</div>
+            <div class="compare-cols">
+              <!-- Session A -->
+              <div>
+                <span class="compare-col-header a"
+                  >Session A — 2025 Winter</span
+                >
+                <div class="stat-cards-grid">
+                  <div class="stat-card green">
+                    <div>
+                      <p class="stat-card-label">Submitted</p>
+                      <p class="stat-card-value">142</p>
+                    </div>
+                    <div class="stat-card-icon green">
+                      <svg
+                        class="icon-green"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="stat-card yellow">
+                    <div>
+                      <p class="stat-card-label">Unsubmitted</p>
+                      <p class="stat-card-value">23</p>
+                    </div>
+                    <div class="stat-card-icon yellow">
+                      <svg
+                        class="icon-yellow"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="stat-card blue">
+                    <div>
+                      <p class="stat-card-label">Domestic</p>
+                      <p class="stat-card-value">48</p>
+                    </div>
+                    <div class="stat-card-icon blue">
+                      <svg
+                        class="icon-blue"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="stat-card purple">
+                    <div>
+                      <p class="stat-card-label">International</p>
+                      <p class="stat-card-value">117</p>
+                    </div>
+                    <div class="stat-card-icon purple">
+                      <svg
+                        class="icon-purple"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Session B -->
+              <div>
+                <span class="compare-col-header b"
+                  >Session B — 2024 Winter</span
+                >
+                <div class="stat-cards-grid">
+                  <div class="stat-card green">
+                    <div>
+                      <p class="stat-card-label">Submitted</p>
+                      <p class="stat-card-value">128</p>
+                    </div>
+                    <div class="stat-card-icon green">
+                      <svg
+                        class="icon-green"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="stat-card yellow">
+                    <div>
+                      <p class="stat-card-label">Unsubmitted</p>
+                      <p class="stat-card-value">26</p>
+                    </div>
+                    <div class="stat-card-icon yellow">
+                      <svg
+                        class="icon-yellow"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="stat-card blue">
+                    <div>
+                      <p class="stat-card-label">Domestic</p>
+                      <p class="stat-card-value">43</p>
+                    </div>
+                    <div class="stat-card-icon blue">
+                      <svg
+                        class="icon-blue"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="stat-card purple">
+                    <div>
+                      <p class="stat-card-label">International</p>
+                      <p class="stat-card-value">105</p>
+                    </div>
+                    <div class="stat-card-icon purple">
+                      <svg
+                        class="icon-purple"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Applications by Status — table with delta column -->
+          <div class="compare-section">
+            <div class="compare-section-title">Applications by Status</div>
+            <div class="card">
+              <table class="compare-status-table">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th style="color: #1d4ed8">2025 Winter</th>
+                    <th style="text-align: center">Δ</th>
+                    <th style="color: #b45309">2024 Winter</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Submitted Applications</td>
+                    <td class="num">142 (86.1%)</td>
+                    <td class="delta-col">
+                      <span class="delta-tag up">▲ 14</span>
+                    </td>
+                    <td class="num">128 (83.1%)</td>
+                  </tr>
+                  <tr>
+                    <td>Unsubmitted Applications</td>
+                    <td class="num">23 (13.9%)</td>
+                    <td class="delta-col">
+                      <span class="delta-tag down">▼ 3</span>
+                    </td>
+                    <td class="num">26 (16.9%)</td>
+                  </tr>
+                  <tr>
+                    <td>Offer Accepted</td>
+                    <td class="num">38 (26.8%)</td>
+                    <td class="delta-col">
+                      <span class="delta-tag up">▲ 5</span>
+                    </td>
+                    <td class="num">33 (25.8%)</td>
+                  </tr>
+                  <tr>
+                    <td>Offer Sent to Student</td>
+                    <td class="num">22 (15.5%)</td>
+                    <td class="delta-col">
+                      <span class="delta-tag up">▲ 3</span>
+                    </td>
+                    <td class="num">19 (14.8%)</td>
+                  </tr>
+                  <tr>
+                    <td>Waitlisted</td>
+                    <td class="num">18 (12.7%)</td>
+                    <td class="delta-col">
+                      <span class="delta-tag down">▼ 2</span>
+                    </td>
+                    <td class="num">20 (15.6%)</td>
+                  </tr>
+                  <tr>
+                    <td>Under Review</td>
+                    <td class="num">41 (28.9%)</td>
+                    <td class="delta-col">
+                      <span class="delta-tag up">▲ 8</span>
+                    </td>
+                    <td class="num">33 (25.8%)</td>
+                  </tr>
+                  <tr>
+                    <td>Rejected</td>
+                    <td class="num">23 (16.2%)</td>
+                    <td class="delta-col">
+                      <span class="delta-tag zero">— 0</span>
+                    </td>
+                    <td class="num">23 (18.0%)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Gender Distribution side by side -->
+          <div class="compare-section">
+            <div class="compare-section-title">Gender Distribution</div>
+            <div class="compare-cols">
+              <div class="card">
+                <div
+                  class="compare-col-header a"
+                  style="margin-bottom: 16px; display: block"
+                >
+                  Session A — 2025 Winter
+                </div>
+                <div class="bar-list">
+                  <div>
+                    <div class="bar-item-header">
+                      <span class="bar-item-label">Male</span
+                      ><span class="bar-item-value">79 (47.9%)</span>
+                    </div>
+                    <div class="progress-track-lg">
+                      <div
+                        class="progress-fill-lg"
+                        style="width: 47.9%; background: #3b82f6"
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="bar-item-header">
+                      <span class="bar-item-label">Female</span
+                      ><span class="bar-item-value">74 (44.8%)</span>
+                    </div>
+                    <div class="progress-track-lg">
+                      <div
+                        class="progress-fill-lg"
+                        style="width: 44.8%; background: #ec4899"
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="bar-item-header">
+                      <span class="bar-item-label">Not Specified</span
+                      ><span class="bar-item-value">12 (7.3%)</span>
+                    </div>
+                    <div class="progress-track-lg">
+                      <div
+                        class="progress-fill-lg"
+                        style="width: 7.3%; background: #9ca3af"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div
+                  class="compare-col-header b"
+                  style="margin-bottom: 16px; display: block"
+                >
+                  Session B — 2024 Winter
+                </div>
+                <div class="bar-list">
+                  <div>
+                    <div class="bar-item-header">
+                      <span class="bar-item-label">Male</span
+                      ><span class="bar-item-value">71 (46.1%)</span>
+                    </div>
+                    <div class="progress-track-lg">
+                      <div
+                        class="progress-fill-lg"
+                        style="width: 46.1%; background: #3b82f6"
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="bar-item-header">
+                      <span class="bar-item-label">Female</span
+                      ><span class="bar-item-value">68 (44.2%)</span>
+                    </div>
+                    <div class="progress-track-lg">
+                      <div
+                        class="progress-fill-lg"
+                        style="width: 44.2%; background: #ec4899"
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="bar-item-header">
+                      <span class="bar-item-label">Not Specified</span
+                      ><span class="bar-item-value">15 (9.7%)</span>
+                    </div>
+                    <div class="progress-track-lg">
+                      <div
+                        class="progress-fill-lg"
+                        style="width: 9.7%; background: #9ca3af"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Countries side by side -->
+          <div class="compare-section">
+            <div class="compare-section-title">Top Countries</div>
+            <div class="compare-cols">
+              <div class="card">
+                <div
+                  class="compare-col-header a"
+                  style="margin-bottom: 16px; display: block"
+                >
+                  Session A — 2025 Winter
+                </div>
+                <div class="bar-list">
+                  <div>
+                    <div class="bar-item-xs-header">
+                      <span style="color: #374151; font-weight: 500">China</span
+                      ><span style="color: #4b5563">41 (24.8%)</span>
+                    </div>
+                    <div class="progress-track-xs">
+                      <div
+                        class="progress-fill-xs"
+                        style="width: 24.8%; background: #002145"
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="bar-item-xs-header">
+                      <span style="color: #374151; font-weight: 500">India</span
+                      ><span style="color: #4b5563">28 (17.0%)</span>
+                    </div>
+                    <div class="progress-track-xs">
+                      <div
+                        class="progress-fill-xs"
+                        style="width: 17%; background: #002145"
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="bar-item-xs-header">
+                      <span style="color: #374151; font-weight: 500"
+                        >Canada</span
+                      ><span style="color: #4b5563">24 (14.5%)</span>
+                    </div>
+                    <div class="progress-track-xs">
+                      <div
+                        class="progress-fill-xs"
+                        style="width: 14.5%; background: #002145"
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="bar-item-xs-header">
+                      <span style="color: #374151; font-weight: 500"
+                        >United States</span
+                      ><span style="color: #4b5563">15 (9.1%)</span>
+                    </div>
+                    <div class="progress-track-xs">
+                      <div
+                        class="progress-fill-xs"
+                        style="width: 9.1%; background: #002145"
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="bar-item-xs-header">
+                      <span style="color: #374151; font-weight: 500"
+                        >South Korea</span
+                      ><span style="color: #4b5563">11 (6.7%)</span>
+                    </div>
+                    <div class="progress-track-xs">
+                      <div
+                        class="progress-fill-xs"
+                        style="width: 6.7%; background: #002145"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div
+                  class="compare-col-header b"
+                  style="margin-bottom: 16px; display: block"
+                >
+                  Session B — 2024 Winter
+                </div>
+                <div class="bar-list">
+                  <div>
+                    <div class="bar-item-xs-header">
+                      <span style="color: #374151; font-weight: 500">China</span
+                      ><span style="color: #4b5563">36 (23.4%)</span>
+                    </div>
+                    <div class="progress-track-xs">
+                      <div
+                        class="progress-fill-xs"
+                        style="width: 23.4%; background: #002145"
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="bar-item-xs-header">
+                      <span style="color: #374151; font-weight: 500">India</span
+                      ><span style="color: #4b5563">25 (16.2%)</span>
+                    </div>
+                    <div class="progress-track-xs">
+                      <div
+                        class="progress-fill-xs"
+                        style="width: 16.2%; background: #002145"
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="bar-item-xs-header">
+                      <span style="color: #374151; font-weight: 500"
+                        >Canada</span
+                      ><span style="color: #4b5563">21 (13.6%)</span>
+                    </div>
+                    <div class="progress-track-xs">
+                      <div
+                        class="progress-fill-xs"
+                        style="width: 13.6%; background: #002145"
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="bar-item-xs-header">
+                      <span style="color: #374151; font-weight: 500"
+                        >United States</span
+                      ><span style="color: #4b5563">14 (9.1%)</span>
+                    </div>
+                    <div class="progress-track-xs">
+                      <div
+                        class="progress-fill-xs"
+                        style="width: 9.1%; background: #002145"
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="bar-item-xs-header">
+                      <span style="color: #374151; font-weight: 500"
+                        >South Korea</span
+                      ><span style="color: #4b5563">9 (5.8%)</span>
+                    </div>
+                    <div class="progress-track-xs">
+                      <div
+                        class="progress-fill-xs"
+                        style="width: 5.8%; background: #002145"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- APPLICATION STATUS TAB (below overall stats)                 -->
+      <!-- ============================================================ -->
+      <section id="statsSection">
+        <div class="status-filter-card">
+          <label class="status-filter-label">Select Status</label>
+          <select class="status-filter-select">
+            <option>All Statuses</option>
+            <option>Submitted Applications</option>
+            <option>Unsubmitted Applications</option>
+            <option>Offer Accepted</option>
+            <option>Offer Sent to Student</option>
+            <option>Waitlisted</option>
+            <option>Under Review</option>
+            <option>Rejected</option>
+          </select>
+        </div>
+
+        <div class="status-detail-card">
+          <div class="status-detail-title">
+            All Statuses
+            <span class="status-detail-subtitle">(165 applicants)</span>
+          </div>
+          <div class="detail-grid">
+            <div>
+              <div class="detail-section-title">Residency Status</div>
+              <div class="bar-list">
+                <div>
+                  <div class="bar-item-header">
+                    <span class="bar-item-label">Domestic</span
+                    ><span class="bar-item-value">48 (29.1%)</span>
+                  </div>
+                  <div class="progress-track-lg">
+                    <div
+                      class="progress-fill-lg"
+                      style="width: 29.1%; background: #3b82f6"
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="bar-item-header">
+                    <span class="bar-item-label">International</span
+                    ><span class="bar-item-value">117 (70.9%)</span>
+                  </div>
+                  <div class="progress-track-lg">
+                    <div
+                      class="progress-fill-lg"
+                      style="width: 70.9%; background: #16a34a"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="detail-section-title">Gender Distribution</div>
+              <div class="bar-list">
+                <div>
+                  <div class="bar-item-header">
+                    <span class="bar-item-label">Male</span
+                    ><span class="bar-item-value">79 (47.9%)</span>
+                  </div>
+                  <div class="progress-track-lg">
+                    <div
+                      class="progress-fill-lg"
+                      style="width: 47.9%; background: #3b82f6"
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="bar-item-header">
+                    <span class="bar-item-label">Female</span
+                    ><span class="bar-item-value">74 (44.8%)</span>
+                  </div>
+                  <div class="progress-track-lg">
+                    <div
+                      class="progress-fill-lg"
+                      style="width: 44.8%; background: #ec4899"
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="bar-item-header">
+                    <span class="bar-item-label">Not Specified</span
+                    ><span class="bar-item-value">12 (7.3%)</span>
+                  </div>
+                  <div class="progress-track-lg">
+                    <div
+                      class="progress-fill-lg"
+                      style="width: 7.3%; background: #9ca3af"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="detail-section-title">Top Countries</div>
+            <div class="bar-list">
+              <div>
+                <div class="bar-item-xs-header">
+                  <span style="color: #374151; font-weight: 500">China</span
+                  ><span style="color: #4b5563">41 (24.8%)</span>
+                </div>
+                <div class="progress-track-xs">
+                  <div
+                    class="progress-fill-xs"
+                    style="width: 24.8%; background: #002145"
+                  ></div>
+                </div>
+              </div>
+              <div>
+                <div class="bar-item-xs-header">
+                  <span style="color: #374151; font-weight: 500">India</span
+                  ><span style="color: #4b5563">28 (17.0%)</span>
+                </div>
+                <div class="progress-track-xs">
+                  <div
+                    class="progress-fill-xs"
+                    style="width: 17%; background: #002145"
+                  ></div>
+                </div>
+              </div>
+              <div>
+                <div class="bar-item-xs-header">
+                  <span style="color: #374151; font-weight: 500">Canada</span
+                  ><span style="color: #4b5563">24 (14.5%)</span>
+                </div>
+                <div class="progress-track-xs">
+                  <div
+                    class="progress-fill-xs"
+                    style="width: 14.5%; background: #002145"
+                  ></div>
+                </div>
+              </div>
+              <div>
+                <div class="bar-item-xs-header">
+                  <span style="color: #374151; font-weight: 500"
+                    >United States</span
+                  ><span style="color: #4b5563">15 (9.1%)</span>
+                </div>
+                <div class="progress-track-xs">
+                  <div
+                    class="progress-fill-xs"
+                    style="width: 9.1%; background: #002145"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- CHANGE HISTORY TAB                                           -->
+      <!-- ============================================================ -->
+      <section id="historySection" class="hidden">
+        <!-- Filter bar -->
+        <div
+          class="card"
+          style="
+            margin-bottom: 16px;
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            padding: 16px 20px;
+          "
+        >
+          <div>
+            <label class="status-filter-label">Status</label>
+            <select class="status-filter-select" style="width: 256px">
+              <option>All Statuses</option>
+              <option>Offer Accepted</option>
+              <option>Waitlisted</option>
+            </select>
+          </div>
+          <div>
+            <label class="status-filter-label">Direction</label>
+            <select class="status-filter-select" style="width: 144px">
+              <option>Both</option>
+              <option>To Status</option>
+              <option>From Status</option>
+            </select>
+          </div>
+          <div>
+            <label class="status-filter-label">Acceptance</label>
+            <select class="status-filter-select" style="width: 192px">
+              <option>All</option>
+              <option>Accepted</option>
+              <option>Not Accepted</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Search -->
+        <div class="card" style="margin-bottom: 16px; padding: 24px">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              margin-bottom: 14px;
+            "
+          >
+            <div
+              style="
+                width: 40px;
+                height: 40px;
+                background: linear-gradient(135deg, #002145, #1d4ed8);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              <svg
+                style="width: 18px; height: 18px; color: #fff"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+            <span style="font-size: 1.125rem; font-weight: 600; color: #111827"
+              >Search History</span
+            >
+          </div>
+          <input
+            type="text"
+            placeholder="Search by name, student number, or date..."
+            style="
+              border: 1px solid #d1d5db;
+              border-radius: 8px;
+              padding: 9px 14px;
+              font-size: 0.875rem;
+              width: 100%;
+              outline: none;
+            "
+          />
+        </div>
+
+        <!-- Table -->
+        <div class="card" style="padding: 0; overflow: hidden">
+          <table style="width: 100%; border-collapse: collapse">
+            <thead>
+              <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb">
+                <th
+                  style="
+                    padding: 12px 16px;
+                    text-align: left;
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    color: #6b7280;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                  "
+                >
+                  Student Name
+                </th>
+                <th
+                  style="
+                    padding: 12px 16px;
+                    text-align: left;
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    color: #6b7280;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                  "
+                >
+                  Student Number
+                </th>
+                <th
+                  style="
+                    padding: 12px 16px;
+                    text-align: left;
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    color: #6b7280;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                  "
+                >
+                  Submission Date
+                </th>
+                <th
+                  style="
+                    padding: 12px 16px;
+                    text-align: left;
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    color: #6b7280;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                  "
+                >
+                  Date Changed
+                </th>
+                <th
+                  style="
+                    padding: 12px 16px;
+                    text-align: left;
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    color: #6b7280;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                  "
+                >
+                  Status Change
+                </th>
+              </tr>
+            </thead>
+            <tbody style="background: #fff; border-top: 1px solid #e5e7eb">
+              <tr style="border-bottom: 1px solid #e5e7eb">
+                <td
+                  style="
+                    padding: 12px 16px;
+                    font-size: 0.875rem;
+                    color: #111827;
+                  "
+                >
+                  Ashley Hutchinson
+                </td>
+                <td
+                  style="
+                    padding: 12px 16px;
+                    font-size: 0.875rem;
+                    color: #4b5563;
+                  "
+                >
+                  36548125
+                </td>
+                <td
+                  style="
+                    padding: 12px 16px;
+                    font-size: 0.875rem;
+                    color: #4b5563;
+                  "
+                >
+                  8/27/2024
+                </td>
+                <td
+                  style="
+                    padding: 12px 16px;
+                    font-size: 0.875rem;
+                    color: #4b5563;
+                  "
+                >
+                  3/3/2026, 10:14 AM
+                </td>
+                <td style="padding: 12px 16px; font-size: 0.875rem">
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 6px;
+                      flex-wrap: wrap;
+                    "
+                  >
+                    <span
+                      style="
+                        padding: 3px 8px;
+                        border-radius: 9999px;
+                        font-size: 0.75rem;
+                        font-weight: 500;
+                        background: #fef9c3;
+                        color: #854d0e;
+                      "
+                      >Under Review</span
+                    >
+                    <span style="color: #9ca3af">→</span>
+                    <span
+                      style="
+                        padding: 3px 8px;
+                        border-radius: 9999px;
+                        font-size: 0.75rem;
+                        font-weight: 500;
+                        background: #dcfce7;
+                        color: #166534;
+                      "
+                      >Offer Accepted</span
+                    >
+                  </div>
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e5e7eb">
+                <td
+                  style="
+                    padding: 12px 16px;
+                    font-size: 0.875rem;
+                    color: #111827;
+                  "
+                >
+                  Jenny Buckets
+                </td>
+                <td
+                  style="
+                    padding: 12px 16px;
+                    font-size: 0.875rem;
+                    color: #4b5563;
+                  "
+                >
+                  25891267
+                </td>
+                <td
+                  style="
+                    padding: 12px 16px;
+                    font-size: 0.875rem;
+                    color: #4b5563;
+                  "
+                >
+                  10/11/2023
+                </td>
+                <td
+                  style="
+                    padding: 12px 16px;
+                    font-size: 0.875rem;
+                    color: #4b5563;
+                  "
+                >
+                  3/19/2026, 2:30 PM
+                </td>
+                <td style="padding: 12px 16px; font-size: 0.875rem">
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 6px;
+                      flex-wrap: wrap;
+                    "
+                  >
+                    <span
+                      style="
+                        padding: 3px 8px;
+                        border-radius: 9999px;
+                        font-size: 0.75rem;
+                        font-weight: 500;
+                        background: #dbeafe;
+                        color: #1e40af;
+                      "
+                      >Waitlisted</span
+                    >
+                    <span style="color: #9ca3af">→</span>
+                    <span
+                      style="
+                        padding: 3px 8px;
+                        border-radius: 9999px;
+                        font-size: 0.75rem;
+                        font-weight: 500;
+                        background: #dcfce7;
+                        color: #166534;
+                      "
+                      >Offer Accepted</span
+                    >
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td
+                  style="
+                    padding: 12px 16px;
+                    font-size: 0.875rem;
+                    color: #111827;
+                  "
+                >
+                  Tod Stool
+                </td>
+                <td
+                  style="
+                    padding: 12px 16px;
+                    font-size: 0.875rem;
+                    color: #4b5563;
+                  "
+                >
+                  N/A
+                </td>
+                <td
+                  style="
+                    padding: 12px 16px;
+                    font-size: 0.875rem;
+                    color: #4b5563;
+                  "
+                >
+                  6/19/2023
+                </td>
+                <td
+                  style="
+                    padding: 12px 16px;
+                    font-size: 0.875rem;
+                    color: #4b5563;
+                  "
+                >
+                  3/19/2026, 9:05 AM
+                </td>
+                <td style="padding: 12px 16px; font-size: 0.875rem">
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 6px;
+                      flex-wrap: wrap;
+                    "
+                  >
+                    <span
+                      style="
+                        padding: 3px 8px;
+                        border-radius: 9999px;
+                        font-size: 0.75rem;
+                        font-weight: 500;
+                        background: #fef9c3;
+                        color: #854d0e;
+                      "
+                      >Under Review</span
+                    >
+                    <span style="color: #9ca3af">→</span>
+                    <span
+                      style="
+                        padding: 3px 8px;
+                        border-radius: 9999px;
+                        font-size: 0.75rem;
+                        font-weight: 500;
+                        background: #ccfbf1;
+                        color: #0f766e;
+                      "
+                      >Offer Sent to CoGSW</span
+                    >
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      let isCompare = false;
+
+      function toggleCompare() {
+        isCompare = !isCompare;
+        const btn = document.getElementById("compareBtn");
+        const picker = document.getElementById("pickerBar");
+        const single = document.getElementById("singleView");
+        const compare = document.getElementById("compareView");
+
+        btn.classList.toggle("on", isCompare);
+        btn.innerHTML = isCompare
+          ? `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/></svg> Reset View`
+          : `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/></svg> Compare Sessions`;
+
+        picker.classList.toggle("hidden", !isCompare);
+        single.classList.toggle("hidden", isCompare);
+        compare.classList.toggle("hidden", !isCompare);
+
+        const target = isCompare ? compare : single;
+        target.classList.remove("animate-in");
+        void target.offsetWidth;
+        target.classList.add("animate-in");
+      }
+
+      function switchTab(tab, el) {
+        document
+          .querySelectorAll(".stats-tab")
+          .forEach((b) => b.classList.remove("active"));
+        el.classList.add("active");
+        const stats = document.getElementById("statsSection");
+        const history = document.getElementById("historySection");
+        if (tab === "stats") {
+          stats.classList.remove("hidden");
+          history.classList.add("hidden");
+        }
+        if (tab === "history") {
+          stats.classList.add("hidden");
+          history.classList.remove("hidden");
+        }
+        if (tab === "both") {
+          stats.classList.remove("hidden");
+          history.classList.remove("hidden");
+        }
+      }
+    </script>
+  </body>
+</html>
