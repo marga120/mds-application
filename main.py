@@ -26,6 +26,7 @@ from api.test_scores import test_scores_api
 from api.database import database_api
 from api.statuses import statuses_bp
 from api.documents import documents_bp
+from api.statistics import statistics_api
 
 # Import user model for Flask-Login
 from models.users import get_user_by_id
@@ -69,6 +70,7 @@ app.register_blueprint(test_scores_api, url_prefix="/api")
 app.register_blueprint(database_api, url_prefix="/api")
 app.register_blueprint(statuses_bp)
 app.register_blueprint(documents_bp)
+app.register_blueprint(statistics_api, url_prefix="/api")
 
 
 # Web routes (that render templates)

@@ -14,6 +14,11 @@ class StatisticsManager {
     this.historyData = [];
     this.isAdmin = false;
     this.activeTab = "stats";
+    // Compare mode state
+    this.compareMode = false;
+    this.rangeMode = false;
+    this.timelineMode = false;
+    this.sessionsList = [];
     this.init();
   }
 
@@ -32,6 +37,7 @@ class StatisticsManager {
       this.initTabs();
       this.initStatusHistory();
     }
+    this.initCompare();
   }
 
   initTabs() {
@@ -746,6 +752,507 @@ class StatisticsManager {
         `;
       })
       .join("");
+  }
+  // ── Compare mode ─────────────────────────────────────────────────────────
+
+  initCompare() {
+    document
+      .getElementById("compareToggleBtn")
+      ?.addEventListener("click", () => this.toggleCompare());
+    document
+      .getElementById("compareResetBtn")
+      ?.addEventListener("click", () => this.toggleCompare(false));
+    document
+      .getElementById("timelineModeToggle")
+      ?.addEventListener("click", () => this.toggleTimelineMode());
+    document
+      .getElementById("rangeModeToggle")
+      ?.addEventListener("click", () => this.toggleRangeMode());
+    document
+      .getElementById("compareSessionA")
+      ?.addEventListener("change", () => this.loadCompareData());
+    document
+      .getElementById("compareSessionB")
+      ?.addEventListener("change", () => this.loadCompareData());
+    document
+      .getElementById("compareMonthPicker")
+      ?.addEventListener("change", () => this.loadCompareData());
+    document
+      .getElementById("compareSessionRange")
+      ?.addEventListener("change", () => this.loadCompareData());
+    document
+      .getElementById("rangeYearFrom")
+      ?.addEventListener("change", () => this.loadCompareData());
+    document
+      .getElementById("rangeYearTo")
+      ?.addEventListener("change", () => this.loadCompareData());
+  }
+
+  async toggleCompare(on = !this.compareMode) {
+    this.compareMode = on;
+    const btn = document.getElementById("compareToggleBtn");
+    const pickerBar = document.getElementById("comparePickerBar");
+    const singleView = document.getElementById("compareStatsSingle");
+    const compareView = document.getElementById("compareStatsView");
+
+    btn?.classList.toggle("bg-ubc-blue", on);
+    btn?.classList.toggle("text-white", on);
+    pickerBar?.classList.toggle("hidden", !on);
+    singleView?.classList.toggle("hidden", on);
+    compareView?.classList.toggle("hidden", !on);
+
+    if (on) {
+      if (this.sessionsList.length === 0) await this.loadSessionsForCompare();
+      this.loadCompareData();
+    }
+  }
+
+  toggleRangeMode() {
+    this.rangeMode = !this.rangeMode;
+    const btn = document.getElementById("rangeModeToggle");
+    document
+      .getElementById("twoSessionPickers")
+      ?.classList.toggle("hidden", this.rangeMode);
+    document
+      .getElementById("rangeModePickers")
+      ?.classList.toggle("hidden", !this.rangeMode);
+    btn?.classList.toggle("bg-ubc-blue", this.rangeMode);
+    btn?.classList.toggle("text-white", this.rangeMode);
+    btn?.classList.toggle("border-ubc-blue", this.rangeMode);
+    if (!this.rangeMode) this.loadCompareData();
+    else {
+      const view = document.getElementById("compareStatsView");
+      if (view)
+        view.innerHTML = `<p class="text-gray-400 text-sm p-4 text-center">Enter a From and To year to compare.</p>`;
+    }
+  }
+
+  toggleTimelineMode() {
+    this.timelineMode = !this.timelineMode;
+    const btn = document.getElementById("timelineModeToggle");
+    btn?.classList.toggle("bg-ubc-blue", this.timelineMode);
+    btn?.classList.toggle("text-white", this.timelineMode);
+    btn?.classList.toggle("border-ubc-blue", this.timelineMode);
+    const view = document.getElementById("compareTimelineView");
+    if (!this.timelineMode) {
+      view?.classList.add("hidden");
+      return;
+    }
+    view?.classList.remove("hidden");
+    this._loadTimelineData();
+  }
+
+  async _loadTimelineData() {
+    const view = document.getElementById("compareTimelineView");
+    if (!view) return;
+    const a = document.getElementById("compareSessionA")?.value;
+    const b = document.getElementById("compareSessionB")?.value;
+    if (!a || !b) {
+      view.innerHTML = `<p class="text-gray-400 text-sm p-4 text-center">Select two sessions to see the timeline.</p>`;
+      return;
+    }
+    view.innerHTML = this._loadingHTML();
+    try {
+      const data = await api.get("/api/statistics/compare-timeline", {
+        session_a: a,
+        session_b: b,
+      });
+      if (!data?.success) throw new Error(data?.message || "Failed to load");
+      this._renderTimelineView(view, data);
+    } catch (e) {
+      view.innerHTML = `<p class="text-red-500 text-sm p-4">${e.message}</p>`;
+    }
+  }
+
+  async loadSessionsForCompare() {
+    const result = await api.get("/api/sessions");
+    const byCampus = result?.sessions || {};
+    this.sessionsList = Object.values(byCampus).flat();
+    ["compareSessionA", "compareSessionB", "compareSessionRange"].forEach(
+      (id) => this._populateSessionSelect(id),
+    );
+    // Default B to the second session so we get a meaningful diff immediately
+    const bSelect = document.getElementById("compareSessionB");
+    if (bSelect && bSelect.options.length > 1) bSelect.selectedIndex = 1;
+  }
+
+  _populateSessionSelect(selectId) {
+    const el = document.getElementById(selectId);
+    if (!el) return;
+    el.innerHTML = this.sessionsList
+      .map((s) => `<option value="${s.id}">${s.name}</option>`)
+      .join("");
+    // Pre-select current session for A and Range selects
+    const currentId = window.SessionStore?.getCurrentSessionId();
+    if (currentId && selectId !== "compareSessionB") {
+      const match = [...el.options].find(
+        (o) => Number(o.value) === Number(currentId),
+      );
+      if (match) match.selected = true;
+    }
+  }
+
+  async loadCompareData() {
+    const view = document.getElementById("compareStatsView");
+    if (!view) return;
+    view.innerHTML = this._loadingHTML();
+
+    try {
+      const data = this.rangeMode
+        ? await this._fetchRangeData()
+        : await this._fetchTwoSessionData();
+
+      // null means inputs are incomplete — show a soft prompt, not an error
+      if (data === null) {
+        view.innerHTML = `<p class="text-gray-400 text-sm p-4 text-center">
+          ${this.rangeMode ? "Enter a From and To year to compare." : "Select two sessions to compare."}
+        </p>`;
+        return;
+      }
+
+      if (!data.success) throw new Error(data.message || "Failed to load");
+      this._renderCompareView(view, data);
+    } catch (e) {
+      view.innerHTML = `<p class="text-red-500 text-sm p-4">${e.message}</p>`;
+    }
+    if (this.timelineMode) this._loadTimelineData();
+  }
+
+  async _fetchTwoSessionData() {
+    const a = document.getElementById("compareSessionA")?.value;
+    const b = document.getElementById("compareSessionB")?.value;
+    if (!a || !b) return null;
+    const month = document.getElementById("compareMonthPicker")?.value;
+    const params = { session_a: a, session_b: b };
+    if (month) params.cutoff_month = month;
+    return api.get("/api/statistics/compare", params);
+  }
+
+  async _fetchRangeData() {
+    const sessionId = document.getElementById("compareSessionRange")?.value;
+    const yearFrom = document.getElementById("rangeYearFrom")?.value;
+    const yearTo = document.getElementById("rangeYearTo")?.value;
+    if (!sessionId || !yearFrom || !yearTo) return null;
+    return api.get("/api/statistics/compare-range", {
+      session_id: sessionId,
+      year_from: yearFrom,
+      year_to: yearTo,
+    });
+  }
+
+  // ── Timeline rendering ────────────────────────────────────────────────────
+
+  _renderTimelineView(container, data) {
+    const { session_a, session_b, months } = data;
+    if (!months?.length) {
+      container.innerHTML =
+        '<p class="text-gray-500 text-sm p-4">No submission data available for these sessions.</p>';
+      return;
+    }
+    const MONTHS = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const metrics = [
+      { label: "Submitted", fn: (s) => s.submitted ?? 0 },
+      { label: "Domestic", fn: (s) => s.domestic ?? 0 },
+      { label: "International", fn: (s) => s.international ?? 0 },
+      { label: "Male", fn: (s) => s.male ?? 0 },
+      { label: "Female", fn: (s) => s.female ?? 0 },
+      ...this.statusOptions.map((opt) => ({
+        label: opt.status_name,
+        fn: (s) => s.review_status_counts?.[opt.status_name] ?? 0,
+      })),
+    ];
+    const monthHeaders = months
+      .map(
+        ({ month }) =>
+          `<th colspan="2" class="px-3 py-2 text-center text-xs font-bold uppercase tracking-wider text-gray-500 border-l border-gray-100">${MONTHS[month - 1]}</th>`,
+      )
+      .join("");
+    const subHeaders = months
+      .map(
+        () =>
+          `<th class="px-2 py-1.5 text-center text-xs font-semibold text-blue-600 border-l border-gray-100">A</th>` +
+          `<th class="px-2 py-1.5 text-center text-xs font-semibold text-amber-600">B</th>`,
+      )
+      .join("");
+    const rows = metrics
+      .map(({ label, fn }) => {
+        const cells = months
+          .map(({ a_stats, b_stats }) => {
+            const a = fn(a_stats);
+            const b = fn(b_stats);
+            const cls =
+              a > b
+                ? "text-green-600"
+                : a < b
+                  ? "text-red-500"
+                  : "text-gray-400";
+            return (
+              `<td class="px-2 py-2 text-center text-sm font-medium text-gray-900 border-l border-gray-100">${a}</td>` +
+              `<td class="px-2 py-2 text-center text-sm font-medium ${cls}">${b}</td>`
+            );
+          })
+          .join("");
+        return `<tr class="hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-600 font-medium whitespace-nowrap sticky left-0 bg-white">${label}</td>${cells}</tr>`;
+      })
+      .join("");
+    container.innerHTML = `
+      <div class="mb-3 flex items-center gap-2 flex-wrap">
+        <span class="inline-block text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">A — ${session_a.name}</span>
+        <span class="text-gray-300 font-bold">vs</span>
+        <span class="inline-block text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200">B — ${session_b.name}</span>
+        <span class="text-xs text-gray-400 ml-1">submitted by 1st of month</span>
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-x-auto">
+        <table class="border-collapse text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-gray-500 sticky left-0 bg-gray-50">Metric</th>
+              ${monthHeaders}
+            </tr>
+            <tr class="bg-gray-50 border-b border-gray-200">
+              <th class="sticky left-0 bg-gray-50"></th>${subHeaders}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  // ── Compare rendering ─────────────────────────────────────────────────────
+
+  _renderCompareView(container, data) {
+    const isRange = this.rangeMode;
+    const left = isRange ? data.session : data.session_a;
+    const right = isRange ? data.range : data.session_b;
+    if (!left || !right?.stats) {
+      container.innerHTML =
+        '<p class="text-gray-500 text-sm p-4">No data available for one or both sessions.</p>';
+      return;
+    }
+    container.innerHTML = [
+      this._compareSection(
+        "Quick Stats",
+        this._quickStatsHTML(left.stats, left.name, "a") +
+          this._quickStatsHTML(right.stats, right.name ?? right.label, "b"),
+        "compare-cols",
+      ),
+      this._compareSection(
+        "Applications by Status",
+        this._statusTableHTML(left, right),
+        "",
+      ),
+      this._compareSection(
+        "Gender Distribution",
+        this._genderHTML(left.stats, left.name, "a") +
+          this._genderHTML(right.stats, right.name ?? right.label, "b"),
+        "compare-cols",
+      ),
+      this._compareSection(
+        "Top Countries",
+        this._countriesHTML(left.stats, left.name, "a") +
+          this._countriesHTML(right.stats, right.name ?? right.label, "b"),
+        "compare-cols",
+      ),
+    ].join("");
+  }
+
+  _compareSection(title, innerHTML, gridClass) {
+    return `
+      <div class="mb-7">
+        <div class="flex items-center gap-2 mb-3.5">
+          <span class="text-xs font-bold uppercase tracking-widest text-gray-400">${title}</span>
+          <div class="flex-1 h-px bg-gray-200"></div>
+        </div>
+        <div class="${gridClass === "compare-cols" ? "grid grid-cols-2 gap-5" : ""}">
+          ${innerHTML}
+        </div>
+      </div>`;
+  }
+
+  _colHeader(label, side) {
+    const cls =
+      side === "a"
+        ? "bg-blue-50 text-blue-700 border border-blue-200"
+        : "bg-amber-50 text-amber-700 border border-amber-200";
+    return `<span class="inline-block text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md mb-3 ${cls}">${label}</span>`;
+  }
+
+  _quickStatsHTML(stats, label, side) {
+    const cards = [
+      {
+        label: "Submitted",
+        val: stats.submitted,
+        color: "green",
+        icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
+      },
+      {
+        label: "Unsubmitted",
+        val: stats.unsubmitted,
+        color: "yellow",
+        icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
+      },
+      {
+        label: "Domestic",
+        val: stats.domestic,
+        color: "blue",
+        icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
+      },
+      {
+        label: "International",
+        val: stats.international,
+        color: "purple",
+        icon: "M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+      },
+    ];
+    const cardRows = cards
+      .map(
+        ({ label: lbl, val, color, icon }) => `
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-${color}-500 flex items-center justify-between">
+          <div>
+            <p class="text-xs text-gray-600 font-medium">${lbl}</p>
+            <p class="text-2xl font-bold text-gray-900">${val ?? "—"}</p>
+          </div>
+          <div class="bg-${color}-100 rounded-full p-2.5">
+            <svg class="w-5 h-5 text-${color}-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${icon}"/>
+            </svg>
+          </div>
+        </div>`,
+      )
+      .join("");
+    return `<div>${this._colHeader(label, side)}<div class="grid grid-cols-2 gap-3">${cardRows}</div></div>`;
+  }
+
+  _statusTableHTML(left, right) {
+    const lStats = left.stats;
+    const rStats = right.stats;
+    const lTotal = lStats.total || 1;
+    const rTotal = rStats.total || 1;
+    const lLabel = left.name;
+    const rLabel = right.name ?? right.label;
+
+    const rows = [
+      { label: "Submitted", lVal: lStats.submitted, rVal: rStats.submitted },
+      {
+        label: "Unsubmitted",
+        lVal: lStats.unsubmitted,
+        rVal: rStats.unsubmitted,
+      },
+      ...this.statusOptions.map((s) => ({
+        label: s.status_name,
+        lVal: lStats.review_status_counts?.[s.status_name] ?? 0,
+        rVal: rStats.review_status_counts?.[s.status_name] ?? 0,
+      })),
+    ]
+      .map(({ label, lVal, rVal }) => {
+        const delta = (lVal ?? 0) - (rVal ?? 0);
+        return `
+          <tr class="hover:bg-gray-50">
+            <td class="px-3 py-2 text-sm text-gray-700">${label}</td>
+            <td class="px-3 py-2 text-sm font-medium text-gray-900">
+              ${lVal ?? 0} <span class="text-gray-400 font-normal">(${((lVal / lTotal) * 100).toFixed(1)}%)</span>
+            </td>
+            <td class="px-3 py-2 text-center">${this._deltaTag(delta)}</td>
+            <td class="px-3 py-2 text-sm font-medium text-gray-900">
+              ${rVal ?? 0} <span class="text-gray-400 font-normal">(${((rVal / rTotal) * 100).toFixed(1)}%)</span>
+            </td>
+          </tr>`;
+      })
+      .join("");
+
+    return `
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full border-collapse text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Status</th>
+              <th class="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-blue-600">${lLabel}</th>
+              <th class="px-3 py-2 text-center text-xs font-bold uppercase tracking-wider text-gray-400">Δ</th>
+              <th class="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-amber-600">${rLabel}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  _genderHTML(stats, label, side) {
+    const total = stats.total || 1;
+    const bars = [
+      { lbl: "Male", val: stats.male, color: "#3b82f6" },
+      { lbl: "Female", val: stats.female, color: "#ec4899" },
+      {
+        lbl: "Not Specified",
+        val: stats.gender_not_specified,
+        color: "#9ca3af",
+      },
+    ]
+      .map(({ lbl, val, color }) => {
+        const pct = ((val / total) * 100).toFixed(1);
+        return `
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-600">${lbl}</span>
+              <span class="font-medium text-gray-900">${val} (${pct}%)</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+              <div class="h-3 rounded-full transition-all duration-500" style="width:${pct}%;background:${color}"></div>
+            </div>
+          </div>`;
+      })
+      .join("");
+    return `<div class="bg-white rounded-lg shadow p-5">${this._colHeader(label, side)}<div class="space-y-3">${bars}</div></div>`;
+  }
+
+  _countriesHTML(stats, label, side) {
+    const total = stats.total || 1;
+    const bars = (stats.top_countries || [])
+      .map(({ country, count }) => {
+        const pct = ((count / total) * 100).toFixed(1);
+        return `
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-gray-700 font-medium truncate" title="${country}">${country}</span>
+              <span class="text-gray-500 ml-2 flex-shrink-0">${count} (${pct}%)</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-ubc-blue h-2 rounded-full" style="width:${pct}%"></div>
+            </div>
+          </div>`;
+      })
+      .join("");
+    return `<div class="bg-white rounded-lg shadow p-5">${this._colHeader(label, side)}<div class="space-y-2.5 max-h-64 overflow-y-auto">${bars}</div></div>`;
+  }
+
+  _deltaTag(delta) {
+    if (delta > 0)
+      return `<span class="inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-green-50 text-green-700">▲ ${delta}</span>`;
+    if (delta < 0)
+      return `<span class="inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">▼ ${Math.abs(delta)}</span>`;
+    return `<span class="inline-flex items-center text-xs font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">— 0</span>`;
+  }
+
+  _loadingHTML() {
+    return `<div class="flex items-center justify-center py-12 text-gray-400 text-sm gap-2">
+      <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+      </svg>
+      Loading comparison…
+    </div>`;
   }
 }
 
