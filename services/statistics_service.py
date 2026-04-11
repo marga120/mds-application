@@ -3,6 +3,8 @@ Statistics Service — session comparison business logic.
 No Flask, no SQL. Calls ApplicantService and SessionService.
 """
 
+from datetime import date
+
 from services.applicant_service import ApplicantService
 from services.session_service import SessionService
 from services.status_service import StatusService
@@ -16,14 +18,44 @@ class StatisticsService:
 
     # ── Public API ──────────────────────────────────────────────────────────
 
-    def compare_sessions(self, session_a_id: int, session_b_id: int) -> dict:
-        """Return computed stats for two explicitly chosen sessions."""
+    def compare_sessions(
+        self, session_a_id: int, session_b_id: int, cutoff_month: int | None = None
+    ) -> dict:
+        """Return computed stats for two sessions, optionally filtered by cutoff_month (1–12)."""
         status_names = self._active_status_names()
         session_a = _session_svc.get_session_by_id(session_a_id)
         session_b = _session_svc.get_session_by_id(session_b_id)
         return {
-            "session_a": self._session_payload(session_a_id, session_a, status_names),
-            "session_b": self._session_payload(session_b_id, session_b, status_names),
+            "session_a": self._session_payload(session_a_id, session_a, status_names, cutoff_month),
+            "session_b": self._session_payload(session_b_id, session_b, status_names, cutoff_month),
+            "cutoff_month": cutoff_month,
+        }
+
+    def compare_sessions_timeline(self, session_a_id: int, session_b_id: int) -> dict:
+        """Return month-by-month cumulative stats for two sessions (submitted by 1st of each month)."""
+        status_names = self._active_status_names()
+        session_a = _session_svc.get_session_by_id(session_a_id)
+        session_b = _session_svc.get_session_by_id(session_b_id)
+        a_all = _applicant_svc.get_all(session_id=session_a_id)
+        b_all = _applicant_svc.get_all(session_id=session_b_id)
+        today = date.today()
+        a_year = session_a.get("year")
+        b_year = session_b.get("year")
+        months = []
+        for m in range(1, 13):
+            a_cutoff = date(a_year, m, 1) if a_year else None
+            b_cutoff = date(b_year, m, 1) if b_year else None
+            if a_cutoff and a_cutoff > today and (b_cutoff is None or b_cutoff > today):
+                break
+            months.append({
+                "month": m,
+                "a_stats": self._stats_from_applicants(self._filter_by_cutoff(a_all, a_cutoff), status_names),
+                "b_stats": self._stats_from_applicants(self._filter_by_cutoff(b_all, b_cutoff), status_names),
+            })
+        return {
+            "session_a": {"id": session_a_id, "name": session_a.get("name", f"Session {session_a_id}")},
+            "session_b": {"id": session_b_id, "name": session_b.get("name", f"Session {session_b_id}")},
+            "months": months,
         }
 
     def compare_range(self, session_id: int, year_from: int, year_to: int) -> dict:
@@ -59,13 +91,26 @@ class StatisticsService:
     def _active_status_names(self) -> list[str]:
         return [s["status_name"] for s in _status_svc.get_active_statuses()]
 
-    def _session_payload(self, session_id: int, session: dict, status_names: list) -> dict:
+    def _session_payload(
+        self, session_id: int, session: dict, status_names: list, cutoff_month: int | None = None
+    ) -> dict:
         applicants = _applicant_svc.get_all(session_id=session_id)
+        if cutoff_month is not None:
+            year = session.get("year")
+            cutoff = date(year, cutoff_month, 1) if year else None
+            applicants = self._filter_by_cutoff(applicants, cutoff)
         return {
             "id": session_id,
             "name": session.get("name", f"Session {session_id}"),
             "stats": self._stats_from_applicants(applicants, status_names),
         }
+
+    @staticmethod
+    def _filter_by_cutoff(applicants: list, cutoff) -> list:
+        """Filter to applicants whose submit_date is on or before cutoff. No-op if cutoff is None."""
+        if cutoff is None:
+            return applicants
+        return [a for a in applicants if a.get("submit_date") and a["submit_date"] <= cutoff]
 
     def _sessions_in_range(
         self, current_id: int, campus: str, year_from: int, year_to: int

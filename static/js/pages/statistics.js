@@ -17,6 +17,7 @@ class StatisticsManager {
     // Compare mode state
     this.compareMode = false;
     this.rangeMode = false;
+    this.timelineMode = false;
     this.sessionsList = [];
     this.init();
   }
@@ -762,6 +763,9 @@ class StatisticsManager {
       .getElementById("compareResetBtn")
       ?.addEventListener("click", () => this.toggleCompare(false));
     document
+      .getElementById("timelineModeToggle")
+      ?.addEventListener("click", () => this.toggleTimelineMode());
+    document
       .getElementById("rangeModeToggle")
       ?.addEventListener("click", () => this.toggleRangeMode());
     document
@@ -769,6 +773,9 @@ class StatisticsManager {
       ?.addEventListener("change", () => this.loadCompareData());
     document
       .getElementById("compareSessionB")
+      ?.addEventListener("change", () => this.loadCompareData());
+    document
+      .getElementById("compareMonthPicker")
       ?.addEventListener("change", () => this.loadCompareData());
     document
       .getElementById("compareSessionRange")
@@ -812,13 +819,48 @@ class StatisticsManager {
     btn?.classList.toggle("bg-ubc-blue", this.rangeMode);
     btn?.classList.toggle("text-white", this.rangeMode);
     btn?.classList.toggle("border-ubc-blue", this.rangeMode);
-    // Don't auto-fetch on toggle — range mode needs year inputs filled first.
-    // Two-session mode can re-fetch immediately since both selects already have values.
     if (!this.rangeMode) this.loadCompareData();
     else {
       const view = document.getElementById("compareStatsView");
       if (view)
         view.innerHTML = `<p class="text-gray-400 text-sm p-4 text-center">Enter a From and To year to compare.</p>`;
+    }
+  }
+
+  toggleTimelineMode() {
+    this.timelineMode = !this.timelineMode;
+    const btn = document.getElementById("timelineModeToggle");
+    btn?.classList.toggle("bg-ubc-blue", this.timelineMode);
+    btn?.classList.toggle("text-white", this.timelineMode);
+    btn?.classList.toggle("border-ubc-blue", this.timelineMode);
+    const view = document.getElementById("compareTimelineView");
+    if (!this.timelineMode) {
+      view?.classList.add("hidden");
+      return;
+    }
+    view?.classList.remove("hidden");
+    this._loadTimelineData();
+  }
+
+  async _loadTimelineData() {
+    const view = document.getElementById("compareTimelineView");
+    if (!view) return;
+    const a = document.getElementById("compareSessionA")?.value;
+    const b = document.getElementById("compareSessionB")?.value;
+    if (!a || !b) {
+      view.innerHTML = `<p class="text-gray-400 text-sm p-4 text-center">Select two sessions to see the timeline.</p>`;
+      return;
+    }
+    view.innerHTML = this._loadingHTML();
+    try {
+      const data = await api.get("/api/statistics/compare-timeline", {
+        session_a: a,
+        session_b: b,
+      });
+      if (!data?.success) throw new Error(data?.message || "Failed to load");
+      this._renderTimelineView(view, data);
+    } catch (e) {
+      view.innerHTML = `<p class="text-red-500 text-sm p-4">${e.message}</p>`;
     }
   }
 
@@ -873,13 +915,17 @@ class StatisticsManager {
     } catch (e) {
       view.innerHTML = `<p class="text-red-500 text-sm p-4">${e.message}</p>`;
     }
+    if (this.timelineMode) this._loadTimelineData();
   }
 
   async _fetchTwoSessionData() {
     const a = document.getElementById("compareSessionA")?.value;
     const b = document.getElementById("compareSessionB")?.value;
     if (!a || !b) return null;
-    return api.get("/api/statistics/compare", { session_a: a, session_b: b });
+    const month = document.getElementById("compareMonthPicker")?.value;
+    const params = { session_a: a, session_b: b };
+    if (month) params.cutoff_month = month;
+    return api.get("/api/statistics/compare", params);
   }
 
   async _fetchRangeData() {
@@ -892,6 +938,97 @@ class StatisticsManager {
       year_from: yearFrom,
       year_to: yearTo,
     });
+  }
+
+  // ── Timeline rendering ────────────────────────────────────────────────────
+
+  _renderTimelineView(container, data) {
+    const { session_a, session_b, months } = data;
+    if (!months?.length) {
+      container.innerHTML =
+        '<p class="text-gray-500 text-sm p-4">No submission data available for these sessions.</p>';
+      return;
+    }
+    const MONTHS = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const metrics = [
+      { label: "Submitted", fn: (s) => s.submitted ?? 0 },
+      { label: "Domestic", fn: (s) => s.domestic ?? 0 },
+      { label: "International", fn: (s) => s.international ?? 0 },
+      { label: "Male", fn: (s) => s.male ?? 0 },
+      { label: "Female", fn: (s) => s.female ?? 0 },
+      ...this.statusOptions.map((opt) => ({
+        label: opt.status_name,
+        fn: (s) => s.review_status_counts?.[opt.status_name] ?? 0,
+      })),
+    ];
+    const monthHeaders = months
+      .map(
+        ({ month }) =>
+          `<th colspan="2" class="px-3 py-2 text-center text-xs font-bold uppercase tracking-wider text-gray-500 border-l border-gray-100">${MONTHS[month - 1]}</th>`,
+      )
+      .join("");
+    const subHeaders = months
+      .map(
+        () =>
+          `<th class="px-2 py-1.5 text-center text-xs font-semibold text-blue-600 border-l border-gray-100">A</th>` +
+          `<th class="px-2 py-1.5 text-center text-xs font-semibold text-amber-600">B</th>`,
+      )
+      .join("");
+    const rows = metrics
+      .map(({ label, fn }) => {
+        const cells = months
+          .map(({ a_stats, b_stats }) => {
+            const a = fn(a_stats);
+            const b = fn(b_stats);
+            const cls =
+              a > b
+                ? "text-green-600"
+                : a < b
+                  ? "text-red-500"
+                  : "text-gray-400";
+            return (
+              `<td class="px-2 py-2 text-center text-sm font-medium text-gray-900 border-l border-gray-100">${a}</td>` +
+              `<td class="px-2 py-2 text-center text-sm font-medium ${cls}">${b}</td>`
+            );
+          })
+          .join("");
+        return `<tr class="hover:bg-gray-50"><td class="px-3 py-2 text-sm text-gray-600 font-medium whitespace-nowrap sticky left-0 bg-white">${label}</td>${cells}</tr>`;
+      })
+      .join("");
+    container.innerHTML = `
+      <div class="mb-3 flex items-center gap-2 flex-wrap">
+        <span class="inline-block text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">A — ${session_a.name}</span>
+        <span class="text-gray-300 font-bold">vs</span>
+        <span class="inline-block text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200">B — ${session_b.name}</span>
+        <span class="text-xs text-gray-400 ml-1">submitted by 1st of month</span>
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-x-auto">
+        <table class="border-collapse text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-gray-500 sticky left-0 bg-gray-50">Metric</th>
+              ${monthHeaders}
+            </tr>
+            <tr class="bg-gray-50 border-b border-gray-200">
+              <th class="sticky left-0 bg-gray-50"></th>${subHeaders}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">${rows}</tbody>
+        </table>
+      </div>`;
   }
 
   // ── Compare rendering ─────────────────────────────────────────────────────

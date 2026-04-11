@@ -88,6 +88,26 @@
               id="compareSessionB"
               class="input-ubc text-sm py-1.5"
             ></select>
+            <span class="font-bold text-gray-300 px-1 ml-2">|</span>
+            <span
+              class="text-xs font-bold uppercase tracking-wider text-gray-500"
+              >As of</span
+            >
+            <select id="compareMonthPicker" class="input-ubc text-sm py-1.5">
+              <option value="">All submissions</option>
+              <option value="1">January 1</option>
+              <option value="2">February 1</option>
+              <option value="3">March 1</option>
+              <option value="4">April 1</option>
+              <option value="5">May 1</option>
+              <option value="6">June 1</option>
+              <option value="7">July 1</option>
+              <option value="8">August 1</option>
+              <option value="9">September 1</option>
+              <option value="10">October 1</option>
+              <option value="11">November 1</option>
+              <option value="12">December 1</option>
+            </select>
           </div>
           <!-- Range mode -->
           <div
@@ -129,6 +149,13 @@
             />
           </div>
           <!-- Controls -->
+          <button
+            id="timelineModeToggle"
+            class="ml-1 px-3 py-1.5 rounded-lg border border-gray-300 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-all"
+            title="Show month-by-month timeline for both sessions"
+          >
+            Month by Month
+          </button>
           <button
             id="rangeModeToggle"
             class="ml-1 px-3 py-1.5 rounded-lg border border-gray-300 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-all"
@@ -379,6 +406,7 @@
 
         <!-- Compare view — populated by JS, hidden until compare mode -->
         <div id="compareStatsView" class="hidden"></div>
+        <div id="compareTimelineView" class="hidden mt-6"></div>
       </section>
 
       <!-- Tab Switcher (admin only tabs shown via JS) -->
