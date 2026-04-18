@@ -45,7 +45,7 @@ class StatisticsService:
         for m in range(1, 13):
             a_cutoff = date(a_year, m, 1) if a_year else None
             b_cutoff = date(b_year, m, 1) if b_year else None
-            if a_cutoff and a_cutoff > today and (b_cutoff is None or b_cutoff > today):
+            if (a_cutoff is None or a_cutoff > today) and (b_cutoff is None or b_cutoff > today):
                 break
             months.append({
                 "month": m,
@@ -97,8 +97,7 @@ class StatisticsService:
         applicants = _applicant_svc.get_all(session_id=session_id)
         if cutoff_month is not None:
             year = session.get("year")
-            cutoff = date(year, cutoff_month, 1) if year else None
-            applicants = self._filter_by_cutoff(applicants, cutoff)
+            applicants = self._filter_by_cutoff(applicants, date(year, cutoff_month, 1) if year else None)
         return {
             "id": session_id,
             "name": session.get("name", f"Session {session_id}"),
@@ -106,11 +105,18 @@ class StatisticsService:
         }
 
     @staticmethod
-    def _filter_by_cutoff(applicants: list, cutoff) -> list:
-        """Filter to applicants whose submit_date is on or before cutoff. No-op if cutoff is None."""
+    def _filter_by_cutoff(applicants: list, cutoff: date | None) -> list:
         if cutoff is None:
             return applicants
-        return [a for a in applicants if a.get("submit_date") and a["submit_date"] <= cutoff]
+        result = []
+        for a in applicants:
+            sd = a.get("submit_date")
+            if not sd:
+                continue
+            sd_date = sd.date() if hasattr(sd, "date") else sd
+            if sd_date <= cutoff:
+                result.append(a)
+        return result
 
     def _sessions_in_range(
         self, current_id: int, campus: str, year_from: int, year_to: int

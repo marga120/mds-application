@@ -819,6 +819,8 @@ class StatisticsManager {
     btn?.classList.toggle("bg-ubc-blue", this.rangeMode);
     btn?.classList.toggle("text-white", this.rangeMode);
     btn?.classList.toggle("border-ubc-blue", this.rangeMode);
+    // Don't auto-fetch on toggle — range mode needs year inputs filled first.
+    // Two-session mode can re-fetch immediately since both selects already have values.
     if (!this.rangeMode) this.loadCompareData();
     else {
       const view = document.getElementById("compareStatsView");
@@ -860,7 +862,7 @@ class StatisticsManager {
       if (!data?.success) throw new Error(data?.message || "Failed to load");
       this._renderTimelineView(view, data);
     } catch (e) {
-      view.innerHTML = `<p class="text-red-500 text-sm p-4">${e.message}</p>`;
+      view.innerHTML = `<p class="text-red-500 text-sm p-4">${StatisticsManager._esc(e.message)}</p>`;
     }
   }
 
@@ -1010,9 +1012,9 @@ class StatisticsManager {
       .join("");
     container.innerHTML = `
       <div class="mb-3 flex items-center gap-2 flex-wrap">
-        <span class="inline-block text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">A — ${session_a.name}</span>
+        <span class="inline-block text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">A — ${StatisticsManager._esc(session_a.name)}</span>
         <span class="text-gray-300 font-bold">vs</span>
-        <span class="inline-block text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200">B — ${session_b.name}</span>
+        <span class="inline-block text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200">B — ${StatisticsManager._esc(session_b.name)}</span>
         <span class="text-xs text-gray-400 ml-1">submitted by 1st of month</span>
       </div>
       <div class="bg-white rounded-lg shadow overflow-x-auto">
@@ -1253,6 +1255,14 @@ class StatisticsManager {
       </svg>
       Loading comparison…
     </div>`;
+  }
+
+  static _esc(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 }
 
