@@ -37,6 +37,8 @@ def compare_timeline():
         return jsonify({"success": False, "message": "session_a and session_b are required"}), 400
     try:
         return jsonify({"success": True, **_svc.compare_sessions_timeline(session_a, session_b)}), 200
+    except ValueError as e:
+        return jsonify({"success": False, "message": str(e)}), 400
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
