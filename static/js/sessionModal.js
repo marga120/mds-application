@@ -171,8 +171,19 @@ class SessionModal {
             // Get current session
             this.selectedSessionId = SessionStore.getCurrentSessionId();
 
-            // Render list for current tab
-            this._renderSessionList();
+            // Only show tabs for campuses the API returned (campus-scoped
+            // Admins get a single campus), and open on the current session's campus
+            const campuses = Object.keys(this.sessions);
+            document.querySelectorAll('.campus-tab').forEach(tab => {
+                const campus = tab.id.replace('tab', '');
+                tab.classList.toggle('hidden', campuses.length > 0 && !campuses.includes(campus));
+            });
+            const tabCampuses = ['UBC-V', 'UBC-O'].filter(c => campuses.includes(c));
+            const currentCampus = SessionStore.getSessionMetadata()?.campus;
+            const initialTab = tabCampuses.includes(currentCampus)
+                ? currentCampus
+                : tabCampuses.find(c => this.sessions[c].length > 0) || this.currentTab;
+            this.switchTab(initialTab);
             this._hideLoading();
         } catch (error) {
             console.error('Error loading sessions:', error);
@@ -271,7 +282,8 @@ class SessionModal {
         if (!this.selectedSessionId) return;
 
         // Find selected session data
-        const allSessions = [...this.sessions['UBC-V'], ...this.sessions['UBC-O']];
+        // The API may omit a campus (no sessions there, or a campus-scoped Admin)
+        const allSessions = Object.values(this.sessions || {}).flat();
         const session = allSessions.find(s => s.id === this.selectedSessionId);
 
         if (!session) return;

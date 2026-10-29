@@ -67,8 +67,28 @@ class AuthManager {
             </div>
           </div>
         `;
+      } else if (isAdminOrSuperAdmin) {
+        // Admin: switch only, between the sessions of their own campus
+        sessionsDropdownArea.innerHTML = `
+          <div class="relative">
+            <button id="sessionBadge" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              <span id="sessionBadgeText">Loading...</span>
+              <svg class="w-3 h-3 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            <div id="sessionsDropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+              <button id="switchSessionBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+                Switch Session
+              </button>
+            </div>
+          </div>
+        `;
       } else {
-        // Non-Super Admin: static badge only (no dropdown)
+        // Faculty / Viewer: static badge only (no dropdown)
         sessionsDropdownArea.innerHTML = `
           <div class="relative">
             <div id="sessionBadge" class="bg-white/10 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-medium border border-white/20 flex items-center gap-2">
@@ -391,6 +411,8 @@ class AuthManager {
   }
 
   async handleLogout() {
+    // Don't let the next user on this browser inherit this user's session
+    if (window.SessionStore) SessionStore.clearCurrentSession();
     try {
       const response = await fetch("/api/auth/logout", {
         method: "POST",

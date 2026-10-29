@@ -155,13 +155,34 @@ const SessionStore = {
    * Checks if a session is stored; if not, fetches the most recent session
    * from the API and stores it. Used during app initialization.
    *
+   * The in-flight promise is shared, so auth.js and the page scripts that
+   * await this before fetching data all see the same resolved session.
+   *
    * @returns {Promise<number|null>} Promise resolving to session ID or null
    *
    * @example
    *     await SessionStore.initializeSession();
    *     // Session is now set (either from storage or API)
    */
-  initializeSession: async function () {
+  initializeSession: function () {
+    if (!this._initPromise) {
+      this._initPromise = this._initializeSession().then((sessionId) => {
+        // Allow a retry later if nothing could be resolved
+        if (sessionId === null) this._initPromise = null;
+        return sessionId;
+      });
+    }
+    return this._initPromise;
+  },
+
+  /**
+   * Resolve the session for initializeSession (stored and valid, else the
+   * campus default from the API).
+   *
+   * @private
+   * @returns {Promise<number|null>} Promise resolving to session ID or null
+   */
+  _initializeSession: async function () {
     const existingId = this.getCurrentSessionId();
 
     if (existingId) {
