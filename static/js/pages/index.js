@@ -30,12 +30,20 @@ class ApplicantsManager {
     this.statusOptions = []; // Cache for dynamic status options
     this.statusesLoaded = false; // Track if statuses are loaded
     this.initializeEventListeners();
-    this.loadSessionName();
     this.init(); // Call async init
   }
 
   async init() {
     await this.loadStatuses(); // Wait for statuses to load first
+    // Resolve the current session before fetching, so the list matches the badge
+    if (window.SessionStore) {
+      await SessionStore.initializeSession();
+      SessionStore.onSessionChange(() => {
+        this.loadSessionName();
+        this.loadApplicants();
+      });
+    }
+    this.loadSessionName();
     this.loadApplicants();
     this.initializeActionButtons();
     this.selectedApplicants = new Set();
@@ -178,25 +186,13 @@ class ApplicantsManager {
     }
   }
 
-  async loadSessionName() {
-    try {
-      const response = await fetch("/api/sessions");
-      const result = await response.json();
-
-      if (result.success && result.session_name) {
-        this.sessionName = result.session_name;
-        this.updateSectionTitle();
-      } else {
-        // Fallback to default if no session name found
-        this.sessionName = "Default Session";
-        this.updateSectionTitle();
-      }
-    } catch (error) {
-      console.error("Failed to load session name:", error);
-      // Fallback to default
-      this.sessionName = "Default Session";
-      this.updateSectionTitle();
-    }
+  loadSessionName() {
+    const metadata = window.SessionStore
+      ? SessionStore.getSessionMetadata()
+      : null;
+    // Fallback to default if no session is selected
+    this.sessionName = metadata?.name || "Default Session";
+    this.updateSectionTitle();
   }
 
   updateSectionTitle() {

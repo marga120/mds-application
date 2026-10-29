@@ -348,6 +348,7 @@ class StatisticsManager {
 
   async loadApplicants() {
     try {
+      if (window.SessionStore) await SessionStore.initializeSession();
       const sessionId = window.SessionStore
         ? SessionStore.getCurrentSessionId()
         : null;
@@ -571,6 +572,7 @@ class StatisticsManager {
   }
 
   async loadStatusHistory() {
+    if (window.SessionStore) await SessionStore.initializeSession();
     const sessionId = window.SessionStore
       ? SessionStore.getCurrentSessionId()
       : null;
