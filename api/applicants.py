@@ -10,9 +10,11 @@ from utils.permissions import require_admin, require_faculty_or_admin
 from services.applicant_service import ApplicantService
 from services.csv_import_service import CSVImportService, SessionValidationError
 from services.export_service import ExportService
+from services.session_service import SessionService
 
 applicants_api = Blueprint("applicants_api", __name__)
 _applicant_svc = ApplicantService()
+_session_svc = SessionService()
 _csv_svc = CSVImportService()
 _export_svc = ExportService()
 
@@ -60,10 +62,29 @@ def upload_csv():
 
 
 @applicants_api.route("/applicants", methods=["GET"])
+@login_required
 def get_applicants():
-    """Get all applicants, optionally filtered by session."""
+    """Get all applicants, optionally filtered by session. Regular Admins only see their campus."""
     session_id = request.args.get("session_id", type=int)
     try:
+        # Same scoping as /api/sessions: Super Admins are unrestricted
+        campus = None
+        if current_user.is_admin and not current_user.is_super_admin and current_user.campus:
+            campus = current_user.campus.strip().upper()
+        if campus:
+            if session_id is None:
+                # Same default as /api/sessions/current, never every campus
+                session = _session_svc.get_most_recent_session(campus=current_user.campus)
+                if session is None:
+                    return jsonify({"success": True, "applicants": []})
+                session_id = session["id"]
+            else:
+                try:
+                    session = _session_svc.get_session_by_id(session_id)
+                except ValueError as e:
+                    return jsonify({"success": False, "message": str(e)}), 404
+                if (session.get("campus") or "").strip().upper() != campus:
+                    return jsonify({"success": False, "message": "Access denied"}), 403
         applicants = _applicant_svc.get_all(session_id=session_id)
         return jsonify({"success": True, "applicants": applicants})
     except Exception as e:
